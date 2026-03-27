@@ -101,6 +101,8 @@ export const mapperService = {
       babies: data.babies || 0,
       luggage23kg: data.luggage23kg || 0,
       title: data.title || '',
+      responded: data.responded || false,
+      slaStartAt: data.sla_start_at || data.created_at,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     })
@@ -209,7 +211,9 @@ export const mapperService = {
         children: lead.children || 0,
         babies: lead.babies || 0,
         luggage23kg: lead.luggage23kg || 0,
-        title: lead.title || ''
+        title: lead.title || '',
+        responded: lead.responded || false,
+        sla_start_at: lead.slaStartAt
       };
       // CRITICAL: Apenas incluir o ID se ele for válido e não for uma string vazia
       if (lead.id && lead.id.trim() !== '') {

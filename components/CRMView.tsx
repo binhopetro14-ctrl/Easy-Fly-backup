@@ -6,7 +6,7 @@ import {
   ChevronDown, Pencil, Columns, Filter,
   Phone, Mail, Calendar, User, DollarSign,
   GripVertical, Plane, Hotel, Shield, Car, LayoutGrid,
-  Trash2, Luggage, Baby, ArrowRight, Clock, Users, MessageCircle
+  Trash2, Luggage, Baby, ArrowRight, Clock, Users, MessageCircle, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lead, CRMStatus, TeamMember } from '@/types';
@@ -16,6 +16,7 @@ interface CRMViewProps {
   leads: Lead[];
   loading: boolean;
   updateLeadStatus: (id: string, newStatus: CRMStatus) => Promise<any>;
+  onUpdateLead: (lead: Lead) => Promise<any>;
   fetchLeads: () => Promise<void>;
   currentUser?: TeamMember | null;
   onAddLead: () => void;
@@ -23,31 +24,74 @@ interface CRMViewProps {
   onDeleteLead: (id: string) => void;
 }
 
-const COLUMNS: { id: CRMStatus; title: string; color: string; borderColor: string; bgColor: string }[] = [
-  { id: 'novo_contato', title: 'Novo Contato', color: 'text-purple-600', borderColor: 'border-purple-500', bgColor: 'bg-purple-50' },
-  { id: 'em_cotacao', title: 'Em Cotação', color: 'text-blue-600', borderColor: 'border-blue-500', bgColor: 'bg-blue-50' },
-  { id: 'proposta_enviada', title: 'Proposta Enviada', color: 'text-orange-600', borderColor: 'border-orange-500', bgColor: 'bg-orange-50' },
-  { id: 'aprovado', title: 'Aprovado', color: 'text-green-600', borderColor: 'border-green-500', bgColor: 'bg-green-50' },
-  { id: 'perdido', title: 'Perdido', color: 'text-red-600', borderColor: 'border-red-500', bgColor: 'bg-red-50' },
+const COLUMNS: { id: CRMStatus; title: string; color: string; borderColor: string; bgColor: string; headerBg: string }[] = [
+  { id: 'novo_contato', title: 'Novo Contato', color: 'text-purple-600', borderColor: 'border-purple-500', bgColor: 'bg-purple-50', headerBg: 'bg-purple-500' },
+  { id: 'em_cotacao', title: 'Em Cotação', color: 'text-blue-600', borderColor: 'border-blue-500', bgColor: 'bg-blue-50', headerBg: 'bg-blue-500' },
+  { id: 'proposta_enviada', title: 'Proposta Enviada', color: 'text-orange-600', borderColor: 'border-orange-500', bgColor: 'bg-orange-50', headerBg: 'bg-orange-500' },
+  { id: 'aprovado', title: 'Aprovado', color: 'text-green-600', borderColor: 'border-green-500', bgColor: 'bg-green-50', headerBg: 'bg-green-500' },
+  { id: 'perdido', title: 'Perdido', color: 'text-red-600', borderColor: 'border-red-500', bgColor: 'bg-red-50', headerBg: 'bg-red-500' },
 ];
 
 export function CRMView({ 
   leads, 
   loading, 
   updateLeadStatus, 
+  onUpdateLead,
   fetchLeads, 
   currentUser, 
   onAddLead, 
   onEditLead, 
   onDeleteLead 
 }: CRMViewProps) {
-  // const { leads, loading, updateLeadStatus, fetchLeads } = useLeads(); // This line is removed
   const [searchTerm, setSearchTerm] = useState('');
+  const [now, setNow] = useState(new Date());
 
-  // Sincroniza dados ao montar (opcional, já que o pai já deve carregar, mas mantemos para segurança)
+  // Atualiza o tempo atual a cada minuto para cores dinâmicas
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Sincroniza dados ao montar
   React.useEffect(() => {
     if (leads.length === 0) fetchLeads();
   }, [fetchLeads, leads.length]);
+
+  const getUrgency = (slaStartAt: string | undefined, createdAt: string) => {
+    const startTime = new Date(slaStartAt || createdAt);
+    const diff = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
+    const hours = Math.floor(diff / 60);
+    const label = hours > 0 ? `${hours}h${diff % 60}m` : `${diff}m`;
+    
+    if (diff < 120) return { 
+      color: 'text-emerald-500', 
+      bg: 'bg-emerald-500', 
+      border: 'border-emerald-500', 
+      animate: '',
+      label, 
+      text: 'Agente Ágil' 
+    };
+    if (diff < 360) return { 
+      color: 'text-amber-500', 
+      bg: 'bg-amber-500', 
+      border: 'border-amber-500', 
+      animate: 'animate-pulse-slow',
+      label, 
+      text: 'Atenção' 
+    };
+    return { 
+      color: 'text-red-500', 
+      bg: 'bg-red-500', 
+      border: 'border-red-500', 
+      animate: 'animate-pulse-fast',
+      label, 
+      text: 'Urgente' 
+    };
+  };
+
+  const handleToggleResponded = async (lead: Lead) => {
+    await onUpdateLead({ ...lead, responded: !lead.responded });
+  };
 
   const filteredLeads = useMemo(() => {
     return leads.filter((l: Lead) => 
@@ -81,7 +125,17 @@ export function CRMView({
     e.preventDefault();
     const leadId = e.dataTransfer.getData('leadId');
     if (leadId) {
-      await updateLeadStatus(leadId, newStatus);
+      const lead = leads.find(l => l.id === leadId);
+      if (lead) {
+        let slaStartAt = lead.slaStartAt;
+        
+        // Regra Especial: Só reseta o tempo se estiver saindo de 'Proposta Enviada' para 'Em Cotação'
+        if (lead.status === 'proposta_enviada' && newStatus === 'em_cotacao') {
+          slaStartAt = new Date().toISOString();
+        }
+
+        await onUpdateLead({ ...lead, status: newStatus, responded: false, slaStartAt });
+      }
     }
   };
 
@@ -136,10 +190,10 @@ export function CRMView({
                 key={col.id} 
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, col.id)}
-                className="flex-1 min-w-[300px] flex flex-col h-full rounded-2xl bg-gray-100/30 dark:bg-slate-900/40 border border-gray-100/50 dark:border-slate-800/50 overflow-hidden"
+                className="flex-1 min-w-[300px] flex flex-col h-full rounded-2xl bg-gray-50/50 dark:bg-slate-900/40 border-2 border-gray-200 dark:border-slate-800 overflow-hidden relative"
               >
-                {/* Status Line */}
-                <div className={`h-1.5 w-full ${col.borderColor.replace('border-', 'bg-')}`} />
+                {/* Status Line (Top only) */}
+                <div className={`h-1.5 w-full ${col.headerBg} opacity-100`} />
                 
                 {/* Column Header */}
                 <div className="p-3 bg-white/50 dark:bg-slate-800/50 border-b border-gray-100/50 dark:border-slate-700/50 shrink-0">
@@ -159,14 +213,41 @@ export function CRMView({
                   {columnLeads.length > 0 ? (
                     columnLeads.map((lead: Lead) => {
                       const route = getRouteInfo(lead);
+                      const urgency = getUrgency(lead.slaStartAt, lead.createdAt);
+
                       return (
                         <motion.div 
                           layout
                           key={lead.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e as any, lead.id)}
-                          className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 hover:border-purple-200 dark:hover:border-purple-500/30 transition-all cursor-grab active:cursor-grabbing group relative"
+                          className={`p-3 bg-white dark:bg-slate-800 rounded-xl border-2 ${urgency.border} ${urgency.animate} hover:brightness-95 transition-all cursor-grab active:cursor-grabbing group relative`}
                         >
+                          {/* SLA Badge OR Responded Toggle */}
+                          <div className="absolute top-2 right-12 flex items-center gap-1.5 transition-opacity">
+                             {lead.status === 'proposta_enviada' ? (
+                               <button 
+                                 onClick={(e) => { e.stopPropagation(); handleToggleResponded(lead); }}
+                                 className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all flex items-center gap-1 ${lead.responded ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500'}`}
+                               >
+                                 {lead.responded && <CheckCircle2 className="w-2 h-2" />}
+                                 {lead.responded ? 'Respondido' : 'Marcar Resposta'}
+                               </button>
+                             ) : (
+                               <>
+                                 <div className={`relative flex h-3 w-3 items-center justify-center`}>
+                                    {urgency.bg === 'bg-red-500' && (
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    )}
+                                    <div className={`relative inline-flex rounded-full h-3 w-3 ${urgency.bg} shadow-sm border border-white/40`} />
+                                 </div>
+                                 <span className={`text-[11px] font-black uppercase tracking-tighter ${urgency.color}`}>
+                                    {urgency.label}
+                                 </span>
+                               </>
+                             )}
+                          </div>
+
                           {/* Botões de Ação */}
                           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                             <button 

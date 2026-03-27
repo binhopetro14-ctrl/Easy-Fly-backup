@@ -654,6 +654,7 @@ export default function Page() {
               leads={leads}
               loading={loadingLeads}
               updateLeadStatus={updateLeadStatus}
+              onUpdateLead={internalSaveLead}
               fetchLeads={fetchLeads}
               currentUser={currentUser} 
               onAddLead={openAddLead} 

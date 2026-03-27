@@ -132,4 +132,6 @@ export interface Lead {
   babies?: number;
   luggage23kg?: number;
   title?: string;
+  responded?: boolean;
+  slaStartAt?: string;
 }

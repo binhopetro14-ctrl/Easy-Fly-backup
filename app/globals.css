@@ -21,6 +21,20 @@ textarea {
     cursor: text;
 }
 
+/* Animações de Pulsação de Borda */
+@keyframes pulse-border {
+    0%, 100% { opacity: 1; border-width: 2px; }
+    50% { opacity: 0.3; border-width: 2px; }
+}
+
+.animate-pulse-fast {
+    animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-pulse-slow {
+    animation: pulse-border 5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* Utilitário para esconder a barra de rolagem */
 @layer utilities {
     .scrollbar-hide {
