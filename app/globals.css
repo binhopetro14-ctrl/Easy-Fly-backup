@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Cursor pointer para elementos interativos */
+button,
+a,
+select,
+input[type="checkbox"],
+input[type="radio"],
+[role="button"] {
+    cursor: pointer;
+}
+
+/* Cursor de texto para campos de entrada */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea {
+    cursor: text;
+}
+
+/* Utilitário para esconder a barra de rolagem */
+@layer utilities {
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+}
