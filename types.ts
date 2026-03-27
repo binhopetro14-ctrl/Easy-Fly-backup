@@ -124,5 +124,12 @@ export interface Lead {
   createdAt: string;
   updatedAt: string;
   source?: string; // Ex: Instagram, Indicação, etc.
-  items?: any[]; // Itens da cotação (vôos, hotéis, etc.)
+  items?: any[]; // Itens da cotação
+  tags?: string[];
+  duration?: string;
+  adults?: number;
+  children?: number;
+  babies?: number;
+  luggage23kg?: number;
+  title?: string;
 }

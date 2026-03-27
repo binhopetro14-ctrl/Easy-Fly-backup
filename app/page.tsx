@@ -124,6 +124,7 @@ export default function Page() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleteSaleConfirmOpen, setIsDeleteSaleConfirmOpen] = useState(false);
   const [isDeleteSupplierConfirmOpen, setIsDeleteSupplierConfirmOpen] = useState(false);
+  const [isDeleteLeadConfirmOpen, setIsDeleteLeadConfirmOpen] = useState(false);
 
   // --- ESTADOS DE EDIÇÃO/DELEÇÃO ---
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -134,6 +135,7 @@ export default function Page() {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
 
   const [isMyProfileModalOpen, setIsMyProfileModalOpen] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -445,6 +447,26 @@ export default function Page() {
     }
   };
 
+  const handleDeleteLead = (id: string) => {
+    const lead = leads.find(l => l.id === id);
+    if (lead) {
+      setLeadToDelete(lead);
+      setIsDeleteLeadConfirmOpen(true);
+    }
+  };
+
+  const confirmDeleteLead = async () => {
+    if (leadToDelete) {
+      try {
+        await internalDeleteLead(leadToDelete.id);
+        setIsDeleteLeadConfirmOpen(false);
+        setLeadToDelete(null);
+      } catch (error: any) {
+        alert('Erro ao excluir lead: ' + error.message);
+      }
+    }
+  };
+
   const openAddLead = () => { setEditingLead(null); setIsLeadModalOpen(true); };
   const openEditLead = (lead: Lead) => { setEditingLead(lead); setIsLeadModalOpen(true); };
 
@@ -513,18 +535,14 @@ export default function Page() {
       <LeadModal
         isOpen={isLeadModalOpen}
         onClose={() => { setIsLeadModalOpen(false); setEditingLead(null); }}
-        onSave={handleSaveLead}
-        editingLead={editingLead}
-        customers={customers}
-        groups={groups}
-        suppliers={suppliers}
-        onAddCustomerClick={openAddCustomer}
-        onEditCustomerClick={openEditCustomer}
-        onDeleteCustomerClick={handleDeleteCustomer}
-      />
+          onSave={handleSaveLead}
+          editingLead={editingLead}
+          suppliers={suppliers}
+        />
       <DeleteConfirmationModal isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} onConfirm={confirmDeleteCustomer} customerName={customerToDelete?.name || ''} />
       <DeleteConfirmationModal isOpen={isDeleteSaleConfirmOpen} onClose={() => setIsDeleteSaleConfirmOpen(false)} onConfirm={confirmDeleteSale} customerName={`Venda #${saleToDelete?.id}`} />
       <DeleteConfirmationModal isOpen={isDeleteSupplierConfirmOpen} onClose={() => setIsDeleteSupplierConfirmOpen(false)} onConfirm={confirmDeleteSupplier} customerName={supplierToDelete?.name || ''} />
+      <DeleteConfirmationModal isOpen={isDeleteLeadConfirmOpen} onClose={() => setIsDeleteLeadConfirmOpen(false)} onConfirm={confirmDeleteLead} customerName={leadToDelete?.title || leadToDelete?.name || ''} />
 
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -594,7 +612,7 @@ export default function Page() {
           <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"><Menu className="w-6 h-6 text-gray-600" /></button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <div className={`flex-1 ${activeView === 'crm' ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-6 lg:p-8'}`}>
           <AnimatePresence mode="wait">
             <motion.div key={activeView + (selectedCustomer ? '-details' : '')} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
 
@@ -631,13 +649,18 @@ export default function Page() {
                   onUpdateSale={handleQuickUpdateSale}
                   fetchSales={fetchSales}
                 />
-              ) : activeView === 'crm' ? (
-                <CRMView 
-                  currentUser={currentUser} 
-                  onAddLead={openAddLead}
-                  onEditLead={openEditLead}
-                />
-              ) : activeView === 'reservas' ? (
+               ) : activeView === 'crm' ? (
+            <CRMView 
+              leads={leads}
+              loading={loadingLeads}
+              updateLeadStatus={updateLeadStatus}
+              fetchLeads={fetchLeads}
+              currentUser={currentUser} 
+              onAddLead={openAddLead} 
+              onEditLead={openEditLead} 
+              onDeleteLead={handleDeleteLead} 
+            />
+          ) : activeView === 'reservas' ? (
                 <ReservasView />
               ) : activeView === 'financeiro' ? (
                 <FinanceiroView />

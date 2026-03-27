@@ -1,36 +1,37 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, Plus, Trash2, Search, ChevronDown, AlertCircle, 
-  Plane, Hotel, Shield, Car, LayoutGrid, DollarSign,
-  User as UserIcon, Users, Baby, Briefcase, FileText, Tag, Target,
-  Phone, Mail
+  X, Plus, Plane, Hotel, Shield, Car, Trash2, Layout, 
+  Tag as TagIcon, Minus, Luggage, User, Baby, Clock,
+  MapPin, Pencil, Search, ChevronDown, Target, Phone, Mail, FileText, Users, MessageCircle
 } from 'lucide-react';
-import { Lead, CRMStatus, Customer, Group, Supplier, SaleItem, ItemType } from '@/types';
-import { SearchSelectorModal } from './Modals';
+import { motion, AnimatePresence } from 'framer-motion';
+import { NumericFormat } from 'react-number-format';
+import { Lead, CRMStatus, Customer, Group, Supplier } from '@/types';
 
 interface LeadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (lead: Partial<Lead>) => void;
   editingLead?: Lead | null;
-  customers: Customer[];
-  groups: Group[];
   suppliers: Supplier[];
-  onAddCustomerClick: () => void;
-  onEditCustomerClick: (customer: Customer) => void;
-  onDeleteCustomerClick: (customer: Customer) => void;
 }
 
-const ITEM_TYPES: { id: ItemType; label: string }[] = [
-  { id: 'passagem', label: 'Passagem' },
-  { id: 'hospedagem', label: 'Hospedagem' },
-  { id: 'seguro', label: 'Seguro' },
-  { id: 'aluguel', label: 'Aluguel de Carro' },
-  { id: 'adicionais', label: 'Adicionais' },
-];
+// FUNÇÃO PARA FORMATAR AS DATAS: "05 à 20 Out."
+const formatDateRange = (start: string, end: string) => {
+  if (!start || !end) return '';
+  const months = ['Jan.', 'Fev.', 'Mar.', 'Abr.', 'Mai.', 'Jun.', 'Jul.', 'Ago.', 'Set.', 'Out.', 'Nov.', 'Dez.'];
+  const [sYear, sMonth, sDay] = start.split('-');
+  const [eYear, eMonth, eDay] = end.split('-');
+  if (!sDay || !eDay) return '';
+
+  if (sMonth === eMonth) {
+    return `${sDay} à ${eDay} ${months[parseInt(sMonth, 10) - 1]}`;
+  } else {
+    return `${sDay} ${months[parseInt(sMonth, 10) - 1]} à ${eDay} ${months[parseInt(eMonth, 10) - 1]}`;
+  }
+};
 
 const STATUS_OPTIONS: { value: CRMStatus; label: string }[] = [
   { value: 'novo_contato', label: 'Novo Contato' },
@@ -45,459 +46,506 @@ export function LeadModal({
   onClose, 
   onSave, 
   editingLead,
-  customers,
-  groups,
-  suppliers,
-  onAddCustomerClick,
-  onEditCustomerClick,
-  onDeleteCustomerClick
+  suppliers
 }: LeadModalProps) {
-  const [formData, setFormData] = useState<Partial<Lead>>({
-    name: '',
-    value: 0,
-    status: 'novo_contato',
-    phone: '',
-    email: '',
-    notes: '',
-    source: '',
-    items: []
-  });
-
-  const [activeItemType, setActiveItemType] = useState<ItemType>('passagem');
-  const [leadTargetType, setLeadTargetType] = useState<'individual' | 'group'>('individual');
-  const [isSearchSelectorOpen, setIsSearchSelectorOpen] = useState(false);
+  const [activeItemType, setActiveItemType] = useState('passagem');
+  const [tagInput, setTagInput] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [additionalCustomerIds, setAdditionalCustomerIds] = useState<string[]>([]);
 
-  const [currentItem, setCurrentItem] = useState<Partial<SaleItem>>({
-    type: 'passagem',
-    flightType: 'ida_volta',
+  const [formData, setFormData] = useState<Partial<Lead>>({
+    title: '',
+    name: '',
+    status: 'novo_contato',
+    tags: [],
+    duration: '',
     adults: 1,
     children: 0,
     babies: 0,
-    bags23kg: 0,
-    valuePaidByCustomer: 0,
-    emissionValue: 0,
-    additionalCosts: 0,
-    vendor: '',
+    luggage23kg: 0,
+    items: [],
+    value: 0,
+    notes: ''
+  });
+
+  const [currentItem, setCurrentItem] = useState<any>({
+    type: 'passagem',
+    flightType: 'ida', 
     origin: '',
     destination: '',
-    locator: '',
-    emissionDate: '',
     departureDate: '',
     returnDate: '',
-    checkIn: '',
-    checkOut: '',
-    hasBreakfast: false,
+    hotelName: '',
+    hotelAddress: '',
+    checkInDate: '',
+    checkInTime: '14:00',
+    checkOutDate: '',
+    checkOutTime: '12:00',
+    dailyNights: '',
+    rooms: '1',
+    roomType: 'Não informado',
+    stars: 'Não informado',
+    boardBasis: 'Não informado',
+    value: 0,
+    cost: 0,
+    vendor: ''
   });
 
   useEffect(() => {
     if (isOpen) {
       if (editingLead) {
-        setFormData(editingLead);
-        setLeadTargetType('individual'); 
+        setFormData({
+          ...editingLead,
+          title: editingLead.title || '',
+          name: editingLead.name || '',
+          adults: editingLead.adults || 1,
+          children: editingLead.children || 0,
+          babies: editingLead.babies || 0,
+          luggage23kg: editingLead.luggage23kg || 0,
+          items: editingLead.items || [],
+          tags: editingLead.tags || []
+        });
       } else {
         setFormData({
+          title: '',
           name: '',
-          value: 0,
           status: 'novo_contato',
-          phone: '',
-          email: '',
-          notes: '',
-          source: '',
-          items: []
+          tags: [],
+          duration: '',
+          adults: 1,
+          children: 0,
+          babies: 0,
+          luggage23kg: 0,
+          items: [],
+          value: 0,
+          notes: ''
         });
-        setLeadTargetType('individual');
       }
-      setAdditionalCustomerIds([]);
-      setError(null);
       setEditingItemId(null);
     }
   }, [editingLead, isOpen]);
 
-  const handleAddItem = () => {
-    const getCustomerName = (id: string) => customers.find(c => c.id === id)?.name || '';
-    
-    const primaryName = formData.name || '';
-    const allNames = [
-      primaryName,
-      ...(additionalCustomerIds.map(id => getCustomerName(id)))
-    ].filter((n): n is string => !!n).map(n => n.toUpperCase()).join(', ');
+  if (!isOpen) return null;
 
-    if (!allNames && !formData.name) {
-      setError('Informe o nome do cliente ou selecione um da lista.');
-      return;
+  const handleAddTag = () => {
+    if (tagInput.trim() && !formData.tags?.includes(tagInput.trim().toUpperCase())) {
+      setFormData({ ...formData, tags: [...(formData.tags || []), tagInput.trim().toUpperCase()] });
+      setTagInput('');
     }
-
-    setError(null);
-
-    const newItem: SaleItem = {
-      ...currentItem,
-      id: editingItemId || `temp_${Math.random().toString(36).substr(2, 9)}`,
-      type: activeItemType,
-      passengerName: allNames
-    } as SaleItem;
-
-    if (editingItemId) {
-      setFormData(prev => ({
-        ...prev,
-        items: prev.items?.map(item => item.id === editingItemId ? newItem : item)
-      }));
-      setEditingItemId(null);
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        items: [...(prev.items || []), newItem]
-      }));
-    }
-
-    // Reset current item form
-    setCurrentItem({
-      type: activeItemType,
-      flightType: 'ida_volta',
-      adults: 1,
-      children: 0,
-      babies: 0,
-      bags23kg: 0,
-      valuePaidByCustomer: 0,
-      emissionValue: 0,
-      additionalCosts: 0,
-      vendor: '',
-      origin: '',
-      destination: '',
-      locator: '',
-      emissionDate: '',
-      departureDate: '',
-      returnDate: '',
-      checkIn: '',
-      checkOut: '',
-      hasBreakfast: false,
-    });
-    setAdditionalCustomerIds([]);
   };
 
-  const removeItem = (id: string) => {
-    setFormData(prev => ({
+  const handleAddItem = () => {
+    let itemDescription = 'Serviço';
+    if (currentItem.type === 'passagem') {
+      itemDescription = currentItem.origin && currentItem.destination ? `${currentItem.origin} → ${currentItem.destination}` : 'Passagem Aérea';
+    } else if (currentItem.type === 'hospedagem') {
+      itemDescription = currentItem.hotelName ? `Hotel: ${currentItem.hotelName}` : 'Hospedagem';
+    } else if (currentItem.type === 'seguro') {
+      itemDescription = 'Seguro Viagem';
+    } else if (currentItem.type === 'carro') {
+      itemDescription = 'Aluguel de Carro';
+    }
+
+    const newItem = {
+      ...currentItem,
+      id: editingItemId || Math.random().toString(36).substr(2, 9),
+      description: itemDescription
+    };
+
+    const newItems = [...(formData.items || []).filter((i:any) => i.id !== newItem.id), newItem];
+    
+    setFormData({
+      ...formData,
+      items: newItems,
+      value: newItems.reduce((sum, i) => sum + (i.value || 0), 0)
+    });
+
+    setEditingItemId(null);
+    setCurrentItem({ 
+      type: currentItem.type, 
+      flightType: 'ida', origin: '', destination: '', departureDate: '', returnDate: '', 
+      hotelName: '', hotelAddress: '', checkInDate: '', checkInTime: '14:00', checkOutDate: '', checkOutTime: '12:00', dailyNights: '', rooms: '1', roomType: 'Não informado', stars: 'Não informado', boardBasis: 'Não informado',
+      value: 0, cost: 0, vendor: ''
+    });
+  };
+
+  const handleEditItem = (itemToEdit: any) => {
+    setEditingItemId(itemToEdit.id);
+    setCurrentItem(itemToEdit);
+    setActiveItemType(itemToEdit.type || 'passagem');
+  };
+
+  const updateCounter = (type: string, operation: 'add' | 'sub') => {
+    setFormData((prev: any) => ({
       ...prev,
-      items: prev.items?.filter(item => item.id !== id)
+      [type]: operation === 'add' ? (prev[type] || 0) + 1 : Math.max(0, (prev[type] || 0) - 1)
     }));
   };
 
-  const editItem = (item: SaleItem) => {
-    setEditingItemId(item.id);
-    setActiveItemType(item.type);
-    setCurrentItem(item);
-    document.getElementById('item-form-lead')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const totalValue = formData.items?.reduce((sum, item) => sum + (item.valuePaidByCustomer || 0) + (item.additionalCosts || 0), 0) || formData.value || 0;
-    onSave({ ...formData, value: totalValue });
-  };
-
-  if (!isOpen) return null;
+  const estimatedCost = formData.items?.reduce((sum, i) => sum + (i.cost || 0), 0) || 0;
+  const profit = (formData.value || 0) - estimatedCost;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-      />
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-3xl bg-white dark:bg-[#1e293b] dark:border dark:border-slate-700/50 rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
+        initial={{ scale: 0.98, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        className="bg-white dark:bg-[#1e293b] w-full max-w-4xl rounded-[24px] overflow-hidden flex flex-col max-h-[95vh] shadow-2xl border border-gray-100 dark:border-slate-700/50"
       >
-        <div className="p-6 border-b border-gray-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1e293b]">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {editingLead ? 'Editar Orçamento' : 'Novo Orçamento / Cotação'}
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Monte o roteiro para enviar ao cliente</p>
+        
+        {/* Header Ultra Clean */}
+        <div className="p-4 px-6 bg-white dark:bg-[#1e293b] border-b border-gray-100 dark:border-slate-700/50 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center">
+                <Layout className="w-4 h-4 text-cyan-500" />
+             </div>
+             <div>
+                <h2 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none">Novo Orçamento</h2>
+                <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest mt-1">Gestão Interna Easy Fly</p>
+             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all">
-            <X className="w-6 h-6 text-gray-400" />
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all">
+            <X className="w-5 h-5 text-gray-300" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Selecione o Cliente</label>
-              <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => setLeadTargetType('individual')}
-                  className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
-                    leadTargetType === 'individual' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-gray-500'
-                  }`}
-                >
-                  Individual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLeadTargetType('group')}
-                  className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
-                    leadTargetType === 'group' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-gray-500'
-                  }`}
-                >
-                  Grupo
-                </button>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <select 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 transition-all text-sm appearance-none pr-12 outline-none"
-                  value={leadTargetType === 'individual' ? (customers.find(c => c.name === formData.name)?.id || '') : (groups.find(g => g.name === formData.name)?.id || '')}
-                  onChange={e => {
-                    const item = leadTargetType === 'individual' 
-                      ? customers.find(c => c.id === e.target.value) 
-                      : groups.find(g => g.id === e.target.value);
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      name: item?.name || '',
-                      phone: (item as Customer)?.phone || prev.phone,
-                      email: (item as Customer)?.email || prev.email
-                    }));
-                  }}
-                >
-                  <option value="">{leadTargetType === 'individual' ? 'Pesquisar Cliente...' : 'Pesquisar Grupo...'}</option>
-                  {leadTargetType === 'individual' 
-                    ? customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-                    : groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)
-                  }
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-gray-400">
-                  <button type="button" onClick={() => setIsSearchSelectorOpen(true)} className="p-1 hover:bg-gray-200 rounded-md transition-colors"><Search className="w-3.5 h-3.5" /></button>
-                  <ChevronDown className="w-4 h-4" />
+        <div className="flex-1 overflow-y-auto p-5 md:p-6 flex flex-col md:flex-row gap-6 bg-[#f8fafc]/50 dark:bg-slate-900/50 custom-scrollbar">
+          {/* COLUNA ESQUERDA (FORMULÁRIO) */}
+          <div className="flex-1 space-y-4">
+            
+            {/* Bloco Superior (Dados Gerais) */}
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700/50 shadow-sm space-y-4">
+              
+              {/* Título e Telefone do Cliente */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Título do Orçamento</label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cyan-400" />
+                    <input 
+                      className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-sm text-gray-800 dark:text-white font-bold placeholder:text-gray-400" 
+                      placeholder="Ex: Férias Sr. João - Disney" 
+                      value={formData.title} 
+                      onChange={e => setFormData({...formData, title: e.target.value})} 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <MessageCircle className="w-2.5 h-2.5 fill-emerald-500/10" /> WhatsApp
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-400" />
+                    <input 
+                      className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-sm text-gray-800 dark:text-white font-bold placeholder:text-emerald-500/20" 
+                      placeholder="(00) 00000-0000" 
+                      value={formData.phone || ''} 
+                      onChange={e => setFormData({...formData, phone: e.target.value})} 
+                    />
+                  </div>
                 </div>
               </div>
-              <button type="button" onClick={onAddCustomerClick} className="p-2.5 bg-gray-100 dark:bg-slate-800 text-gray-500 rounded-xl hover:bg-gray-200 transition-all">
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="space-y-3">
-              {additionalCustomerIds.map((selectedId, idx) => (
-                <div key={idx} className="flex gap-2 items-end">
-                  <div className="flex-1 relative">
-                    <select 
-                      className="w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 text-sm appearance-none pr-10 outline-none"
-                      value={selectedId}
-                      onChange={e => {
-                        const newIds = [...additionalCustomerIds];
-                        newIds[idx] = e.target.value;
-                        setAdditionalCustomerIds(newIds);
-                      }}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cliente</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400" />
+                    <input 
+                      className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs text-gray-800 dark:text-white font-bold placeholder:text-gray-400" 
+                      placeholder="Nome do cliente..." 
+                      value={formData.name} 
+                      onChange={e => setFormData({...formData, name: e.target.value})} 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Etapa</label>
+                  <div className="relative">
+                    <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-purple-400" />
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as CRMStatus })}
+                      className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl text-xs font-bold text-gray-800 dark:text-white appearance-none outline-none focus:ring-1 focus:ring-cyan-500/20"
                     >
-                      <option value="">Selecione o cliente {idx + 2}...</option>
-                      {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                      <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3 border-t border-gray-50 dark:border-slate-700 pt-3">
+                <div className="col-span-3 space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase flex items-center gap-1.5 ml-1"><TagIcon className="w-2.5 h-2.5" /> Tags</label>
+                    <div className="flex gap-2">
+                      <input 
+                        className="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl text-xs outline-none text-gray-800 dark:text-white font-bold" 
+                        placeholder="Tag..." 
+                        value={tagInput} 
+                        onChange={e => setTagInput(e.target.value)} 
+                        onKeyDown={e => e.key === 'Enter' && handleAddTag()}
+                      />
+                      <button onClick={handleAddTag} className="px-3 py-1.5 bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-gray-400 rounded-lg font-black text-[9px] hover:bg-gray-200 dark:hover:bg-slate-700 transition-all border border-transparent dark:border-slate-700/50 uppercase tracking-widest">Add</button>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[9px] font-black text-gray-400 uppercase flex items-center gap-1.5 ml-1"><Clock className="w-2.5 h-2.5" /> Dias</label>
+                    <input 
+                      className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl text-xs text-gray-800 dark:text-white font-bold outline-none" 
+                      placeholder="Ex: 5" 
+                      value={formData.duration} 
+                      onChange={e => setFormData({...formData, duration: e.target.value})} 
+                    />
+                </div>
+              </div>
+              
+              {formData.tags && formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <AnimatePresence>
+                    {formData.tags.map((tag: any) => (
+                      <motion.span 
+                        initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} 
+                        key={tag} 
+                        className="px-2 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded text-[9px] font-black border border-cyan-100 dark:border-cyan-500/20 uppercase tracking-tight flex items-center gap-1.5"
+                      >
+                        {tag} 
+                        <button onClick={() => setFormData({...formData, tags: formData.tags?.filter((t:any)=>t!==tag)})} className="opacity-60 hover:opacity-100 transition-opacity">
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </motion.span>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Contadores Globais Compactos */}
+              <div className="flex gap-4 overflow-x-auto pt-3 border-t border-gray-50 dark:border-slate-700 scrollbar-hide shrink-0">
+                {[
+                  { label: 'Adultos', key: 'adults', ic: <User className="w-3 h-3" /> },
+                  { label: 'Crianças', key: 'children', ic: <Users className="w-3 h-3" /> },
+                  { label: 'Bebês', key: 'babies', ic: <Baby className="w-3 h-3" /> },
+                  { label: 'Mala 23kg', key: 'luggage23kg', ic: <Luggage className="w-3 h-3" /> }
+                ].map(p => (
+                  <div key={p.key} className="space-y-1 flex-shrink-0">
+                    <span className="text-[8px] font-bold text-gray-400 flex items-center gap-1 uppercase tracking-tighter">{p.ic} {p.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => updateCounter(p.key, 'sub')} className="w-6 h-6 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 transition-all shadow-sm active:scale-90">-</button>
+                      <span className="font-black text-[11px] w-3 text-center text-gray-800 dark:text-white">{(formData as any)[p.key] || 0}</span>
+                      <button onClick={() => updateCounter(p.key, 'add')} className="w-6 h-6 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md flex items-center justify-center font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 transition-all shadow-sm active:scale-90">+</button>
                     </div>
                   </div>
-                  <button type="button" onClick={() => setAdditionalCustomerIds(additionalCustomerIds.filter((_, i) => i !== idx))} className="p-2.5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-colors">
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
-              <div className="flex justify-start">
-                <button type="button" onClick={() => setAdditionalCustomerIds([...additionalCustomerIds, ''])} className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-purple-600 uppercase tracking-widest transition-colors group">
-                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-purple-50 transition-colors"><Plus className="w-3 h-3" /></div>
-                  <span>Adicionar outro acompanhante</span>
-                </button>
+                ))}
               </div>
             </div>
-          </div>
 
-          <SearchSelectorModal
-            isOpen={isSearchSelectorOpen}
-            onClose={() => setIsSearchSelectorOpen(false)}
-            title={leadTargetType === 'individual' ? "Pesquisar Cliente" : "Pesquisar Grupo"}
-            items={leadTargetType === 'individual' 
-              ? customers.map(c => ({ id: c.id, name: c.name, subtitle: c.email, originalItem: c }))
-              : groups.map(g => ({ id: g.id, name: g.name, subtitle: `${g.memberIds.length} membros`, originalItem: g }))
-            }
-            onSelect={(id) => {
-              const item = leadTargetType === 'individual' 
-                ? customers.find(c => c.id === id) 
-                : groups.find(g => g.id === id);
-              setFormData(prev => ({ 
-                ...prev, 
-                name: item?.name || '',
-                phone: (item as Customer)?.phone || prev.phone,
-                email: (item as Customer)?.email || prev.email
-              }));
-            }}
-            onAddNew={leadTargetType === 'individual' ? onAddCustomerClick : undefined}
-            onEdit={leadTargetType === 'individual' ? onEditCustomerClick : undefined}
-            onDelete={leadTargetType === 'individual' ? onDeleteCustomerClick : undefined}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-1">
-               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Etapa do Funil</label>
-               <div className="relative">
-                 <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-                 <select
-                   value={formData.status}
-                   onChange={(e) => setFormData({ ...formData, status: e.target.value as CRMStatus })}
-                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-xl text-sm appearance-none outline-none"
-                 >
-                   {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                 </select>
-               </div>
-             </div>
-             <div className="space-y-1">
-               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Origem</label>
-               <div className="relative">
-                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
-                 <input type="text" value={formData.source} onChange={(e) => setFormData({ ...formData, source: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-xl text-sm outline-none" placeholder="Ex: Instagram" />
-               </div>
-             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-1">
-               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Telefone</label>
-               <div className="relative">
-                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                 <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-xl text-sm outline-none" placeholder="(00) 00000-0000" />
-               </div>
-             </div>
-             <div className="space-y-1">
-               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">E-mail</label>
-               <div className="relative">
-                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                 <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-xl text-sm outline-none" placeholder="exemplo@email.com" />
-               </div>
-             </div>
-          </div>
-
-          <div className="border-t pt-6">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 block">Roteiro / Itens da Cotação</label>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {ITEM_TYPES.map(type => (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => setActiveItemType(type.id)}
-                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                    activeItemType === type.id ? 'bg-[#06B6D4] text-white shadow-lg' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            {/* Seletor de Abas Pequeno */}
+            <div className="flex gap-1.5">
+              {[
+                { id: 'passagem', label: 'PASSAGEM' },
+                { id: 'hospedagem', label: 'HOSPEDAGEM' },
+                { id: 'seguro', label: 'SEGURO' },
+                { id: 'carro', label: 'CARRO' }
+              ].map(tab => (
+                <button 
+                  key={tab.id} 
+                  onClick={() => {
+                    setActiveItemType(tab.id);
+                    setCurrentItem((prev: any) => ({ ...prev, type: tab.id }));
+                  }}
+                  className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest transition-all border ${
+                    activeItemType === tab.id 
+                    ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm' 
+                    : 'bg-white dark:bg-slate-800 text-gray-400 dark:text-gray-500 border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-750'
                   }`}
                 >
-                  {type.label}
+                  {tab.label}
                 </button>
               ))}
             </div>
 
-            <div id="item-form-lead" className="p-6 bg-gray-50/50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-3xl space-y-6">
+            {/* FORMULÁRIO DE ITEM REDEFINIDO */}
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700/50 shadow-sm space-y-4">
+              
               {activeItemType === 'passagem' && (
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setCurrentItem(prev => ({ ...prev, flightType: 'ida' }))} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentItem.flightType === 'ida' ? 'bg-[#06B6D4] text-white' : 'bg-white border text-gray-400'}`}>Somente Ida</button>
-                    <button type="button" onClick={() => setCurrentItem(prev => ({ ...prev, flightType: 'ida_volta' }))} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentItem.flightType === 'ida_volta' ? 'bg-[#06B6D4] text-white' : 'bg-white border text-gray-400'}`}>Ida e Volta</button>
+                <div className="space-y-3 animate-in fade-in duration-300">
+                  <div className="flex bg-gray-100 dark:bg-slate-900 p-0.5 rounded-lg w-fit">
+                      <button onClick={() => setCurrentItem({...currentItem, flightType: 'ida'})} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${currentItem.flightType === 'ida' ? 'bg-white dark:bg-slate-700 text-gray-700 dark:text-white shadow-sm' : 'text-gray-400 hover:text-gray-500'}`}>Ida</button>
+                      <button onClick={() => setCurrentItem({...currentItem, flightType: 'ida_volta'})} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${currentItem.flightType === 'ida_volta' ? 'bg-white dark:bg-slate-700 text-gray-700 dark:text-white shadow-sm' : 'text-gray-400 hover:text-gray-500'}`}>Ida e Volta</button>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder="Origem" className="px-4 py-2 bg-white border rounded-xl text-sm outline-none focus:ring-2 focus:ring-cyan-500/20" value={currentItem.origin} onChange={e => setCurrentItem(prev => ({ ...prev, origin: e.target.value }))} />
-                    <input type="text" placeholder="Destino" className="px-4 py-2 bg-white border rounded-xl text-sm outline-none focus:ring-2 focus:ring-cyan-500/20" value={currentItem.destination} onChange={e => setCurrentItem(prev => ({ ...prev, destination: e.target.value }))} />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Origem</label>
+                      <input placeholder="Ex: GIG - Rio..." className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.origin} onChange={e => setCurrentItem({...currentItem, origin: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Destino</label>
+                      <input placeholder="Ex: MCO - Orlando..." className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.destination} onChange={e => setCurrentItem({...currentItem, destination: e.target.value})} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Ida</label>
+                      <input type="date" className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.departureDate} onChange={e => setCurrentItem({...currentItem, departureDate: e.target.value})} />
+                    </div>
+                    {currentItem.flightType === 'ida_volta' && (
+                      <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Volta</label>
+                        <input type="date" className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.returnDate} onChange={e => setCurrentItem({...currentItem, returnDate: e.target.value})} />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {activeItemType === 'hospedagem' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input type="text" placeholder="Nome do Hotel" className="px-4 py-2 bg-white border rounded-xl text-sm outline-none focus:ring-2 focus:ring-cyan-500/20" value={currentItem.hotelName || ''} onChange={e => setCurrentItem(prev => ({ ...prev, hotelName: e.target.value, description: e.target.value }))} />
-                  <input type="text" placeholder="Cidade / Localização" className="px-4 py-2 bg-white border rounded-xl text-sm outline-none focus:ring-2 focus:ring-cyan-500/20" value={currentItem.destination || ''} onChange={e => setCurrentItem(prev => ({ ...prev, destination: e.target.value }))} />
+                <div className="space-y-3 animate-in fade-in duration-300">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Hotel</label>
+                      <input placeholder="Ex: Hilton..." className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.hotelName} onChange={e => setCurrentItem({...currentItem, hotelName: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Localização</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                        <input placeholder="Ex: Orlando, FL" className="w-full pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.hotelAddress} onChange={e => setCurrentItem({...currentItem, hotelAddress: e.target.value})} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Check-in</label>
+                      <input type="date" className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.checkInDate} onChange={e => setCurrentItem({...currentItem, checkInDate: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Check-out</label>
+                      <input type="date" className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.checkOutDate} onChange={e => setCurrentItem({...currentItem, checkOutDate: e.target.value})} />
+                    </div>
+                  </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Campos Financeiros Gerais do Item */}
+              <div className="grid grid-cols-2 gap-4 border-t border-gray-50 dark:border-slate-700 pt-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Fornecedor</label>
-                  <select className="w-full px-4 py-2 bg-white border rounded-xl text-sm outline-none" value={currentItem.vendor} onChange={e => setCurrentItem(prev => ({ ...prev, vendor: e.target.value }))}>
-                    <option value="">Selecione...</option>
-                    {suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </select>
+                  <label className="text-[9px] font-black text-cyan-500 uppercase ml-1 tracking-tight">Venda por Pessoa</label>
+                  <NumericFormat 
+                    className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl text-xs font-black text-cyan-600 outline-none" 
+                    placeholder="R$ 0,00" prefix="R$ " thousandSeparator="." decimalSeparator="," decimalScale={2} fixedDecimalScale={true} 
+                    value={currentItem.value} onValueChange={v => setCurrentItem({...currentItem, value: v.floatValue || 0})}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Valor Orçado</label>
-                  <input type="number" className="w-full px-4 py-2 bg-white border rounded-xl text-sm outline-none" value={currentItem.valuePaidByCustomer} onChange={e => setCurrentItem(prev => ({ ...prev, valuePaidByCustomer: parseFloat(e.target.value) }))} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Custo Est.</label>
-                  <input type="number" className="w-full px-4 py-2 bg-white border rounded-xl text-sm outline-none" value={currentItem.emissionValue} onChange={e => setCurrentItem(prev => ({ ...prev, emissionValue: parseFloat(e.target.value) }))} />
+                  <label className="text-[9px] font-black text-red-400 uppercase ml-1 tracking-tight">Custo Estimado por Pessoa</label>
+                  <NumericFormat 
+                    className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl text-xs font-black text-red-500 outline-none" 
+                    placeholder="R$ 0,00" prefix="R$ " thousandSeparator="." decimalSeparator="," decimalScale={2} fixedDecimalScale={true} 
+                    value={currentItem.cost} onValueChange={v => setCurrentItem({...currentItem, cost: v.floatValue || 0})}
+                  />
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
-                <button type="button" onClick={handleAddItem} className="px-6 py-2 bg-[#06B6D4] text-white rounded-xl text-sm font-bold shadow-lg hover:bg-cyan-600 transition-all">
-                  {editingItemId ? 'Atualizar Item' : 'Adicionar ao Orçamento'}
+              <div className="flex justify-end pt-1">
+                <button 
+                  onClick={handleAddItem}
+                  className="px-6 py-2 bg-[#0f172a] dark:bg-slate-700 text-white rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md active:scale-95"
+                >
+                  {editingItemId ? 'ATUALIZAR ITEM' : 'INCLUIR NO ORÇAMENTO'}
                 </button>
               </div>
             </div>
+          </div>
 
-            <div className="mt-6 space-y-3">
-              {formData.items?.map(item => (
-                <div key={item.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
-                      {item.type === 'passagem' ? <Plane className="w-5 h-5 text-blue-500" /> : <Hotel className="w-5 h-5 text-orange-500" />}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-gray-900 dark:text-white uppercase">
-                        {item.type === 'passagem' ? `${item.origin} ➔ ${item.destination}` : item.hotelName || item.description}
-                      </h4>
-                      <p className="text-[9px] text-gray-400 font-bold">FORNECEDOR: {item.vendor || 'N/A'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-xs font-black text-gray-900 dark:text-white">R$ {item.valuePaidByCustomer?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <button onClick={() => editItem(item)} className="p-2 text-gray-300 hover:text-blue-500 transition-colors"><FileText className="w-4 h-4" /></button>
-                      <button onClick={() => removeItem(item.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </div>
+          {/* COLUNA DIREITA (SIDEBAR E ITENS ADICIONADOS) */}
+          <div className="w-full md:w-[280px] flex flex-col gap-5 shrink-0">
+            
+            {/* Resumo Financeiro Pequeno */}
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700/50 shadow-sm space-y-4">
+              <h3 className="font-black text-[9px] uppercase text-gray-400 tracking-widest border-b border-gray-50 dark:border-slate-700 pb-2">Resumo Financeiro</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Venda Total</span>
+                    <p className="text-lg font-black text-gray-900 dark:text-white leading-none">R$ {(formData.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
-              ))}
+                <div className="flex justify-between items-end pt-0.5">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-black text-red-400/80 uppercase tracking-tighter">Custo Total</span>
+                    <p className="text-sm font-bold text-red-500/90 leading-none">R$ {estimatedCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                </div>
+                <div className="pt-3 border-t border-gray-50 dark:border-slate-700 flex justify-between items-center">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Lucro</span>
+                  <p className="text-lg font-black text-emerald-500">R$ {profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="space-y-1 pt-4 border-t">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Observações / Detalhes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={4}
-              className="w-full px-4 py-3 bg-gray-50 border rounded-2xl text-sm outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none"
-              placeholder="Descreva detalhes adicionais..."
-            />
-          </div>
-        </div>
-
-        <div className="p-6 bg-gray-50 dark:bg-[#1e293b] border-t flex items-center justify-between">
-          <div className="hidden md:block">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Total do Orçamento</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white">
-              R$ {(formData.items?.reduce((sum, i) => sum + (i.valuePaidByCustomer || 0), 0) || formData.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="flex gap-3 w-full md:w-auto">
-            <button onClick={onClose} className="flex-1 md:flex-none px-8 py-3 bg-white border text-gray-500 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all">Cancelar</button>
-            <button onClick={handleSubmit} className="flex-1 md:flex-none px-10 py-3 bg-purple-600 text-white rounded-2xl font-bold text-sm hover:bg-purple-700 shadow-xl shadow-purple-500/20 active:scale-95 transition-all">
-              {editingLead ? 'Salvar Alterações' : 'Salvar Orçamento'}
+            
+            <button 
+              onClick={() => onSave(formData)} 
+              disabled={!formData.title}
+              className={`w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-cyan-500/10 active:scale-95 ${
+                formData.title ? 'bg-cyan-500 text-white hover:bg-cyan-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {editingLead ? 'SALVAR ALTERAÇÕES' : 'CRIAR ORÇAMENTO'}
             </button>
+
+            {/* ITENS ADICIONADOS COMPACTOS */}
+            {formData.items && formData.items.length > 0 && (
+              <div className="flex flex-col gap-2.5 mt-0.5">
+                <h3 className="font-black text-[9px] uppercase text-gray-400 tracking-widest px-1">Itens ({formData.items.length})</h3>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                  <AnimatePresence>
+                    {formData.items.map((item: any) => (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
+                        key={item.id} 
+                        className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700/50 rounded-xl shadow-sm hover:border-cyan-200 dark:hover:border-cyan-500/30 transition-all group"
+                      >
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
+                            item.type === 'hospedagem' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' : 
+                            'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+                          }`}>
+                            {item.type === 'hospedagem' ? <Hotel className="w-4 h-4" /> : <Plane className="w-4 h-4" />}
+                          </div>
+                          <div className="flex flex-col truncate pr-1">
+                            <p className="font-bold text-gray-900 dark:text-white text-[11px] truncate leading-tight">{item.description}</p>
+                            <p className="text-[8px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-tighter truncate mt-0.5">
+                              {item.type === 'passagem' ? (
+                                `${item.adults || (formData as any).adults}A ${item.children || (formData as any).children}C ${item.babies || (formData as any).babies}B`
+                              ) : (
+                                formatDateRange(item.checkInDate, item.checkOutDate)
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-black text-gray-800 dark:text-white">
+                            R$ {(item.value || 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                          </span>
+                          
+                          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleEditItem(item)} className="p-1 text-gray-400 hover:text-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 rounded transition-colors">
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button onClick={() => setFormData({...formData, items: formData.items?.filter((i:any)=>i.id !== item.id)})} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
+            
           </div>
         </div>
       </motion.div>
