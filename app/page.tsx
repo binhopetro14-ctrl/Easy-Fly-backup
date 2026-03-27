@@ -515,6 +515,12 @@ export default function Page() {
         onClose={() => { setIsLeadModalOpen(false); setEditingLead(null); }}
         onSave={handleSaveLead}
         editingLead={editingLead}
+        customers={customers}
+        groups={groups}
+        suppliers={suppliers}
+        onAddCustomerClick={openAddCustomer}
+        onEditCustomerClick={openEditCustomer}
+        onDeleteCustomerClick={handleDeleteCustomer}
       />
       <DeleteConfirmationModal isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} onConfirm={confirmDeleteCustomer} customerName={customerToDelete?.name || ''} />
       <DeleteConfirmationModal isOpen={isDeleteSaleConfirmOpen} onClose={() => setIsDeleteSaleConfirmOpen(false)} onConfirm={confirmDeleteSale} customerName={`Venda #${saleToDelete?.id}`} />

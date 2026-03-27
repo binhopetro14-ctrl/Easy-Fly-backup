@@ -93,6 +93,7 @@ export const mapperService = {
       notes: data.notes,
       emissor: data.emissor,
       source: data.source,
+      items: data.items || [],
       createdAt: data.created_at,
       updatedAt: data.updated_at
     })
@@ -183,7 +184,8 @@ export const mapperService = {
       email: lead.email,
       notes: lead.notes,
       emissor: lead.emissor,
-      source: lead.source
+      source: lead.source,
+      items: lead.items || []
       // created_at, updated_at handled by DB or explicit update
     })
   }

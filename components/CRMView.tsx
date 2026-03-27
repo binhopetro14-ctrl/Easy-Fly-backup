@@ -5,7 +5,7 @@ import {
   Search, Settings, Plus, MoreHorizontal, 
   ChevronDown, Pencil, Columns, Filter,
   Phone, Mail, Calendar, User, DollarSign,
-  GripVertical
+  GripVertical, Plane, Hotel, Shield, Car, LayoutGrid
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lead, CRMStatus, TeamMember } from '@/types';
@@ -148,10 +148,26 @@ export function CRMView({ currentUser, onAddLead, onEditLead }: CRMViewProps) {
                           </button>
                         </div>
                         
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-sm font-black text-blue-600 dark:text-blue-400">
                             {formatCurrency(lead.value)}
                           </span>
+                          {lead.items && lead.items.length > 0 && (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 dark:bg-slate-700/50 rounded-md border border-gray-100 dark:border-slate-700">
+                              <div className="flex gap-1">
+                                {Array.from(new Set(lead.items.map(i => i.type))).map(type => (
+                                  <React.Fragment key={type}>
+                                    {type === 'passagem' && <Plane className="w-3 h-3 text-blue-400" />}
+                                    {type === 'hospedagem' && <Hotel className="w-3 h-3 text-orange-400" />}
+                                    {type === 'seguro' && <Shield className="w-3 h-3 text-green-400" />}
+                                    {type === 'aluguel' && <Car className="w-3 h-3 text-purple-400" />}
+                                    {type === 'adicionais' && <LayoutGrid className="w-3 h-3 text-gray-400" />}
+                                  </React.Fragment>
+                                ))}
+                              </div>
+                              <span className="text-[10px] font-bold text-gray-400 uppercase">{lead.items.length} ITENS</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-slate-700">
