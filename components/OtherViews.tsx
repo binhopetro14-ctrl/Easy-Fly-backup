@@ -68,7 +68,7 @@ export function MetricasView() {
   return (
     <div className="space-y-4 md:space-y-6 w-full">
       <div>
-        <h1 className="text-2xl font-bold text-[#111827] dark:text-white">Métricas</h1>
+        <h1 className="text-2xl font-bold text-[#111827] dark:text-white">Métriicas</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Análise detalhada do desempenho da sua agência</p>
       </div>
       <div className="bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex flex-col items-center justify-center min-h-[400px] text-gray-400 dark:text-gray-500 italic">
