@@ -16,8 +16,8 @@ interface CRMViewProps {
   leads: Lead[];
   loading: boolean;
   updateLeadStatus: (id: string, newStatus: CRMStatus) => Promise<any>;
-  onUpdateLead: (lead: Lead) => Promise<any>;
-  fetchLeads: () => Promise<void>;
+  onUpdateLead: (lead: Partial<Lead>) => Promise<any>;
+  fetchLeads: (params?: any) => Promise<void>;
   currentUser?: TeamMember | null;
   onAddLead: () => void;
   onEditLead: (lead: Lead) => void;
@@ -127,14 +127,19 @@ export function CRMView({
     if (leadId) {
       const lead = leads.find(l => l.id === leadId);
       if (lead) {
-        let slaStartAt = lead.slaStartAt;
+        // Preparamos apenas os dados que realmente mudaram (Delta Update)
+        const updateData: Partial<Lead> = { 
+          id: lead.id, 
+          status: newStatus, 
+          responded: false 
+        };
         
         // Regra Especial: Só reseta o tempo se estiver saindo de 'Proposta Enviada' para 'Em Cotação'
         if (lead.status === 'proposta_enviada' && newStatus === 'em_cotacao') {
-          slaStartAt = new Date().toISOString();
+          updateData.slaStartAt = new Date().toISOString();
         }
 
-        await onUpdateLead({ ...lead, status: newStatus, responded: false, slaStartAt });
+        await onUpdateLead(updateData);
       }
     }
   };

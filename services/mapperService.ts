@@ -195,30 +195,32 @@ export const mapperService = {
       return data;
     },
     lead: (lead: Partial<Lead>) => {
-      const data: any = {
-        name: lead.name,
-        value: lead.value,
-        status: lead.status,
-        phone: lead.phone,
-        email: lead.email,
-        notes: lead.notes,
-        emissor: lead.emissor,
-        source: lead.source,
-        items: lead.items || [],
-        tags: lead.tags || [],
-        duration: lead.duration || '',
-        adults: lead.adults || 1,
-        children: lead.children || 0,
-        babies: lead.babies || 0,
-        luggage23kg: lead.luggage23kg || 0,
-        title: lead.title || '',
-        responded: lead.responded || false,
-        sla_start_at: lead.slaStartAt
-      };
+      const data: any = {};
+      
+      if (lead.name !== undefined) data.name = lead.name;
+      if (lead.email !== undefined) data.email = lead.email;
+      if (lead.phone !== undefined) data.phone = lead.phone;
+      if (lead.status !== undefined) data.status = lead.status;
+      if (lead.source !== undefined) data.source = lead.source;
+      if (lead.value !== undefined) data.value = lead.value;
+      if (lead.notes !== undefined) data.notes = lead.notes;
+      if (lead.emissor !== undefined) data.emissor = lead.emissor;
+      if (lead.items !== undefined) data.items = lead.items;
+      if (lead.tags !== undefined) data.tags = lead.tags;
+      if (lead.duration !== undefined) data.duration = lead.duration;
+      if (lead.adults !== undefined) data.adults = lead.adults;
+      if (lead.children !== undefined) data.children = lead.children;
+      if (lead.babies !== undefined) data.babies = lead.babies;
+      if (lead.luggage23kg !== undefined) data.luggage23kg = lead.luggage23kg;
+      if (lead.title !== undefined) data.title = lead.title;
+      if (lead.responded !== undefined) data.responded = lead.responded;
+      if (lead.slaStartAt !== undefined) data.sla_start_at = lead.slaStartAt;
+
       // CRITICAL: Apenas incluir o ID se ele for válido e não for uma string vazia
       if (lead.id && lead.id.trim() !== '') {
         data.id = lead.id;
       }
+      
       return data;
     }
   }
