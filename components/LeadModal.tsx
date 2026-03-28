@@ -431,7 +431,7 @@ export function LeadModal({
               {/* Campos Financeiros Gerais do Item */}
               <div className="grid grid-cols-2 gap-4 border-t border-gray-50 dark:border-slate-700 pt-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-cyan-500 uppercase ml-1 tracking-tight">Venda por Pessoa</label>
+                  <label className="text-[9px] font-black text-cyan-500 uppercase ml-1 tracking-tight">Venda</label>
                   <NumericFormat 
                     className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl text-xs font-black text-cyan-600 outline-none" 
                     placeholder="R$ 0,00" prefix="R$ " thousandSeparator="." decimalSeparator="," decimalScale={2} fixedDecimalScale={true} 
@@ -468,7 +468,7 @@ export function LeadModal({
               <div className="space-y-3">
                 <div className="flex justify-between items-end">
                   <div className="space-y-0.5">
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Venda Total</span>
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Venda</span>
                     <p className="text-lg font-black text-gray-900 dark:text-white leading-none">R$ {(formData.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
@@ -485,15 +485,33 @@ export function LeadModal({
               </div>
             </div>
             
-            <button 
-              onClick={() => onSave(formData)} 
-              disabled={!formData.title}
-              className={`w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-cyan-500/10 active:scale-95 ${
-                formData.title ? 'bg-cyan-500 text-white hover:bg-cyan-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {editingLead ? 'SALVAR ALTERAÇÕES' : 'CRIAR ORÇAMENTO'}
-            </button>
+            {(() => {
+              const isAprovadoAndInvalid = formData.status === 'aprovado' && ((formData.value || 0) <= 0 || estimatedCost <= 0);
+              const canSave = formData.title && !isAprovadoAndInvalid;
+              return (
+                <div className="space-y-3">
+                  {isAprovadoAndInvalid && (
+                    <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-3 rounded-xl flex items-start gap-2.5 shadow-sm animate-in zoom-in-95 duration-200">
+                      <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-amber-500 font-black text-[10px]">!</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 leading-tight">
+                        Para mover para <strong className="text-amber-600 dark:text-amber-300">Aprovado</strong>, é obrigatório preencher <strong className="text-amber-600 dark:text-amber-300">Venda</strong> e <strong className="text-amber-600 dark:text-amber-300">Custo</strong> em Itens.
+                      </p>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => onSave(formData)} 
+                    disabled={!canSave}
+                    className={`w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-cyan-500/10 active:scale-95 ${
+                      canSave ? 'bg-cyan-500 text-white hover:bg-cyan-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {isAprovadoAndInvalid ? 'PREENCHA VENDA E CUSTO' : (editingLead ? 'SALVAR ALTERAÇÕES' : 'CRIAR ORÇAMENTO')}
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* ITENS ADICIONADOS COMPACTOS */}
             {formData.items && formData.items.length > 0 && (

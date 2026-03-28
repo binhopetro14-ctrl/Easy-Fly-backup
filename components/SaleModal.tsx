@@ -192,8 +192,30 @@ export function SaleModal({
     }
   };
 
-  const totalValue = formData.items?.reduce((sum, item) => sum + (item.valuePaidByCustomer || 0) + (item.additionalCosts || 0), 0) || 0;
-  const totalCost = formData.items?.reduce((sum, item) => sum + (item.emissionValue || 0), 0) || 0;
+  // --- CÁLCULOS TOTAIS (Considendo itens salvos + item sendo editado/criado) ---
+  const isNewItem = !formData.items?.some(i => i.id === editingItemId);
+  
+  const currentItemValue = currentItem.valuePaidByCustomer || 0;
+  const currentItemCost = currentItem.emissionValue || 0;
+  const currentItemComm = currentItem.additionalCosts || 0;
+
+  const totalValue = (formData.items?.reduce((sum, item) => {
+    const val = item.id === editingItemId ? currentItemValue : (item.valuePaidByCustomer || 0);
+    return sum + val;
+  }, 0) || 0) + (isNewItem ? currentItemValue : 0);
+
+  const totalCost = (formData.items?.reduce((sum, item) => {
+    const val = item.id === editingItemId ? currentItemCost : (item.emissionValue || 0);
+    return sum + val;
+  }, 0) || 0) + (isNewItem ? currentItemCost : 0);
+
+  const totalCommissions = (formData.items?.reduce((sum, item) => {
+    const val = item.id === editingItemId ? currentItemComm : (item.additionalCosts || 0);
+    return sum + val;
+  }, 0) || 0) + (isNewItem ? currentItemComm : 0);
+
+  const profit = totalCommissions > 0 ? totalCommissions : (totalValue - totalCost);
+  const margin = totalValue > 0 ? (profit / totalValue) * 100 : (totalCommissions > 0 ? 100 : 0);
 
   if (!isOpen) return null;
 
@@ -236,13 +258,17 @@ export function SaleModal({
       }));
     }
 
-    setCurrentItem({
-      type: activeItemType,
+    setActiveItemType('passagem'); // Reset para o tipo padrão
+    // Preserva dados de passageiros (adultos, crianças, bebês, malas) e clientes adicionais
+    setCurrentItem(prev => ({
+      type: 'passagem',
       flightType: 'ida_volta',
-      adults: 1,
-      children: 0,
-      babies: 0,
-      bags23kg: 0,
+      // Mantém contadores de passageiros intactos
+      adults: prev.adults,
+      children: prev.children,
+      babies: prev.babies,
+      bags23kg: prev.bags23kg,
+      // Limpa apenas os campos do item
       valuePaidByCustomer: 0,
       emissionValue: 0,
       additionalCosts: 0,
@@ -256,8 +282,8 @@ export function SaleModal({
       checkIn: '',
       checkOut: '',
       hasBreakfast: false,
-    });
-    setAdditionalCustomerIds([]);
+    }));
+    // NÃO reseta additionalCustomerIds — passageiros permanecem os mesmos
   };
 
   const editItem = (item: SaleItem) => {
@@ -343,8 +369,7 @@ export function SaleModal({
   };
 
 
-  const profit = totalValue - totalCost;
-  const margin = totalValue > 0 ? (profit / totalValue) * 100 : 0;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -359,7 +384,7 @@ export function SaleModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-3xl bg-white dark:bg-[#1e293b] dark:border dark:border-slate-700/50 rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
+        className="relative w-full max-w-5xl bg-white dark:bg-[#1e293b] dark:border dark:border-slate-700/50 rounded-[24px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
       >
         <div className="p-6 border-b border-gray-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1e293b]">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 dark:text-gray-200">{sale ? 'Editar Emissão' : 'Nova Emissão'}</h2>
@@ -367,30 +392,14 @@ export function SaleModal({
             <X className="w-6 h-6 text-gray-400" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Item Emitido</label>
-            <div className="flex wrap gap-2">
-              {ITEM_TYPES.map(type => (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => setActiveItemType(type.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    activeItemType === type.id 
-                      ? 'bg-[#06B6D4] text-white shadow-lg shadow-cyan-500/20' 
-                      : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="flex-1 overflow-y-auto p-5 md:p-6 flex flex-col md:flex-row gap-6 bg-[#f8fafc]/50 dark:bg-slate-900/50 custom-scrollbar">
+          {/* COLUNA ESQUERDA (FORMULÁRIO PRINCIPAL) */}
+          <div className="flex-1 space-y-5">
 
+          {/* DADOS DOS PASSAGEIROS - Cabeçalho */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Cliente</label>
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Dados dos Passageiros</label>
               <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-lg">
                 <button
                   type="button"
@@ -627,6 +636,27 @@ export function SaleModal({
           </div>
 
           <div id="item-form" className="p-6 bg-gray-50/50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700/50 rounded-[24px] space-y-6">
+            {/* Item Emitido - sempre acima do formulário do item */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item Emitido</label>
+              <div className="flex flex-wrap gap-2">
+                {ITEM_TYPES.map(type => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setActiveItemType(type.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      activeItemType === type.id 
+                        ? 'bg-[#06B6D4] text-white shadow-lg shadow-cyan-500/20' 
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {error && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-sm">
                 <AlertCircle className="w-4 h-4" />
@@ -718,7 +748,7 @@ export function SaleModal({
                     <input 
                       type="date" 
                       className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none"
-                      value={currentItem.departureDate}
+                      value={currentItem.departureDate || ''}
                       onChange={e => setCurrentItem(prev => ({ ...prev, departureDate: e.target.value }))}
                     />
                   </div>
@@ -728,7 +758,7 @@ export function SaleModal({
                       type="date" 
                       disabled={currentItem.flightType === 'ida'}
                       className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none disabled:bg-gray-100 dark:disabled:bg-slate-800"
-                      value={currentItem.returnDate}
+                      value={currentItem.returnDate || ''}
                       onChange={e => setCurrentItem(prev => ({ ...prev, returnDate: e.target.value }))}
                     />
                   </div>
@@ -829,8 +859,8 @@ export function SaleModal({
 
             <div className="space-y-6 pt-6 border-t border-gray-100">
               <span className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase">FINANCEIRO</span>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1 text-left">
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Valor Pago pelo Cliente (R$)</label>
                   <NumericFormat
                     thousandSeparator="."
@@ -847,7 +877,7 @@ export function SaleModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Valor da Emissão / Custo (R$)</label>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Custo</label>
                   <NumericFormat
                     thousandSeparator="."
                     decimalSeparator=","
@@ -862,10 +892,8 @@ export function SaleModal({
                     }}
                   />
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="space-y-1 flex-1 max-w-[200px]">
-                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Custos Adicionais</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Comissão</label>
                   <NumericFormat
                     thousandSeparator="."
                     decimalSeparator=","
@@ -876,32 +904,54 @@ export function SaleModal({
                     className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none"
                     value={currentItem.additionalCosts}
                     onValueChange={(values) => {
-                      setCurrentItem(prev => ({ ...prev, additionalCosts: values.floatValue || 0 }));
+                      const val = values.floatValue || 0;
+                      setCurrentItem(prev => {
+                        let newModel = prev.saleModel;
+                        if (val > 0 && prev.saleModel !== 'Comissão direta') newModel = 'Comissão direta';
+                        
+                        let comDate = prev.commissionDate || '';
+                        if (prev.vendor?.toLowerCase().includes('hoteldo') && val > 0) {
+                          const baseDateStr = prev.emissionDate || formData.saleDate;
+                          if (baseDateStr) {
+                             try {
+                               const d = new Date(baseDateStr + 'T12:00:00Z');
+                               const day = d.getUTCDay();
+                               let daysToClosing = 0;
+                               if (day === 4) daysToClosing = 0;
+                               else if (day < 4) daysToClosing = 4 - day;
+                               else daysToClosing = 11 - day;
+                               d.setUTCDate(d.getUTCDate() + daysToClosing + 7);
+                               comDate = d.toISOString().split('T')[0];
+                             } catch(e){}
+                          }
+                        }
+                        
+                        return { 
+                          ...prev, 
+                          additionalCosts: val,
+                          saleModel: newModel,
+                          commissionDate: comDate
+                        };
+                      });
                     }}
                   />
                 </div>
-                <div className="space-y-1 flex-1 max-w-[250px]">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Modelo de Venda</label>
-                    <button 
-                      type="button"
-                      onClick={() => setIsModelHelpOpen(true)}
-                      className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 dark:text-gray-500 hover:bg-gray-200 hover:text-cyan-600 transition-colors"
-                    >
-                      !
-                    </button>
+              </div>
+              <div className="flex items-center gap-4">
+                {/* Comissão movida para cima */}
+                {/* Campo de comissão removido daqui */}
+                {currentItem.saleModel === 'Comissão direta' && (
+                  <div className="space-y-1 flex-1 max-w-[150px] animate-in fade-in zoom-in-95 duration-200">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">Data Repasse</label>
+                    <input
+                      type="date"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none"
+                      value={currentItem.commissionDate || ''}
+                      onChange={e => setCurrentItem(prev => ({ ...prev, commissionDate: e.target.value }))}
+                    />
                   </div>
-                  <select 
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none cursor-pointer"
-                    value={currentItem.saleModel || 'Customizado'}
-                    onChange={e => setCurrentItem(prev => ({ ...prev, saleModel: e.target.value }))}
-                  >
-                    <option value="Customizado">Customizado</option>
-                    <option value="Comissão direta">Comissão direta</option>
-                    <option value="Comissão com repasse">Comissão com repasse</option>
-                    <option value="Revenda">Revenda</option>
-                  </select>
-                </div>
+                )}
+                {/* Movid Modelo de Venda */}
                 <div className="flex flex-col gap-1 min-w-[280px]">
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Bilhetes (PDF)</label>
                   <div className="flex gap-2">
@@ -998,85 +1048,34 @@ export function SaleModal({
           </div>
         </div>
 
-          {formData.items && formData.items.length > 0 && (
-            <div className="space-y-4 pt-4 border-t border-gray-100">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <div className="w-1 h-3 bg-cyan-500 rounded-full"></div>
-                Passageiros na Reserva ({formData.items.length})
-              </label>
-              <div className="space-y-2">
-                {formData.items.map((item, index) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 bg-cyan-50/50 dark:bg-cyan-500/10 border border-cyan-100 dark:border-cyan-500/20 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-cyan-600 font-bold text-xs">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="text-sm font-black text-gray-900 dark:text-gray-100 capitalize">{item.type}</p>
-                          {item.passengerName && item.passengerName.split(', ').map((name, i) => (
-                            <span key={i} className="text-[10px] px-2 py-0.5 bg-white border border-cyan-200 text-cyan-600 rounded-md font-black uppercase tracking-tighter">
-                              {name}
-                            </span>
-                          ))}
-                          {item.ticket_url && (
-                            <a 
-                              href={item.ticket_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="w-5 h-5 flex items-center justify-center bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-all ml-1"
-                              title="Bilhete 1"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                          {item.ticket_url2 && (
-                            <a 
-                              href={item.ticket_url2} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="w-5 h-5 flex items-center justify-center bg-orange-100 text-orange-600 rounded-md hover:bg-orange-200 transition-all ml-1"
-                              title="Bilhete 2"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {item.origin} {item.origin && '→'} {item.destination || item.description || item.hotelName}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <p className="text-sm font-black text-gray-900 dark:text-gray-100">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((item.valuePaidByCustomer || 0) + (item.additionalCosts || 0))}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button 
-                          onClick={() => editItem(item)} 
-                          className={`p-2 rounded-lg transition-colors ${
-                            editingItemId === item.id ? 'bg-amber-100 text-amber-600' : 'hover:bg-cyan-100 text-cyan-600'
-                          }`}
-                        >
-                          <Settings className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => removeItem(item.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Itens movidos para a barra lateral */}
 
           <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Método de Pagamento</label>
+                <div className="flex items-center gap-2 h-4">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Modelo de Venda</label>
+                  <button 
+                    type="button"
+                    onClick={() => setIsModelHelpOpen(true)}
+                    className="w-3.5 h-3.5 rounded-full bg-gray-100 flex items-center justify-center text-[8px] font-black text-gray-400 hover:bg-gray-200 hover:text-cyan-600 transition-colors"
+                  >
+                    !
+                  </button>
+                </div>
+                <select 
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none cursor-pointer"
+                  value={currentItem.saleModel || 'Revenda'}
+                  onChange={e => setCurrentItem(prev => ({ ...prev, saleModel: e.target.value }))}
+                >
+                  <option value="Customizado">Customizado</option>
+                  <option value="Comissão direta">Comissão direta</option>
+                  <option value="Comissão com repasse">Comissão com repasse</option>
+                  <option value="Revenda">Revenda</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider h-4 flex items-center">Método de Pagamento</label>
                 <select 
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm"
                   value={formData.paymentMethod}
@@ -1090,7 +1089,7 @@ export function SaleModal({
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Status Custo</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider h-4 flex items-center">Status Custo</label>
                 <select 
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm"
                   value={formData.costStatus}
@@ -1101,7 +1100,7 @@ export function SaleModal({
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase tracking-wider">Status Venda</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider h-4 flex items-center">Status Venda</label>
                 <select 
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm"
                   value={formData.saleStatus}
@@ -1126,45 +1125,102 @@ export function SaleModal({
               />
             </div>
           </div>
-        </div>
-
-        <div className="p-6 border-t border-gray-100 dark:border-slate-700/50 bg-white dark:bg-[#1e293b]">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl text-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">CUSTO TOTAL</p>
-              <p className="text-sm font-black text-gray-900 dark:text-gray-100">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCost)}
-              </p>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-2xl text-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">VALOR DA VENDA</p>
-              <p className="text-sm font-black text-gray-900 dark:text-gray-100">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
-              </p>
-            </div>
-            <div className="p-4 bg-green-50 dark:bg-green-500/10 rounded-2xl text-center">
-              <p className="text-[10px] font-bold text-green-600 uppercase mb-1">LUCRO / MARGEM</p>
-              <p className="text-sm font-black text-green-700">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profit)}
-              </p>
-              <p className="text-[10px] text-green-600 font-bold">{margin.toFixed(1)}%</p>
-            </div>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <button 
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-all"
-            >
-              Cancelar
-            </button>
+          {/* COLUNA DIREITA (SIDEBAR) */}
+          <div className="w-full md:w-[320px] flex flex-col gap-5 shrink-0 overflow-y-auto custom-scrollbar pr-1 pb-10">
+            {/* Resumo Financeiro Pequeno */}
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700/50 shadow-sm space-y-5">
+              <h3 className="font-black text-xs uppercase text-gray-400 tracking-widest border-b border-gray-50 dark:border-slate-700 pb-2">Resumo Financeiro</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-tighter">Venda</span>
+                    <p className="text-xl font-black text-gray-900 dark:text-white leading-none">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-between items-end pt-1">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-black text-red-400/80 uppercase tracking-tighter">Custo Total</span>
+                    <p className="text-lg font-bold text-red-500/90 leading-none">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCost)}
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-gray-50 dark:border-slate-700 flex justify-between items-center">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-tighter">Lucro/Comissão</span>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-emerald-500">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(profit)}
+                    </p>
+                    <p className="text-xs text-emerald-600 font-bold opacity-80 leading-none">{margin.toFixed(1)}% margem</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ITENS ADICIONADOS (SIDEBAR) */}
+            {formData.items && formData.items.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest px-1">Produtos na Reserva ({formData.items.length})</h3>
+                <div className="space-y-2">
+                  {formData.items.map((item, index) => (
+                    <div key={item.id} className="p-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700/50 rounded-xl shadow-sm space-y-2 relative group">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-cyan-50 dark:bg-cyan-500/10 rounded flex items-center justify-center text-cyan-600 font-bold text-[10px]">
+                            {index + 1}
+                          </div>
+                          <span className="text-[11px] font-black text-gray-900 dark:text-gray-100 uppercase">{item.type}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => editItem(item)} className="p-1 text-gray-400 hover:text-amber-500 transition-colors"><Settings className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => removeItem(item.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-1">
+                        {item.passengerName && item.passengerName.split(', ').map((name, i) => (
+                          <span key={i} className="text-[8px] px-1.5 py-0.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 rounded font-black uppercase tracking-tighter truncate max-w-[120px]">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-gray-50 dark:border-slate-700/50">
+                        <span className="text-[10px] font-bold text-gray-900 dark:text-gray-100">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valuePaidByCustomer || 0)}
+                        </span>
+                        <span className={`text-[10px] font-black ${ (item.additionalCosts || 0) > 0 ? 'text-emerald-500' : 'text-gray-400' }`}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                            (item.additionalCosts || 0) > 0 
+                              ? (item.additionalCosts || 0) 
+                              : ((item.valuePaidByCustomer || 0) - (item.emissionValue || 0))
+                          )}
+                        </span>
+                        {item.ticket_url && <FileText className="w-3 h-3 text-red-500" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button 
               type="button"
               onClick={handleSubmit}
-              className="px-8 py-2.5 bg-[#06B6D4] text-white font-bold rounded-xl hover:bg-[#0891B2] shadow-lg shadow-cyan-500/20 transition-all"
+              className="w-full py-4 bg-[#06B6D4] text-white font-black text-sm uppercase tracking-widest rounded-xl hover:bg-[#0891B2] shadow-xl shadow-cyan-500/20 transition-all active:scale-95"
             >
-              Finalizar Venda
+              FINALIZAR VENDA
+            </button>
+            <button 
+              type="button"
+              onClick={onClose}
+              className="w-full py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+            >
+              CANCELAR
             </button>
           </div>
         </div>

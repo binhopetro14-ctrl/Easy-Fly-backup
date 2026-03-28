@@ -18,6 +18,7 @@ interface SalesViewProps {
   onUpdateSale: (saleId: string, updates: Partial<Sale>) => void;
   currentUser: any;
   fetchSales: (filters?: { startDate?: string; endDate?: string }) => Promise<void>;
+  showValues?: boolean;
 }
 
 export function SalesView({
@@ -27,7 +28,8 @@ export function SalesView({
   onDeleteSale,
   onUpdateSale,
   currentUser,
-  fetchSales
+  fetchSales,
+  showValues = true
 }: SalesViewProps) {
   // Helper para formatar data sem sofrer com fuso horário (UTC vs Local)
   const formatDate = (dateString: string | undefined | null) => {
@@ -109,8 +111,12 @@ export function SalesView({
 
     if (sortConfig) {
       result.sort((a: any, b: any) => {
-        const aValue = sortConfig.key === 'lucro' ? (a.totalValue - a.totalCost) : a[sortConfig.key];
-        const bValue = sortConfig.key === 'lucro' ? (b.totalValue - b.totalCost) : b[sortConfig.key];
+        const getSaleProfit = (s: any) => {
+          const comms = s.items?.reduce((sum: number, i: any) => sum + (i.additionalCosts || 0), 0) || 0;
+          return comms > 0 ? comms : (s.totalValue - s.totalCost);
+        };
+        const aValue = sortConfig.key === 'lucro' ? getSaleProfit(a) : a[sortConfig.key];
+        const bValue = sortConfig.key === 'lucro' ? getSaleProfit(b) : b[sortConfig.key];
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
@@ -122,10 +128,20 @@ export function SalesView({
   // --- CÁLCULOS DINÂMICOS ---
   const stats = useMemo(() => {
     const totalVendas = filteredSales.reduce((acc, s) => acc + (s.totalValue || 0), 0);
-    const custoTotal = filteredSales.reduce((acc, s) => acc + (s.totalCost || 0), 0);
-    const lucroTotal = totalVendas - custoTotal;
+    const lucroTotal = filteredSales.reduce((acc, s) => {
+      const saleCommissions = s.items?.reduce((sum, item) => sum + (item.additionalCosts || 0), 0) || 0;
+      const saleProfit = saleCommissions > 0 ? saleCommissions : (s.totalValue - s.totalCost);
+      return acc + (saleProfit || 0);
+    }, 0);
+    // Para consistência visual nos cards: Venda - Custo = Lucro
+    // Logo: Custo = Venda - Lucro
+    const custoTotal = totalVendas - lucroTotal;
     return { totalVendas, custoTotal, lucroTotal };
   }, [filteredSales]);
+
+  const fmt = (value: number) => showValues
+    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+    : '••••••';
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -148,7 +164,7 @@ export function SalesView({
           <div>
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Lucro Total</p>
             <p className={`text-2xl font-bold ${stats.lucroTotal >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-500 dark:text-red-400'}`}>
-              {formatCurrency(stats.lucroTotal)}
+              {fmt(stats.lucroTotal)}
             </p>
           </div>
           <Target className="w-5 h-5 text-purple-300" />
@@ -156,14 +172,14 @@ export function SalesView({
         <div className="bg-white dark:bg-[#1e293b] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex justify-between">
           <div>
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Total de Vendas</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.totalVendas)}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(stats.totalVendas)}</p>
           </div>
           <TrendingUp className="w-5 h-5 text-purple-300" />
         </div>
         <div className="bg-white dark:bg-[#1e293b] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex justify-between">
           <div>
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Custo Total</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.custoTotal)}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(stats.custoTotal)}</p>
           </div>
           <DollarSign className="w-5 h-5 text-purple-300" />
         </div>
@@ -281,10 +297,11 @@ export function SalesView({
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Cliente</th>
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Valor Venda</th>
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Custo</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Comissão</th>
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Emissor</th>
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Fornecedor</th>
                 <th className="px-6 py-4 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center justify-center gap-1">
-                  Modelo 
+                  Modelo de Venda
                   <button 
                     onClick={() => setIsModelHelpOpen(true)}
                     className="w-3.5 h-3.5 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-[9px] font-black text-gray-400 dark:text-gray-500 hover:bg-cyan-100 hover:text-cyan-600 transition-colors"
@@ -309,16 +326,19 @@ export function SalesView({
 
                   {/* 2. Data de Embarque */}
                   <td className="px-6 py-3 text-xs font-bold text-gray-800 dark:text-gray-200">
-                    {sale.items && sale.items[0]?.departureDate 
-                       ? formatDate(sale.items[0].departureDate) 
-                       : '-'}
+                    {(() => {
+                      const date = sale.items?.find(i => i.departureDate)?.departureDate;
+                      return date ? formatDate(date) : '-';
+                    })()}
                   </td>
                   
                   {/* 2.5 Data de Retorno */}
                   <td className="px-6 py-3 text-xs font-bold text-gray-800 dark:text-gray-200">
-                    {sale.items && sale.items[0]?.returnDate 
-                       ? formatDate(sale.items[0].returnDate) 
-                       : '-'}
+                    {(() => {
+                      // Procura em qualquer item o campo returnDate preenchido
+                      const date = sale.items?.find(i => i.returnDate && i.returnDate !== '')?.returnDate;
+                      return date ? formatDate(date) : '-';
+                    })()}
                   </td>
 
                   {/* 3. Localizador */}
@@ -330,10 +350,27 @@ export function SalesView({
                   <td className="px-6 py-3 text-xs leading-tight">
                     <div className="flex flex-col">
                       {(() => {
-                        const passengers = sale.items?.flatMap(i => i.passengerName ? i.passengerName.split(',') : []).map(n => n.trim()).filter(Boolean) || [];
-                        const uniquePassengers = Array.from(new Set(passengers));
-                        const mainName = sale.customerName || uniquePassengers[0] || '-';
-                        const othersCount = uniquePassengers.length > 0 && uniquePassengers[0] === mainName ? uniquePassengers.length - 1 : uniquePassengers.length;
+                        // 1. All unique names from all items
+                        const itemNames = sale.items?.flatMap(i => 
+                          i.passengerName ? i.passengerName.split(',').map(n => n.trim()) : []
+                        ).filter(Boolean) || [];
+                        const uniqueNames = Array.from(new Set(itemNames));
+                        
+                        // 2. Resolve Main Name: Preference order
+                        // 1. sale.customerName
+                        // 2. first item passengerName first part
+                        // 3. first unique name
+                        let mainName = sale.customerName?.trim();
+                        if (!mainName && sale.items?.[0]?.passengerName) {
+                          mainName = sale.items[0].passengerName.split(',')[0].trim();
+                        }
+                        if (!mainName && uniqueNames.length > 0) {
+                          mainName = uniqueNames[0];
+                        }
+                        mainName = mainName || '-';
+
+                        // 3. Count others
+                        const othersCount = uniqueNames.filter(n => n.toLowerCase() !== mainName!.toLowerCase()).length;
 
                         return (
                           <>
@@ -352,10 +389,15 @@ export function SalesView({
                   </td>
 
                   {/* 5. Valor da Venda */}
-                  <td className="px-6 py-3 text-sm font-bold text-gray-800 dark:text-gray-200">{formatCurrency(sale.totalValue)}</td>
+                  <td className="px-6 py-3 text-sm font-bold text-gray-800 dark:text-gray-200">{fmt(sale.totalValue)}</td>
 
                   {/* 6. Custo Total */}
-                  <td className="px-6 py-3 text-sm font-bold text-gray-600 dark:text-gray-400">{formatCurrency(sale.totalCost)}</td>
+                  <td className="px-6 py-3 text-sm font-bold text-gray-600 dark:text-gray-400">{fmt(sale.totalCost)}</td>
+
+                  {/* 6.1 Comissão Total */}
+                  <td className="px-6 py-3 text-sm font-bold text-emerald-600 dark:text-emerald-400 text-center">
+                    {fmt(sale.items?.reduce((sum, i) => sum + (i.additionalCosts || 0), 0) || 0)}
+                  </td>
 
                   {/* 6.2 Emissor */}
                   <td className="px-6 py-3 text-center">
@@ -377,11 +419,16 @@ export function SalesView({
                   <td className="px-6 py-3">
                     <select 
                       className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded-md uppercase border-none outline-none cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                      value={sale.items && sale.items[0]?.saleModel || 'Customizado'}
+                      value={sale.items && sale.items[0]?.saleModel ? sale.items[0].saleModel : 'Revenda'}
                       onChange={(e) => {
                         const newModel = e.target.value;
-                        const updatedItems = sale.items?.map(item => ({ ...item, saleModel: newModel })) || [];
-                        onUpdateSale(sale.id, { items: updatedItems });
+                        const updatedItems = sale.items?.map(item => ({ 
+                          ...item, 
+                          saleModel: newModel 
+                        })) || [];
+                        onUpdateSale(sale.id, { 
+                          items: updatedItems 
+                        });
                       }}
                     >
                       <option value="Customizado">Customizado</option>

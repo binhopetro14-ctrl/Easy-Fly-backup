@@ -256,10 +256,21 @@ export const saleService = {
         console.error('Supabase Error (save sale_items):', extractError(itemsError));
         throw new Error(itemsError.message || 'Erro ao salvar itens da venda');
       }
-      return mapperService.fromSupabase.sale(savedSale, savedItems);
+      // Preserve o customer_name e group_name originais que o Supabase não retorna no .upsert()
+      const saleDataWithNames = {
+        ...savedSale,
+        customer_name: sale.customerName || '',
+        group_name: sale.groupName || ''
+      };
+      return mapperService.fromSupabase.sale(saleDataWithNames, savedItems);
     }
 
-    return mapperService.fromSupabase.sale(savedSale, []);
+    const saleDataWithNames = {
+      ...savedSale,
+      customer_name: sale.customerName || '',
+      group_name: sale.groupName || ''
+    };
+    return mapperService.fromSupabase.sale(saleDataWithNames, []);
   },
 
   delete: async (id: string): Promise<void> => {

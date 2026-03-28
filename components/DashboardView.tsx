@@ -19,7 +19,9 @@ import {
   Trophy,
   UserPlus,
   ShoppingCart,
-  Wand2
+  Wand2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Sale } from '@/types';
 import { HeaderButton, StatCard } from './UI';
@@ -33,6 +35,8 @@ interface DashboardViewProps {
   onUpdateSaleStatus: (saleId: string, field: 'costStatus' | 'saleStatus', status: any) => void;
   onAddLead: () => void;
   currentUser: any;
+  showValues: boolean;
+  onToggleValues: () => void;
 }
 
 export function DashboardView({
@@ -42,8 +46,14 @@ export function DashboardView({
   setActiveView,
   onUpdateSaleStatus,
   onAddLead,
-  currentUser
+  currentUser,
+  showValues,
+  onToggleValues
 }: DashboardViewProps) {
+  const fmt = (value: number) => showValues
+    ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+    : '••••••';
+
   const recentSales = [...sales].sort((a, b) => {
     const dateA = new Date(a.saleDate || a.createdAt).getTime();
     const dateB = new Date(b.saleDate || b.createdAt).getTime();
@@ -66,8 +76,10 @@ export function DashboardView({
     sales.forEach(sale => {
       const saleDate = new Date(sale.saleDate || sale.createdAt);
       const monthIndex = saleDate.getMonth();
+      const commissions = sale.items?.reduce((sum, item) => sum + (item.additionalCosts || 0), 0) || 0;
+      const saleProfit = commissions > 0 ? commissions : (sale.totalValue - sale.totalCost);
       data[monthIndex].faturamento += (sale.totalValue || 0);
-      data[monthIndex].lucro += (sale.totalValue - sale.totalCost || 0);
+      data[monthIndex].lucro += saleProfit;
     });
 
     return data;
@@ -139,6 +151,13 @@ export function DashboardView({
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Resumo da sua agência no mês atual</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <button
+            onClick={onToggleValues}
+            title={showValues ? 'Esconder valores' : 'Mostrar valores'}
+            className="p-2.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-all"
+          >
+            {showValues ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
           <HeaderButton icon={<ShoppingCart className="w-4 h-4" />} label="Nova venda" onClick={() => { setActiveView('vendas'); onAddSale(); }} />
           <HeaderButton icon={<UserPlus className="w-4 h-4" />} label="Novo cliente" onClick={onAddCustomer} />
           <HeaderButton icon={<Wand2 className="w-4 h-4" />} label="Fazer cotação" onClick={onAddLead} primary />
@@ -155,21 +174,25 @@ export function DashboardView({
         />
         <StatCard
           label="Faturamento do Mês"
-          value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentMonthSales.reduce((sum, s) => sum + s.totalValue, 0))}
+          value={fmt(currentMonthSales.reduce((sum, s) => sum + s.totalValue, 0))}
           description="Vendas confirmadas"
           icon={<DollarSign className="w-6 h-6 text-[#06B6D4]" />}
           iconBg="bg-[#ECFEFF]"
         />
         <StatCard
           label="Despesas Pendentes"
-          value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentMonthSales.reduce((sum, s) => sum + s.totalCost, 0))}
+          value={fmt(currentMonthSales.reduce((sum, s) => sum + s.totalCost, 0))}
           description="Reservas ainda não pagas"
           icon={<AlertCircle className="w-6 h-6 text-[#06B6D4]" />}
           iconBg="bg-[#ECFEFF]"
         />
         <StatCard
           label="Lucro do Mês"
-          value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentMonthSales.reduce((sum, s) => sum + (s.totalValue - s.totalCost), 0))}
+          value={fmt(currentMonthSales.reduce((sum, s) => {
+            const commissions = s.items?.reduce((itemSum, item) => itemSum + (item.additionalCosts || 0), 0) || 0;
+            const saleProfit = commissions > 0 ? commissions : (s.totalValue - s.totalCost);
+            return sum + saleProfit;
+          }, 0))}
           description="Lucro líquido real"
           icon={<TrendingUp className="w-6 h-6 text-[#06B6D4]" />}
           iconBg="bg-[#ECFEFF]"
@@ -180,7 +203,12 @@ export function DashboardView({
         {/* Reduzido o padding e bordas ajustadas para rounded-2xl */}
         <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50">
           <h2 className="text-lg font-bold mb-6 dark:text-white">Receita Mensal</h2>
-          <div className="h-[300px] w-full">
+          <div className="h-[300px] w-full relative">
+            {!showValues && (
+              <div className="absolute inset-0 z-10 backdrop-blur-md bg-white/30 dark:bg-slate-900/30 rounded-xl flex items-center justify-center">
+                <span className="text-gray-400 dark:text-gray-500 font-bold text-sm uppercase tracking-widest">Valores Ocultados</span>
+              </div>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
@@ -195,7 +223,7 @@ export function DashboardView({
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                  tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => showValues ? `R$${(value / 1000).toFixed(0)}k` : '•••'}
                 />
                 <Tooltip
                   cursor={{ fill: '#F9FAFB' }}
@@ -246,7 +274,7 @@ export function DashboardView({
                   </div>
                   <div className="text-right">
                     <p className="text-base font-black text-gray-900 dark:text-gray-100">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(seller.totalValue)}
+                      {fmt(seller.totalValue)}
                     </p>
                   </div>
                 </div>
@@ -316,12 +344,12 @@ export function DashboardView({
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-gray-900 dark:text-gray-100 font-black">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.totalCost)}
+                          {fmt(sale.totalCost)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-gray-900 dark:text-gray-100 font-black">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.totalValue)}
+                          {fmt(sale.totalValue)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -379,13 +407,13 @@ export function DashboardView({
                     <div>
                       <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black">Venda</p>
                       <p className="text-sm font-black text-gray-900 dark:text-gray-100">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.totalValue)}
+                        {fmt(sale.totalValue)}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black">Custo</p>
                       <p className="text-sm font-black text-gray-900 dark:text-gray-100">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.totalCost)}
+                        {fmt(sale.totalCost)}
                       </p>
                     </div>
                   </div>

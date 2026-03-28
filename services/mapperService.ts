@@ -52,6 +52,7 @@ export const mapperService = {
         adults: item.adults,
         children: item.children,
         babies: item.babies,
+        bags23kg: item.bags_23kg || 0,
         valuePaidByCustomer: Number(item.value_paid_by_customer),
         emissionValue: Number(item.emission_value),
         additionalCosts: Number(item.additional_costs),
@@ -61,14 +62,14 @@ export const mapperService = {
         locator: item.locator,
         emissionDate: item.emission_date,
         departureDate: item.departure_date,
-        return_date: item.return_date,
+        returnDate: item.return_date,     // FIX: was 'return_date' (snake_case)
         checkIn: item.check_in,
         checkOut: item.check_out,
-        has_breakfast: item.has_breakfast,
+        hasBreakfast: item.has_breakfast,
         hotelName: item.hotel_name,
         description: item.description,
-        passenger_name: item.passenger_name,
-        sale_model: item.sale_model,
+        passengerName: item.passenger_name, // FIX: was 'passenger_name' (snake_case)
+        saleModel: item.sale_model,         // FIX: was 'sale_model' (snake_case)
         ticket_url: item.ticket_url,
         ticket_url2: item.ticket_url2
       }))

@@ -128,13 +128,19 @@ export function CRMView({
       const lead = leads.find(l => l.id === leadId);
       if (lead) {
         // Preparamos apenas os dados que realmente mudaram (Delta Update)
+        // Regra Especial 1: Se mover para Aprovado, abre o modal para obrigar preenchimento de venda e custo
+        if (newStatus === 'aprovado' && lead.status !== 'aprovado') {
+          onEditLead({ ...lead, status: 'aprovado' });
+          return;
+        }
+
         const updateData: Partial<Lead> = { 
           id: lead.id, 
           status: newStatus, 
           responded: false 
         };
         
-        // Regra Especial: Só reseta o tempo se estiver saindo de 'Proposta Enviada' para 'Em Cotação'
+        // Regra Especial 2: Só reseta o tempo se estiver saindo de 'Proposta Enviada' para 'Em Cotação'
         if (lead.status === 'proposta_enviada' && newStatus === 'em_cotacao') {
           updateData.slaStartAt = new Date().toISOString();
         }
@@ -219,6 +225,16 @@ export function CRMView({
                     columnLeads.map((lead: Lead) => {
                       const route = getRouteInfo(lead);
                       const urgency = getUrgency(lead.slaStartAt, lead.createdAt);
+                      const stopBlinking = ['proposta_enviada', 'aprovado', 'perdido'].includes(lead.status);
+                      const finalAnimate = stopBlinking ? '' : urgency.animate;
+                      let finalBorder = urgency.border;
+                      let borderWidth = 'border-2';
+                      if (lead.status === 'aprovado') {
+                        finalBorder = 'border-emerald-500 shadow-sm shadow-emerald-500/10';
+                        borderWidth = 'border-[3px]';
+                      } else if (stopBlinking) {
+                        finalBorder = 'border-gray-200 dark:border-slate-700/50';
+                      }
 
                       return (
                         <motion.div 
@@ -226,12 +242,17 @@ export function CRMView({
                           key={lead.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e as any, lead.id)}
-                          className={`p-3 bg-white dark:bg-slate-800 rounded-xl border-2 ${urgency.border} ${urgency.animate} hover:brightness-95 transition-all cursor-grab active:cursor-grabbing group relative`}
+                          className={`p-3 bg-white dark:bg-slate-800 rounded-xl ${borderWidth} ${finalBorder} ${finalAnimate} hover:brightness-95 transition-all cursor-grab active:cursor-grabbing group relative`}
                         >
-                          {/* SLA Badge OR Responded Toggle */}
-                          <div className="absolute top-2 right-12 flex items-center gap-1.5 transition-opacity">
-                             {lead.status === 'proposta_enviada' ? (
-                               <button 
+                           {/* SLA Badge OR Responded Toggle */}
+                           <div className="absolute top-2 right-12 flex items-center gap-1.5 transition-opacity">
+                              {lead.status === 'aprovado' ? (
+                                <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                                  <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-tighter">Vendido</span>
+                                </div>
+                              ) : lead.status === 'proposta_enviada' ? (
+                                <button 
                                  onClick={(e) => { e.stopPropagation(); handleToggleResponded(lead); }}
                                  className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all flex items-center gap-1 ${lead.responded ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500'}`}
                                >
@@ -241,7 +262,7 @@ export function CRMView({
                              ) : (
                                <>
                                  <div className={`relative flex h-3 w-3 items-center justify-center`}>
-                                    {urgency.bg === 'bg-red-500' && (
+                                    {urgency.bg === 'bg-red-500' && !stopBlinking && (
                                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                     )}
                                     <div className={`relative inline-flex rounded-full h-3 w-3 ${urgency.bg} shadow-sm border border-white/40`} />

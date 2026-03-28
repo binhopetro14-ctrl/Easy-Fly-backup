@@ -6,9 +6,10 @@ import { supabase } from '@/lib/supabase';
 
 interface LoginViewProps {
     onLogin: (user: any) => void;
+    sessionExpiredMessage?: string;
 }
 
-export function LoginView({ onLogin }: LoginViewProps) {
+export function LoginView({ onLogin, sessionExpiredMessage }: LoginViewProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -68,6 +69,12 @@ export function LoginView({ onLogin }: LoginViewProps) {
                     <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 text-center -mt-2">Acesse sua conta</h2>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        {sessionExpiredMessage && !error && (
+                            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 p-3 rounded-xl text-sm font-medium animate-in fade-in zoom-in duration-200">
+                                <AlertCircle className="w-4 h-4" />
+                                {sessionExpiredMessage}
+                            </div>
+                        )}
                         {error && (
                             <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm font-medium animate-in fade-in zoom-in duration-200">
                                 <AlertCircle className="w-4 h-4" />

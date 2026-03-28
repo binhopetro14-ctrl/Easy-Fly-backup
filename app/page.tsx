@@ -114,6 +114,7 @@ export default function Page() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showValues, setShowValues] = useState(true);
 
   // --- ESTADOS DE MODAIS ---
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -139,6 +140,7 @@ export default function Page() {
 
   const [isMyProfileModalOpen, setIsMyProfileModalOpen] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string>('');
 
   useEffect(() => {
     const handleOpenMyProfile = () => setIsMyProfileModalOpen(true);
@@ -202,6 +204,7 @@ export default function Page() {
   const handleLogin = async (userData: any) => {
     setUser(userData);
     setIsAuthenticated(true);
+    setSessionExpiredMessage('');
     
     // Fetch full profile info
     if (userData?.email) {
@@ -246,7 +249,7 @@ export default function Page() {
     timeoutMinutes: 60, // Desloga após 60 minutos de inatividade
     isActive: isAuthenticated,
     onTimeout: () => {
-      alert("A sessão foi encerrada devido a inatividade prolongada.");
+      setSessionExpiredMessage("Sessão expirada devido a inatividade prolongada.");
       handleLogout();
     }
   });
@@ -492,7 +495,7 @@ export default function Page() {
 
   // --- RENDERIZAÇÃO DA TELA DE LOGIN ---
   if (!isAuthenticated) {
-    return <LoginView onLogin={handleLogin} />;
+    return <LoginView onLogin={handleLogin} sessionExpiredMessage={sessionExpiredMessage} />;
   }
 
   if (error) {
@@ -625,7 +628,7 @@ export default function Page() {
                   currentUser={currentUser}
                 />
               ) : activeView === 'dashboard' ? (
-                <DashboardView sales={sales} onAddCustomer={openAddCustomer} onAddSale={openAddSale} setActiveView={setActiveView} onUpdateSaleStatus={handleUpdateSaleStatus} onAddLead={openAddLead} currentUser={currentUser} />
+                <DashboardView sales={sales} onAddCustomer={openAddCustomer} onAddSale={openAddSale} setActiveView={setActiveView} onUpdateSaleStatus={handleUpdateSaleStatus} onAddLead={openAddLead} currentUser={currentUser} showValues={showValues} onToggleValues={() => setShowValues(v => !v)} />
               ) : activeView === 'clientes' ? (
                 <CustomersView
                   customers={customers}
@@ -648,6 +651,7 @@ export default function Page() {
                   onDeleteSale={handleDeleteSale} 
                   onUpdateSale={handleQuickUpdateSale}
                   fetchSales={fetchSales}
+                  showValues={showValues}
                 />
                ) : activeView === 'crm' ? (
             <CRMView 

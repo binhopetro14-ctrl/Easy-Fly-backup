@@ -63,6 +63,7 @@ export interface SaleItem {
   saleModel?: string;
   ticket_url?: string;
   ticket_url2?: string;
+  commissionDate?: string;
 }
 
 export interface Sale {
