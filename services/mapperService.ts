@@ -45,6 +45,7 @@ export const mapperService = {
       notes: data.notes,
       createdAt: data.created_at,
       emissor: data.emissor,
+      productName: data.product_name || '',
       items: items.map(item => ({
         id: item.id,
         type: item.type,
@@ -146,7 +147,8 @@ export const mapperService = {
         payment_method: sale.paymentMethod,
         sale_date: sale.saleDate,
         notes: sale.notes,
-        emissor: sale.emissor
+        emissor: sale.emissor,
+        product_name: sale.productName || null,
       };
       if (sale.id) data.id = sale.id;
       return data;

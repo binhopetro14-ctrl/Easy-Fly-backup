@@ -126,6 +126,8 @@ export default function Page() {
   const [isDeleteSaleConfirmOpen, setIsDeleteSaleConfirmOpen] = useState(false);
   const [isDeleteSupplierConfirmOpen, setIsDeleteSupplierConfirmOpen] = useState(false);
   const [isDeleteLeadConfirmOpen, setIsDeleteLeadConfirmOpen] = useState(false);
+  const [quoteLinkSaleId, setQuoteLinkSaleId] = useState<string | null>(null);
+  const [quoteLinkCopied, setQuoteLinkCopied] = useState(false);
 
   // --- ESTADOS DE EDIÇÃO/DELEÇÃO ---
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -335,7 +337,7 @@ export default function Page() {
   // Sale Handlers
   const handleSaveSale = async (saleData: Partial<Sale>) => {
     try {
-      await internalSaveSale(
+      const savedSale = await internalSaveSale(
         { 
           ...editingSale, 
           ...saleData,
@@ -345,6 +347,11 @@ export default function Page() {
       );
       setIsSaleModalOpen(false);
       setEditingSale(null);
+      // Abre modal de link compartilhável
+      if (savedSale?.id) {
+        setQuoteLinkSaleId(savedSale.id);
+        setQuoteLinkCopied(false);
+      }
     } catch (error: any) {
       console.error('Erro ao salvar venda:', error);
       alert('Erro ao salvar venda: ' + (error.message || 'Erro desconhecido'));
@@ -517,8 +524,94 @@ export default function Page() {
     );
   }
 
+  const quoteLink = quoteLinkSaleId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/orcamento/${quoteLinkSaleId}` : '';
+
+  const handleCopyQuoteLink = () => {
+    if (!quoteLink) return;
+    navigator.clipboard.writeText(quoteLink).then(() => {
+      setQuoteLinkCopied(true);
+      setTimeout(() => setQuoteLinkCopied(false), 3000);
+    });
+  };
+
   return (
     <div className="flex h-screen bg-[#F3F4F6] dark:bg-[#0f172a] font-sans text-[#1A1A1A] dark:text-gray-100 overflow-hidden transition-colors duration-300">
+
+      {/* ===== MODAL DE LINK DO ORÇAMENTO ===== */}
+      <AnimatePresence>
+        {quoteLinkSaleId && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setQuoteLinkSaleId(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 24 }}
+              transition={{ type: 'spring', duration: 0.5, bounce: 0.3 }}
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
+            >
+              <div className="bg-white dark:bg-[#1e293b] rounded-[28px] shadow-2xl w-full max-w-md pointer-events-auto overflow-hidden">
+                {/* Header gradient */}
+                <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] p-6 text-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-sm">
+                    <CheckCircle2 className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-xl font-black text-white tracking-tight">Orçamento Salvo!</h2>
+                  <p className="text-white/70 text-sm mt-1 font-medium">Copie o link e envie para o cliente</p>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  {/* Link display */}
+                  <div className="bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 space-y-3">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Link do Orçamento</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 font-mono break-all leading-relaxed bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl px-3 py-2">
+                      {quoteLink}
+                    </p>
+                    <button
+                      onClick={handleCopyQuoteLink}
+                      className={`w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                        quoteLinkCopied
+                          ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                          : 'bg-[#19727d] text-white hover:bg-[#145d66] shadow-lg shadow-[#19727d]/20'
+                      }`}
+                    >
+                      {quoteLinkCopied ? (
+                        <><CheckCircle2 className="w-4 h-4" /> Link Copiado!</>
+                      ) : (
+                        <><CreditCard className="w-4 h-4" /> Copiar Link</>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Open in new tab */}
+                  <a
+                    href={quoteLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-400 hover:text-[#19727d] dark:hover:text-cyan-400 transition-colors"
+                  >
+                    Visualizar página do cliente →
+                  </a>
+
+                  <button
+                    onClick={() => setQuoteLinkSaleId(null)}
+                    className="w-full py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-300 dark:text-gray-600 hover:text-gray-500 transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <MyProfileModal isOpen={isMyProfileModalOpen} onClose={() => setIsMyProfileModalOpen(false)} userEmail={user?.email || ''} />
       <CustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onSave={handleSaveCustomer} customer={editingCustomer} />
       <GroupModal isOpen={isGroupModalOpen} onClose={() => setIsGroupModalOpen(false)} onSave={handleSaveGroup} group={editingGroup} customers={customers} />
