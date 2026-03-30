@@ -425,7 +425,7 @@ export default function Page() {
       setEditingSupplier(null);
     } catch (error: any) { 
       console.error(error); 
-      alert('Erro ao salvar fornecedor: ' + (error.message || 'Erro desconhecido'));
+      setNotification({ message: 'Erro ao salvar fornecedor: ' + (error.message || 'Erro desconhecido'), type: 'error' });
     }
   };
 
@@ -445,7 +445,7 @@ export default function Page() {
         setSupplierToDelete(null);
       } catch (error: any) { 
         console.error(error); 
-        alert('Erro ao excluir fornecedor: ' + (error.message || 'Erro desconhecido'));
+        setNotification({ message: 'Erro ao excluir fornecedor: ' + (error.message || 'Erro desconhecido'), type: 'error' });
       }
     }
   };

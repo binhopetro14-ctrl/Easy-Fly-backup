@@ -137,6 +137,7 @@ interface LeadItem {
   returnDuration?: string;
   hotelName?: string;
   hotelAddress?: string;
+  hotelPhotos?: string[];
   checkInDate?: string;
   checkOutDate?: string;
   value?: number;
@@ -1022,53 +1023,98 @@ function FlightItemCard({ item, lead }: { item: LeadItem; lead: Lead }) {
 }
 
 function HotelItemCard({ item }: { item: LeadItem }) {
+  const [activePhoto, setActivePhoto] = useState(0);
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-purple-500/5 transition-all duration-500 group/hotel">
       <div className={`h-1.5 w-full bg-gradient-to-r ${TypeGradient(item.type)}`} />
-      <div className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${TypeGradient(item.type)} flex items-center justify-center text-white shadow-md`}>
-              <TypeIcon type={item.type} />
+      
+      {/* CARROSSEL DE FOTOS DO HOTEL */}
+      {item.hotelPhotos && item.hotelPhotos.length > 0 && (
+        <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-gray-100">
+          <img 
+            src={item.hotelPhotos[activePhoto]} 
+            alt={item.hotelName} 
+            className="w-full h-full object-cover transition-transform duration-700 group-hover/hotel:scale-105"
+          />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+          
+          {/* Badge de Fotos */}
+          <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+             <Package className="w-3 h-3 text-purple-400" />
+             {activePhoto + 1} / {item.hotelPhotos.length}
+          </div>
+
+          {/* Miniaturas Seletoras */}
+          <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 custom-scrollbar no-print">
+            {item.hotelPhotos.map((photo, idx) => (
+              <button 
+                key={idx}
+                onClick={() => setActivePhoto(idx)}
+                className={`relative w-14 h-10 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
+                  activePhoto === idx ? 'border-purple-500 scale-110 shadow-lg' : 'border-white/40 hover:border-white opacity-70 hover:opacity-100'
+                }`}
+              >
+                <img src={photo} className="w-full h-full object-cover" alt="" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="p-6 space-y-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${TypeGradient(item.type)} flex items-center justify-center text-white shadow-lg group-hover/hotel:rotate-6 transition-transform`}>
+              <Hotel className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest"><TypeLabel type={item.type} /></p>
-              {item.hotelName && <p className="font-black text-gray-800">{item.hotelName}</p>}
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Hospedagem Confirmada</p>
+              <h3 className="font-black text-xl text-gray-900 tracking-tight leading-tight">{item.hotelName || 'Nome do Hotel'}</h3>
             </div>
           </div>
           {item.value && item.value > 0 && (
-            <span className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-sm font-black border border-purple-100">
-              {formatCurrency(item.value)}
-            </span>
+            <div className="text-right">
+              <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-1">Valor do Item</p>
+              <span className="px-4 py-1.5 bg-purple-50 text-purple-600 rounded-2xl text-lg font-black border border-purple-100 shadow-sm">
+                {formatCurrency(item.value)}
+              </span>
+            </div>
           )}
         </div>
 
-        {item.hotelAddress && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            {item.hotelAddress}
-          </div>
-        )}
+        <div className="flex flex-col gap-3">
+          {item.hotelAddress && (
+            <div className="flex items-start gap-2.5 bg-slate-50/80 p-3 rounded-2xl border border-slate-100/50">
+              <MapPin className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+              <p className="text-[11px] font-bold text-slate-600 leading-relaxed font-sans">{item.hotelAddress}</p>
+            </div>
+          )}
 
-        <div className="grid grid-cols-2 gap-3">
-          {item.checkInDate && (
-            <div className="flex items-center gap-2 bg-purple-50 rounded-xl p-3">
-              <Calendar className="w-4 h-4 text-purple-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-purple-400 font-bold uppercase">Check-in</p>
-                <p className="text-sm font-black text-gray-700">{formatDate(item.checkInDate)}</p>
+          <div className="grid grid-cols-2 gap-4">
+            {item.checkInDate && (
+              <div className="flex items-center gap-3 bg-white border border-slate-100 rounded-[20px] p-4 shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[9px] text-purple-400 font-black uppercase tracking-widest leading-none mb-1">Check-in</p>
+                  <p className="text-sm font-black text-gray-800">{formatDate(item.checkInDate)}</p>
+                </div>
               </div>
-            </div>
-          )}
-          {item.checkOutDate && (
-            <div className="flex items-center gap-2 bg-pink-50 rounded-xl p-3">
-              <Calendar className="w-4 h-4 text-pink-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-pink-400 font-bold uppercase">Check-out</p>
-                <p className="text-sm font-black text-gray-700">{formatDate(item.checkOutDate)}</p>
+            )}
+            {item.checkOutDate && (
+              <div className="flex items-center gap-3 bg-white border border-slate-100 rounded-[20px] p-4 shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[9px] text-pink-400 font-black uppercase tracking-widest leading-none mb-1">Check-out</p>
+                  <p className="text-sm font-black text-gray-800">{formatDate(item.checkOutDate)}</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
