@@ -1,0 +1,171 @@
+﻿
+> ai-studio-applet@0.1.0 lint
+> eslint .
+
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\app\cotacao\[id]\page.tsx
+   415:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\app\cotacao\[id]\page.tsx:415:7
+  413 |   useEffect(() => {
+  414 |     if ((window as any).L) {
+> 415 |       setLeafletReady(true);
+      |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  416 |       return;
+  417 |     }
+  418 |     const interval = setInterval(() => {  react-hooks/set-state-in-effect
+   639:9   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1041:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1064:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1173:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1264:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1339:6   warning  React Hook useEffect has a missing dependency: 'fetchLead'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  1397:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1413:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1531:16  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1558:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1832:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\app\orcamento\[id]\page.tsx
+  359:6   warning  React Hook useEffect has a missing dependency: 'fetchSale'. Either include it or remove the dependency array                                                                                                                                                                             react-hooks/exhaustive-deps
+  431:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  447:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  489:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  629:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\app\page.tsx
+  183:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                             react-hooks/exhaustive-deps
+  751:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  799:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\CustomerModal.tsx
+  34:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\CustomerModal.tsx:34:9
+  32 |     if (isOpen) {
+  33 |       if (customer) {
+> 34 |         setFormData({
+     |         ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  35 |           firstName: customer.firstName,
+  36 |           lastName: customer.lastName,
+  37 |           email: customer.email,  react-hooks/set-state-in-effect
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\GroupModal.tsx
+  29:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\GroupModal.tsx:29:9
+  27 |     if (isOpen) {
+  28 |       if (group) {
+> 29 |         setFormData({
+     |         ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |           name: group.name,
+  31 |           memberIds: [...group.memberIds]
+  32 |         });  react-hooks/set-state-in-effect
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\LeadModal.tsx
+   573:6   warning  React Hook useEffect has a missing dependency: 'lastSearchedName'. Either include it or remove the dependency array                                                                                                                                                                      react-hooks/exhaustive-deps
+   595:6   warning  React Hook useEffect has a missing dependency: 'activeItemType'. Either include it or remove the dependency array                                                                                                                                                                        react-hooks/exhaustive-deps
+  1084:35  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\LoginView.tsx
+  61:29  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\MyProfileModal.tsx
+   30:8   warning  React Hook useEffect has a missing dependency: 'loadProfile'. Either include it or remove the dependency array                                                                                                                                                                           react-hooks/exhaustive-deps
+  123:37  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\SaleModal.tsx
+  902:44  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  902:44  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\SalesView.tsx
+  126:6  warning  React Hook useMemo has an unnecessary dependency: 'currentDate'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\SupabaseSyncHandler.tsx
+  21:5   error    Error: Cannot access variable before it is declared
+
+`checkConnection` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\SupabaseSyncHandler.tsx:21:5
+  19 |
+  20 |   useEffect(() => {
+> 21 |     checkConnection();
+     |     ^^^^^^^^^^^^^^^ `checkConnection` accessed before it is declared
+  22 |     supabase.auth.getSession().then(({ data: { session } }) => {
+  23 |       setSession(session);
+  24 |       if (session?.user?.email) fetchTeamMember(session.user.email);
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\SupabaseSyncHandler.tsx:59:3
+  57 |   };
+  58 |
+> 59 |   async function checkConnection() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 60 |     setIsSyncing(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 61 |     const connected = await syncService.checkConnection();
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 62 |     setIsConnected(connected);
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 63 |     if (connected) await onRefresh();
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 64 |     setIsSyncing(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+> 65 |   }
+     | ^^^^ `checkConnection` is declared here
+  66 |
+  67 |   const handleLogin = async () => {
+  68 |     const email = prompt("Digite seu e-mail (banco teste):", "teste@easyfly.com");                                                                      react-hooks/immutability
+  24:33  error    Error: Cannot access variable before it is declared
+
+`fetchTeamMember` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\SupabaseSyncHandler.tsx:24:33
+  22 |     supabase.auth.getSession().then(({ data: { session } }) => {
+  23 |       setSession(session);
+> 24 |       if (session?.user?.email) fetchTeamMember(session.user.email);
+     |                                 ^^^^^^^^^^^^^^^ `fetchTeamMember` accessed before it is declared
+  25 |     });
+  26 |
+  27 |     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\SupabaseSyncHandler.tsx:54:3
+  52 |   }, []);
+  53 |
+> 54 |   const fetchTeamMember = async (email: string) => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |     const { data } = await supabase.from('team_members').select('*').eq('email', email).single();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 56 |     if (data) setTeamMember(data);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 57 |   };
+     | ^^^^^ `fetchTeamMember` is declared here
+  58 |
+  59 |   async function checkConnection() {
+  60 |     setIsSyncing(true);  react-hooks/immutability
+  52:6   warning  React Hook useEffect has missing dependencies: 'checkConnection', 'onRefresh', and 'session.user.email'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+  95:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @next/next/no-img-element
+
+C:\Users\Cleber\Documents\EASY FLY\SISTEMA\Easy Fly\components\UsersView.tsx
+  319:49  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  425:45  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+Ô£û 37 problems (5 errors, 32 warnings)
+

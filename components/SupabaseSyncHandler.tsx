@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { syncService } from '../services/syncService';
 import { Cloud, CloudOff, RefreshCw, LogIn, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import Image from 'next/image';
 
 interface Props {
   onRefresh: () => Promise<void>;
@@ -18,7 +19,21 @@ export const SupabaseSyncHandler: React.FC<Props> = ({ onRefresh, collapsed }) =
   const [teamMember, setTeamMember] = useState<any>(null);
 
   useEffect(() => {
+    const fetchTeamMember = async (email: string) => {
+      const { data } = await supabase.from('team_members').select('*').eq('email', email).single();
+      if (data) setTeamMember(data);
+    };
+
+    const checkConnection = async () => {
+      setIsSyncing(true);
+      const connected = await syncService.checkConnection();
+      setIsConnected(connected);
+      if (connected) await onRefresh();
+      setIsSyncing(false);
+    };
+
     checkConnection();
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user?.email) fetchTeamMember(session.user.email);
@@ -38,9 +53,11 @@ export const SupabaseSyncHandler: React.FC<Props> = ({ onRefresh, collapsed }) =
 
     const stopAutoSync = syncService.startAutoSync(onRefresh, 300000);
 
-    const handleProfileUpdated = (e: any) => {
-      if (session?.user?.email) fetchTeamMember(session.user.email);
+    const handleProfileUpdated = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession?.user?.email) fetchTeamMember(currentSession.user.email);
     };
+    
     window.addEventListener('profile-updated', handleProfileUpdated);
 
     return () => {
@@ -49,20 +66,8 @@ export const SupabaseSyncHandler: React.FC<Props> = ({ onRefresh, collapsed }) =
       stopAutoSync();
       window.removeEventListener('profile-updated', handleProfileUpdated);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const fetchTeamMember = async (email: string) => {
-    const { data } = await supabase.from('team_members').select('*').eq('email', email).single();
-    if (data) setTeamMember(data);
-  };
-
-  async function checkConnection() {
-    setIsSyncing(true);
-    const connected = await syncService.checkConnection();
-    setIsConnected(connected);
-    if (connected) await onRefresh();
-    setIsSyncing(false);
-  }
 
   const handleLogin = async () => {
     const email = prompt("Digite seu e-mail (banco teste):", "teste@easyfly.com");
@@ -92,7 +97,7 @@ export const SupabaseSyncHandler: React.FC<Props> = ({ onRefresh, collapsed }) =
             >
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center text-white font-bold text-xs ring-2 ring-white/10">
                 {teamMember?.avatar_url ? (
-                  <img src={teamMember.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  <Image src={teamMember.avatar_url} alt="Avatar" width={32} height={32} className="w-full h-full object-cover" />
                 ) : (
                   <span>{teamMember?.name?.charAt(0) || session.user.email?.charAt(0).toUpperCase()}</span>
                 )}

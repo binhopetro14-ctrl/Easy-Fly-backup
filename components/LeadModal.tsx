@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Plus, Plane, Hotel, Shield, Car, Trash2, Layout, 
   Tag as TagIcon, Minus, Luggage, User, Baby, Clock,
-  MapPin, Pencil, Search, ChevronDown, Target, Phone, Mail, FileText, Users, MessageCircle, Loader2, Star, CheckCircle
+  MapPin, Pencil, Search, ChevronDown, Target, Phone, Mail, FileText, Users, MessageCircle, Loader2, Star, CheckCircle, Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NumericFormat } from 'react-number-format';
+import Image from 'next/image';
 import { Lead, CRMStatus, Customer, Group, Supplier } from '@/types';
 
 interface LeadModalProps {
@@ -58,15 +59,15 @@ function DateInput({ value, onChange, className, placeholder }: {
   };
 
   const [display, setDisplay] = React.useState(() => toDisplay(value));
+  const [internalValue, setInternalValue] = React.useState(value || '');
 
   React.useEffect(() => {
     setDisplay(toDisplay(value));
+    setInternalValue(value || '');
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    // Se o usuário está apagando (backspace), limpamos apenas o estado de exibição sem formatar
-    // para não travar o cursor se ele apagar uma barra
     let digits = val.replace(/\D/g, '').slice(0, 8);
     
     let formatted = digits;
@@ -78,15 +79,17 @@ function DateInput({ value, onChange, className, placeholder }: {
     if (digits.length >= 6) {
       const d = digits.slice(0, 2);
       const m = digits.slice(2, 4);
-      const y = digits.slice(4);
+      let y = digits.slice(4);
       
-      // Se tivermos o ano completo (4 dígitos), validamos e enviamos
+      if (y.length === 2) y = '20' + y;
+      
       if (y.length === 4) {
-        if (parseInt(y) >= 1900 && parseInt(y) <= 2100) {
-          onChange(`${y}-${m}-${d}`);
-        }
+        const iso = `${y}-${m}-${d}`;
+        setInternalValue(iso);
+        onChange(iso);
       }
     } else if (digits.length === 0) {
+      setInternalValue('');
       onChange('');
     }
   };
@@ -300,7 +303,7 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, showFlightEx
             className="w-full py-2.5 border-2 border-dashed border-gray-200 dark:border-slate-700 hover:border-cyan-300 dark:hover:border-cyan-500 rounded-xl text-[10px] font-black text-gray-400 hover:text-cyan-500 transition-all flex items-center justify-center gap-2 bg-gray-50/50 hover:bg-cyan-50 dark:hover:bg-cyan-500/5 group"
           >
             <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 group-hover:border-cyan-400 flex items-center justify-center transition-all">
-                <Plus className="w-3 h-3" />
+                <Clock className="w-3.5 h-3.5" />
             </div>
             ADICIONAR CONEXÃO
           </button>
@@ -570,6 +573,7 @@ export function LeadModal({
     }, 600);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentItem.hotelName, activeItemType]);
 
   // ATUALIZAR QUARTOS QUANDO DATAS MUDAREM
@@ -592,6 +596,7 @@ export function LeadModal({
       };
       updateRooms();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentItem.checkInDate, currentItem.checkOutDate]);
 
   const selectHotelSuggestion = async (suggestion: any) => {
@@ -745,9 +750,12 @@ export function LeadModal({
       // Salvar metadados extras se for hospedagem
       ...(currentItem.type === 'hospedagem' ? {
         hotelDescription,
-        hotelAmenities: hotelFacilities,
         hotelId: (window as any)._lastHotelId,
-        hotelPhotos: currentItem.hotelPhotos // Já está no currentItem
+        hotelPhotos: currentItem.hotelPhotos,
+        checkIn: currentItem.checkInDate,
+        checkOut: currentItem.checkOutDate,
+        check_in: currentItem.checkInDate, // REDUNDANCIA EXTRA
+        check_out: currentItem.checkOutDate
       } : {})
     };
 
@@ -792,7 +800,13 @@ export function LeadModal({
 
   const handleEditItem = (itemToEdit: any) => {
     setEditingItemId(itemToEdit.id);
-    setCurrentItem(itemToEdit);
+    // Inicializar campos de data se estiverem salvos como checkIn/checkOut
+    const itemWithDates = {
+      ...itemToEdit,
+      checkInDate: itemToEdit.checkInDate || itemToEdit.checkIn || '',
+      checkOutDate: itemToEdit.checkOutDate || itemToEdit.checkOut || ''
+    };
+    setCurrentItem(itemWithDates);
     setActiveItemType(itemToEdit.type || 'passagem');
   };
 
@@ -1081,7 +1095,7 @@ export function LeadModal({
                             <div className="grid grid-cols-2 gap-1.5 h-48 content-start overflow-hidden rounded-xl">
                               {currentItem.hotelPhotos.slice(0, 4).map((photo: string, idx: number) => (
                                 <div key={idx} className={`rounded-lg overflow-hidden border border-white dark:border-slate-700 shadow-sm relative group ${idx === 0 ? 'col-span-2 h-28' : 'h-18'}`}>
-                                  <img src={photo} alt={`Hotel ${idx}`} className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110" />
+                                  <Image src={photo} alt={`Hotel ${idx}`} width={200} height={150} className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110" />
                                 </div>
                               ))}
                             </div>
@@ -1184,14 +1198,41 @@ export function LeadModal({
                     </div>
 
                     {/* RODAPÉ DA SEÇÃO: DATAS COMPACTAS */}
-                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50 dark:border-slate-700/50">
-                      <div className="flex items-center gap-2">
-                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-tighter opacity-70 shrink-0">Check-In</label>
-                        <DateInput className="flex-1 px-3 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white" value={currentItem.checkInDate} onChange={v => setCurrentItem({...currentItem, checkInDate: v})} />
+                    {/* RODAPÉ DA SEÇÃO: DATAS E HORÁRIOS COMPACTOS */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-gray-50 dark:border-slate-700/50">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-tighter opacity-70">Entrada (Check-In)</label>
+                        <div className="flex items-center gap-2">
+                           <DateInput 
+                             className="flex-1 px-3 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white" 
+                             value={currentItem.checkInDate} 
+                             onChange={v => setCurrentItem({...currentItem, checkInDate: v})} 
+                           />
+                           <input 
+                             type="text"
+                             placeholder="14:00"
+                             className="w-16 px-2 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white"
+                             value={currentItem.checkInTime || ''}
+                             onChange={e => setCurrentItem({...currentItem, checkInTime: e.target.value})}
+                           />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-tighter opacity-70 shrink-0">Check-Out</label>
-                        <DateInput className="flex-1 px-3 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white" value={currentItem.checkOutDate} onChange={v => setCurrentItem({...currentItem, checkOutDate: v})} />
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-tighter opacity-70">Saída (Check-Out)</label>
+                        <div className="flex items-center gap-2">
+                           <DateInput 
+                             className="flex-1 px-3 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white" 
+                             value={currentItem.checkOutDate} 
+                             onChange={v => setCurrentItem({...currentItem, checkOutDate: v})} 
+                           />
+                           <input 
+                             type="text"
+                             placeholder="12:00"
+                             className="w-16 px-2 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white"
+                             value={currentItem.checkOutTime || ''}
+                             onChange={e => setCurrentItem({...currentItem, checkOutTime: e.target.value})}
+                           />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1271,7 +1312,40 @@ export function LeadModal({
                     </div>
                   )}
                   <button 
-                    onClick={() => onSave(formData)} 
+                    onClick={() => {
+                      let updatedFormData = { ...formData };
+                      
+                      // LOGICA DE SALVAMENTO IMPLICITO:
+                      // Se o usuário preencheu o formulário mas não clicou em "Incluir" ou "Atualizar",
+                      // fazemos isso agora automaticamente antes de salvar o Lead.
+                      if (currentItem.type === 'hospedagem' && currentItem.hotelName) {
+                        const itemDescription = `Hotel: ${currentItem.hotelName}`;
+                        const newItem = {
+                          ...currentItem,
+                          id: editingItemId || Math.random().toString(36).substr(2, 9),
+                          description: itemDescription,
+                          hotelDescription,
+                          hotelAmenities: hotelFacilities,
+                          hotelId: (window as any)._lastHotelId,
+                          hotelPhotos: currentItem.hotelPhotos,
+                          checkIn: currentItem.checkInDate,
+                          checkOut: currentItem.checkOutDate,
+                          check_in: currentItem.checkInDate, // REDUNDANCIA PARA O BANCO
+                          check_out: currentItem.checkOutDate,
+                          checkInDate: currentItem.checkInDate,
+                          checkOutDate: currentItem.checkOutDate
+                        };
+                        
+                        const newItems = [...(formData.items || []).filter((i:any) => i.id !== newItem.id), newItem];
+                        updatedFormData = {
+                          ...formData,
+                          items: newItems,
+                          value: newItems.reduce((sum, i) => sum + (i.value || 0), 0)
+                        };
+                      }
+
+                      onSave(updatedFormData);
+                    }} 
                     disabled={!canSave}
                     className={`w-full py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-cyan-500/10 active:scale-95 ${
                       canSave ? 'bg-cyan-500 text-white hover:bg-cyan-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -1308,7 +1382,7 @@ export function LeadModal({
                               {item.type === 'passagem' ? (
                                 `${item.adults || (formData as any).adults}A ${item.children || (formData as any).children}C ${item.babies || (formData as any).babies}B`
                               ) : (
-                                formatDateRange(item.checkInDate, item.checkOutDate)
+                                formatDateRange(item.checkIn || item.checkInDate, item.checkOut || item.checkOutDate)
                               )}
                             </p>
                           </div>

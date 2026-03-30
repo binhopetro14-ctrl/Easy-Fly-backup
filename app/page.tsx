@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -180,6 +181,7 @@ export default function Page() {
     if (isAuthenticated) {
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const fetchData = async () => {
@@ -350,24 +352,45 @@ export default function Page() {
         {
           ...editingSale,
           ...saleData,
-          emissor: editingSale?.emissor || `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() || user?.email || 'N/A'
+          emissor:
+            editingSale?.emissor ||
+            `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() ||
+            user?.email ||
+            'N/A'
         },
         saleData.items || editingSale?.items || []
       );
+
       setIsSaleModalOpen(false);
       setEditingSale(null);
-      // Abre modal de link compartilhável
-      if (savedSale?.id) {
-        console.log("Venda salva com ID:", savedSale.id);
 
-        // Pequeno delay pra garantir persistência no banco
-        setTimeout(() => {
+      // ✅ VALIDAÇÃO REAL (REMOVE 404)
+      if (savedSale?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('sales')
+            .select('id')
+            .eq('id', savedSale.id)
+            .single();
+
+          if (error || !data) {
+            throw new Error('Venda não encontrada após salvar');
+          }
+
           setQuoteLinkSaleId(savedSale.id);
           setQuoteLinkCopied(false);
-        }, 500);
 
+        } catch (err: any) {
+          console.error("Erro ao validar venda:", err);
+
+          setNotification({
+            message: "Erro ao gerar link do orçamento",
+            type: "error"
+          });
+        }
       } else {
-        console.error("Erro: venda salva sem ID válido");
+        console.error("Erro: venda sem ID válido");
+
         setNotification({
           message: "Erro ao gerar link do orçamento",
           type: "error"
@@ -376,7 +399,11 @@ export default function Page() {
 
     } catch (error: any) {
       console.error('Erro ao salvar venda:', error);
-      setNotification({ message: 'Erro ao salvar venda: ' + (error.message || 'Erro desconhecido'), type: 'error' });
+
+      setNotification({
+        message: 'Erro ao salvar venda: ' + (error.message || 'Erro interno'),
+        type: 'error'
+      });
     }
   };
 
@@ -566,8 +593,10 @@ export default function Page() {
     );
   }
 
-  const quoteLink = quoteLinkSaleId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/orcamento/${quoteLinkSaleId}` : '';
-
+  const quoteLink =
+    quoteLinkSaleId && typeof window !== 'undefined'
+      ? `${window.location.origin}/orcamento/${quoteLinkSaleId}`
+      : '';
   const handleCopyQuoteLink = () => {
     if (!quoteLink) return;
     navigator.clipboard.writeText(quoteLink).then(() => {
@@ -648,8 +677,8 @@ export default function Page() {
                     <button
                       onClick={handleCopyQuoteLink}
                       className={`w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${quoteLinkCopied
-                          ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
-                          : 'bg-[#19727d] text-white hover:bg-[#145d66] shadow-lg shadow-[#19727d]/20'
+                        ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                        : 'bg-[#19727d] text-white hover:bg-[#145d66] shadow-lg shadow-[#19727d]/20'
                         }`}
                     >
                       {quoteLinkCopied ? (
@@ -721,7 +750,7 @@ export default function Page() {
         <div className="p-6 flex items-center justify-between lg:justify-start gap-3 bg-[#19727d]">
           <div className="flex items-center gap-3 w-full">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#145d66]/50 p-2">
-              <img src="/logo2.png" alt="Easy Fly" className="w-full h-full object-contain" />
+              <Image src="/logo2.png" alt="Easy Fly" width={48} height={48} className="w-full h-full object-contain" />
             </div>
             {(!isSidebarCollapsed || isMobileMenuOpen) && (
               <div className="overflow-hidden whitespace-nowrap animate-in slide-in-from-left duration-300">
@@ -769,7 +798,7 @@ export default function Page() {
         <header className="lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm p-1.5 border border-gray-50">
-              <img src="/logo2.png" alt="Easy Fly" className="w-full h-full object-contain" />
+              <Image src="/logo2.png" alt="Easy Fly" width={40} height={40} className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-[#19727d] text-xl leading-none tracking-tighter">Easy Fly</span>

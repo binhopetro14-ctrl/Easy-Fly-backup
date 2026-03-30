@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import Image from 'next/image';
 import {
   Plane,
   Hotel,
@@ -16,12 +17,14 @@ import {
   Briefcase,
   Phone,
   MessageCircle,
-  CheckCircle,
+  CheckCircle2,
   Clock,
+  Coffee,
   CreditCard,
   Star,
+  Trash2,
+  ChevronRight,
   ArrowRight,
-  Coffee,
 } from 'lucide-react';
 
 // Cliente Supabase público (sem autenticação)
@@ -58,11 +61,18 @@ interface SaleItem {
   departureDate?: string;
   returnDate?: string;
   checkIn?: string;
+  checkInTime?: string;
   checkOut?: string;
+  checkOutTime?: string;
+  checkInDate?: string;
+  checkOutDate?: string;
   hasBreakfast?: boolean;
   hotelName?: string;
   description?: string;
   passengerName?: string;
+  hotelAmenities?: string[];
+  hotelDescription?: string;
+  hotelImages?: string[];
 }
 
 interface Sale {
@@ -83,13 +93,17 @@ const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '—';
+  if (!dateStr || dateStr.includes('_')) return '—';
   try {
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  } catch {
+    // Normalizar formatos (ISO YYYY-MM-DD ou DD/MM/YYYY)
+    if (dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return `${parts[0]}/${parts[1]}/${parts[2]}`;
+    }
+    if (dateStr.includes('/')) return dateStr;
     return dateStr;
-  }
+  } catch { return dateStr || '—'; }
 };
 
 const INSTALLMENTS = [1, 2, 3, 4, 6, 10, 12];
@@ -193,7 +207,7 @@ function FlightItem({ item }: { item: SaleItem }) {
           )}
           {item.locator && (
             <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
-              <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
               <div>
                 <p className="text-[10px] text-gray-400 font-bold uppercase">Localizador</p>
                 <p className="text-sm font-black text-gray-700 font-mono">{item.locator}</p>
@@ -244,60 +258,116 @@ function FlightItem({ item }: { item: SaleItem }) {
 }
 
 function HotelItem({ item }: { item: SaleItem }) {
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr || typeof dateStr !== 'string') return '';
+    try {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    } catch { return dateStr; }
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <div className={`h-1.5 w-full bg-gradient-to-r ${TypeColor(item.type)}`} />
-      <div className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${TypeColor(item.type)} flex items-center justify-center text-white shadow-md`}>
-              <TypeIcon type={item.type} />
+    <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+      {/* Decorative top bar */}
+      <div className="h-1.5 w-full bg-[#19727d]" />
+      
+      <div className="p-6 space-y-5">
+        {/* HEADER: Ícone + Nome do hotel + Datas e Café da Manhã */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-[#19727d]/10 flex items-center justify-center text-[#19727d] flex-shrink-0">
+              <Hotel className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest"><TypeLabel type={item.type} /></p>
-              <p className="font-black text-gray-800">{item.hotelName || item.description || 'Hospedagem'}</p>
+              <p className="text-[9px] font-black text-[#19727d] uppercase tracking-[0.25em] leading-none mb-1">Hospedagem</p>
+              <h3 className="font-black text-xl text-slate-900 tracking-tight leading-tight">{item.hotelName || item.description || 'Nome do Hotel'}</h3>
             </div>
           </div>
-          {item.vendor && (
-            <span className="px-3 py-1 bg-gray-50 text-gray-500 rounded-full text-[11px] font-bold border border-gray-100">{item.vendor}</span>
-          )}
+
+          <div className="flex items-center gap-2.5">
+            {/* ALIMENTAÇÃO - Estilo Sincronizado e Moderno */}
+            {(() => {
+              const showBreakfast = item.hasBreakfast || 
+                                   item.description?.toLowerCase().includes('café') || 
+                                   item.hotelDescription?.toLowerCase().includes('café');
+              
+              if (!showBreakfast) return null;
+
+              return (
+                <div className="flex items-center gap-3 py-2 px-5 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all hover:bg-white/60 h-[80px] justify-center min-w-[110px]">
+                  <div className="flex flex-col items-center text-center">
+                    <span className="text-xl mb-1 leading-none">☕</span>
+                    <p className="text-[9px] font-black uppercase tracking-tight text-slate-800 leading-tight">Café da manhã</p>
+                    <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Incluso</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* DATAS COMPACTAS (Sistema de Alta Resiliência) */}
+            {(() => {
+              // Procura por data em qualquer campo possível para evitar erros de persistência
+              const rawCheckIn = item.checkIn || item.checkInDate || (item as any).check_in || (item as any).checkin_date;
+              const rawCheckOut = item.checkOut || item.checkOutDate || (item as any).check_out || (item as any).checkout_date;
+              
+              return (
+                <div className="flex items-center gap-5 bg-white/40 backdrop-blur-xl p-4 rounded-2xl border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all hover:bg-white/60 h-[80px]">
+                  <div className="text-center border-r border-slate-200/50 pr-5 h-full flex flex-col justify-center min-w-[90px]">
+                    <p className="text-[7px] font-black text-[#19727d] uppercase tracking-wider mb-1 opacity-80">Check-in</p>
+                    <div className="flex flex-col items-center">
+                      <p className="text-[11px] font-black text-slate-800 leading-none mb-1.5 tracking-tight">
+                        {rawCheckIn ? formatDate(rawCheckIn) : "__/__/____"}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3.5 h-3.5 rounded-full bg-[#19727d]/10 flex items-center justify-center">
+                          <Clock className="w-2 h-2 text-[#19727d]" />
+                        </div>
+                        <p className="text-[9px] font-bold text-slate-500">
+                          {item.checkInTime || '14:00'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-center h-full flex flex-col justify-center pl-1 min-w-[90px]">
+                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-wider mb-1 opacity-80">Check-out</p>
+                    <div className="flex flex-col items-center">
+                      <p className="text-[11px] font-black text-slate-800 leading-none mb-1.5 tracking-tight">
+                        {rawCheckOut ? formatDate(rawCheckOut) : "__/__/____"}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3.5 h-3.5 rounded-full bg-slate-100 flex items-center justify-center">
+                          <Clock className="w-2 h-2 text-slate-400" />
+                        </div>
+                        <p className="text-[9px] font-bold text-slate-500">
+                          {item.checkOutTime || '12:00'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {item.checkIn && (
-            <div className="flex items-center gap-2 bg-purple-50 rounded-xl p-3">
-              <Calendar className="w-4 h-4 text-purple-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-purple-400 font-bold uppercase">Check-in</p>
-                <p className="text-sm font-black text-gray-700">{formatDate(item.checkIn)}</p>
+        {/* COMODIDADES */}
+        {item.hotelAmenities && item.hotelAmenities.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-50 mt-4">
+            {item.hotelAmenities.slice(0, 8).map((amenity, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#19727d]/5 text-[#19727d] rounded-xl text-[10px] font-bold uppercase tracking-tight">
+                <div className="w-1 h-1 rounded-full bg-[#19727d]/40" />
+                {amenity}
               </div>
-            </div>
-          )}
-          {item.checkOut && (
-            <div className="flex items-center gap-2 bg-pink-50 rounded-xl p-3">
-              <Calendar className="w-4 h-4 text-pink-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-pink-400 font-bold uppercase">Check-out</p>
-                <p className="text-sm font-black text-gray-700">{formatDate(item.checkOut)}</p>
-              </div>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
-        <div className="flex flex-wrap gap-2">
-          {item.hasBreakfast && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full text-xs font-bold">
-              <Coffee className="w-3.5 h-3.5" />
-              Café da Manhã Incluso
-            </div>
-          )}
-          {item.passengerName && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-500 rounded-full text-xs font-bold">
-              <Users className="w-3.5 h-3.5" />
-              {item.passengerName}
-            </div>
-          )}
-        </div>
+        {item.passengerName && (
+          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-3 border-t border-slate-50">
+            <Users className="w-3.5 h-3.5" />
+            Titular: {item.passengerName}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -356,6 +426,7 @@ export default function OrcamentoPage() {
   useEffect(() => {
     if (!id) return;
     fetchSale();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchSale = async () => {
@@ -395,11 +466,16 @@ export default function OrcamentoPage() {
         departureDate: i.departure_date,
         returnDate: i.return_date,
         checkIn: i.check_in,
+        checkInTime: i.check_in_time,
         checkOut: i.check_out,
+        checkOutTime: i.check_out_time,
         hasBreakfast: i.has_breakfast,
         hotelName: i.hotel_name,
         description: i.description,
         passengerName: i.passenger_name,
+        hotelAmenities: Array.isArray(i.hotel_amenities) ? i.hotel_amenities : [],
+        hotelDescription: i.hotel_description,
+        hotelImages: Array.isArray(i.hotel_images) ? i.hotel_images : [],
       }));
 
       setSale({
@@ -428,7 +504,7 @@ export default function OrcamentoPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#19727d]/5 to-cyan-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center mx-auto animate-pulse">
-            <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-10 h-10 object-contain" />
+            <Image src={AGENCY.logoUrl} alt="Easy Fly" width={40} height={40} className="w-10 h-10 object-contain" />
           </div>
           <div className="space-y-1">
             <p className="font-black text-[#19727d] text-xl">Easy Fly</p>
@@ -444,7 +520,7 @@ export default function OrcamentoPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#19727d]/5 to-cyan-50 flex items-center justify-center p-4">
         <div className="text-center space-y-5 max-w-sm">
           <div className="w-20 h-20 rounded-3xl bg-white shadow-xl flex items-center justify-center mx-auto">
-            <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-12 h-12 object-contain" />
+            <Image src={AGENCY.logoUrl} alt="Easy Fly" width={48} height={48} className="w-12 h-12 object-contain" />
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-gray-800">Orçamento não encontrado</h1>
@@ -486,7 +562,7 @@ export default function OrcamentoPage() {
           {/* Logo + Agency */}
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg flex-shrink-0 p-1.5">
-              <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-full h-full object-contain" />
+              <Image src={AGENCY.logoUrl} alt="Easy Fly" width={48} height={48} className="w-full h-full object-contain" />
             </div>
             <div>
               <p className="font-black text-white text-lg leading-tight tracking-tight">Easy Fly</p>
@@ -496,7 +572,7 @@ export default function OrcamentoPage() {
 
           {/* Order badge */}
           <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-white/90 mb-4 border border-white/20">
-            <CheckCircle className="w-4 h-4 text-green-300" />
+            <CheckCircle2 className="w-4 h-4 text-green-300" />
             Orçamento #{sale.orderNumber} • {formatDate(sale.saleDate)}
           </div>
 
@@ -626,7 +702,7 @@ export default function OrcamentoPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#19727d]/10 flex items-center justify-center p-1">
-                <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-full h-full object-contain" />
+                <Image src={AGENCY.logoUrl} alt="Easy Fly" width={40} height={40} className="w-full h-full object-contain" />
               </div>
               <div>
                 <p className="font-black text-[#19727d] text-base leading-tight">Easy Fly</p>

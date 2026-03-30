@@ -30,44 +30,46 @@ export function CustomerModal({
 
   useEffect(() => {
     if (isOpen) {
-      if (customer) {
-        setFormData({
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          phone: customer.phone,
-          cpfCnpj: customer.cpfCnpj,
-          rg: customer.rg,
-          passportNumber: customer.passportNumber,
-          passportExpiry: customer.passportExpiry,
-          birthDate: customer.birthDate,
-          notes: customer.notes,
-          address: { ...customer.address }
-        });
-      } else {
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          cpfCnpj: '',
-          rg: '',
-          passportNumber: '',
-          passportExpiry: '',
-          birthDate: '',
-          notes: '',
-          address: {
-            cep: '',
-            street: '',
-            number: '',
-            complement: '',
-            neighborhood: '',
-            city: '',
-            state: '',
-          }
-        });
-      }
-      setError(null);
+      setTimeout(() => {
+        if (customer) {
+          setFormData({
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            email: customer.email,
+            phone: customer.phone,
+            cpfCnpj: customer.cpfCnpj,
+            rg: customer.rg,
+            passportNumber: customer.passportNumber,
+            passportExpiry: customer.passportExpiry,
+            birthDate: customer.birthDate,
+            notes: customer.notes,
+            address: { ...customer.address }
+          });
+        } else {
+          setFormData({
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            cpfCnpj: '',
+            rg: '',
+            passportNumber: '',
+            passportExpiry: '',
+            birthDate: '',
+            notes: '',
+            address: {
+              cep: '',
+              street: '',
+              number: '',
+              complement: '',
+              neighborhood: '',
+              city: '',
+              state: '',
+            }
+          });
+        }
+        setError(null);
+      }, 0);
     }
   }, [customer, isOpen]);
 

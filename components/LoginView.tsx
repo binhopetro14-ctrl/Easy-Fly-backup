@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Plane, Eye, EyeOff, Lock, User, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 interface LoginViewProps {
     onLogin: (user: any) => void;
@@ -58,7 +59,7 @@ export function LoginView({ onLogin, sessionExpiredMessage }: LoginViewProps) {
                 <div className="bg-white/40 dark:bg-[#1e293b]/60 backdrop-blur-2xl p-8 rounded-[2.5rem] shadow-2xl border border-white/30 dark:border-slate-700/50 flex flex-col gap-4">
                     <div className="text-center pt-2">
                         <div className="inline-flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
-                            <img src="/logo2.png" alt="Easy Fly Logo" className="w-32 h-auto drop-shadow-xl" />
+                            <Image src="/logo2.png" alt="Easy Fly Logo" width={128} height={128} className="w-32 h-auto drop-shadow-xl" />
                         </div>
                         <h1 className="text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none drop-shadow-sm">Easy Fly</h1>
                         <p className="text-[#19727d] dark:text-cyan-400 font-bold text-sm uppercase tracking-[0.4em] mt-3 opacity-90 drop-shadow-sm">Agência de Viagens</p>

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 // --- UTILS DE FORMATAÇÃO ---
 const formatCurrency = (value: number) => {
@@ -316,7 +317,7 @@ export function UsersView({ currentUser }: UsersViewProps) {
                                     <td className="px-4 py-4 text-sm font-bold text-gray-900 dark:text-gray-200">
                                         <div className="flex items-center gap-3">
                                             {member.avatar_url ? (
-                                                <img src={member.avatar_url} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
+                                                <Image src={member.avatar_url} alt={member.name} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xs font-bold">
                                                     {member.name.charAt(0)}
@@ -422,7 +423,7 @@ export function UsersView({ currentUser }: UsersViewProps) {
                                 <div className="relative group">
                                     <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-slate-800 border-2 dashed border-gray-300 dark:border-slate-700 flex items-center justify-center overflow-hidden">
                                         {formData.avatar_url ? (
-                                            <img src={formData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                            <Image src={formData.avatar_url} alt="Profile" width={96} height={96} className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="text-gray-400 text-xs">Sem Foto</span>
                                         )}

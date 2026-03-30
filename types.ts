@@ -55,7 +55,9 @@ export interface SaleItem {
   departureDate?: string;
   returnDate?: string;
   checkIn?: string;
+  checkInTime?: string;
   checkOut?: string;
+  checkOutTime?: string;
   hasBreakfast?: boolean;
   hotelName?: string;
   description?: string;

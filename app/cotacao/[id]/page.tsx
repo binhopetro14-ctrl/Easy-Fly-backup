@@ -11,6 +11,7 @@ import {
   Printer, ShieldAlert, Download, FileText, Star, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -35,11 +36,16 @@ const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '—';
+  if (!dateStr || dateStr.includes('_')) return '—';
   try {
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  } catch { return dateStr; }
+    if (dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return `${parts[0]}/${parts[1]}/${parts[2]}`;
+    }
+    if (dateStr.includes('/')) return dateStr;
+    return dateStr;
+  } catch { return dateStr || '—'; }
 };
 
 const BRAZILIAN_STATES = [
@@ -143,7 +149,12 @@ interface LeadItem {
   hotelDescription?: string;
   hotelAmenities?: string[];
   checkInDate?: string;
+  checkInTime?: string;
   checkOutDate?: string;
+  checkOutTime?: string;
+  checkIn?: string;
+  checkOut?: string;
+  boardBasis?: string;
   value?: number;
   description?: string;
   vendor?: string;
@@ -183,7 +194,7 @@ function TypeIcon({ type }: { type: string }) {
 function TypeGradient(type: string) {
   switch (type) {
     case 'passagem': return 'from-blue-500 to-cyan-500';
-    case 'hospedagem': return 'from-purple-500 to-pink-500';
+    case 'hospedagem': return 'from-[#19727d] to-cyan-500';
     case 'seguro': return 'from-green-500 to-emerald-500';
     case 'carro': return 'from-orange-500 to-amber-500';
     default: return 'from-gray-500 to-slate-500';
@@ -412,7 +423,7 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
 
   useEffect(() => {
     if ((window as any).L) {
-      setLeafletReady(true);
+      setTimeout(() => setLeafletReady(true), 0);
       return;
     }
     const interval = setInterval(() => {
@@ -636,6 +647,7 @@ function AirlineLogo({ name }: { name: string }) {
   if (domain) {
     return (
       <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-100 shadow-sm shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
           src={`https://logo.clearbit.com/${domain}`} 
           alt={name}
@@ -1026,42 +1038,78 @@ function FlightItemCard({ item, lead }: { item: LeadItem; lead: Lead }) {
   );
 }
 
-function HotelItemCard({ item }: { item: LeadItem }) {
+function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: { 
+  item: LeadItem; 
+  fallbackCheckIn?: string; 
+  fallbackCheckOut?: string; 
+}) {
   const [activePhoto, setActivePhoto] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
 
+  // Comodidades com ícones mapeados
+  const AMENITY_ICONS: Record<string, { label: string; icon: string }> = {
+    'wifi': { label: 'Wi-Fi Grátis', icon: '📶' },
+    'pool': { label: 'Piscina', icon: '🏊' },
+    'spa': { label: 'Spa', icon: '💆' },
+    'gym': { label: 'Academia', icon: '🏋️' },
+    'parking': { label: 'Estacionamento', icon: '🅿️' },
+    'restaurant': { label: 'Restaurante', icon: '🍽️' },
+    'bar': { label: 'Bar', icon: '🍸' },
+    'beach': { label: 'Acesso à Praia', icon: '🏖️' },
+    'airport': { label: 'Transfer Aeroporto', icon: '✈️' },
+    'pets': { label: 'Aceita Pets', icon: '🐾' },
+    'laundry': { label: 'Lavanderia', icon: '👕' },
+    'concierge': { label: 'Concierge 24h', icon: '🛎️' },
+    'ac': { label: 'Ar Condicionado', icon: '❄️' },
+    'tv': { label: 'Smart TV', icon: '📺' },
+    'minibar': { label: 'Frigobar', icon: '🧊' },
+    'safe': { label: 'Cofre', icon: '🔒' },
+    'jacuzzi': { label: 'Jacuzzi', icon: '🛁' },
+    'kids': { label: 'Área Kids', icon: '👶' },
+    'business': { label: 'Centro de Negócios', icon: '💼' },
+    'room_service': { label: 'Serviço de Quarto', icon: '🛏️' },
+  };
+
+  const resolveAmenity = (amenity: string) => {
+    const key = amenity.toLowerCase().replace(/[\s-]/g, '_');
+    const found = Object.entries(AMENITY_ICONS).find(([k]) => amenity.toLowerCase().includes(k) || key.includes(k));
+    return found ? found[1] : { label: amenity, icon: '✓' };
+  };
+
   return (
     <>
-    <div className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-purple-500/5 transition-all duration-500 group/hotel">
-      <div className={`h-1.5 w-full bg-gradient-to-r ${TypeGradient(item.type)}`} />
+    <div className="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-slate-200/60 transition-all duration-500 group/hotel">
+      <div className="h-1 w-full bg-gradient-to-r from-[#19727d] to-cyan-400" />
       
       {/* CARROSSEL DE FOTOS DO HOTEL */}
       {item.hotelPhotos && item.hotelPhotos.length > 0 && (
         <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-gray-100">
-          <img 
+          <Image 
             src={item.hotelPhotos[activePhoto]} 
-            alt={item.hotelName} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover/hotel:scale-105"
+            alt={item.hotelName || 'Hotel'} 
+            fill
+            sizes="100vw"
+            className="object-cover transition-transform duration-700 group-hover/hotel:scale-105"
           />
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
           
           {/* Badge de Fotos */}
           <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
-             <Package className="w-3 h-3 text-purple-400" />
+             <Hotel className="w-3 h-3" />
              {activePhoto + 1} / {item.hotelPhotos.length}
           </div>
 
           {/* Miniaturas Seletoras */}
-          <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 custom-scrollbar no-print">
+          <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 no-print">
             {item.hotelPhotos.map((photo, idx) => (
               <button 
                 key={idx}
                 onClick={() => setActivePhoto(idx)}
                 className={`relative w-14 h-10 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
-                  activePhoto === idx ? 'border-purple-500 scale-110 shadow-lg' : 'border-white/40 hover:border-white opacity-70 hover:opacity-100'
+                  activePhoto === idx ? 'border-[#19727d] scale-110 shadow-lg' : 'border-white/40 hover:border-white opacity-70 hover:opacity-100'
                 }`}
               >
-                <img src={photo} className="w-full h-full object-cover" alt="" />
+                <Image src={photo} fill sizes="56px" className="object-cover" alt="" />
               </button>
             ))}
           </div>
@@ -1069,71 +1117,124 @@ function HotelItemCard({ item }: { item: LeadItem }) {
       )}
 
       <div className="p-6 space-y-5">
-        <div className="flex items-start justify-between gap-4">
+        {/* HEADER: Ícone + Nome do hotel + Datas Compactas no topo */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${TypeGradient(item.type)} flex items-center justify-center text-white shadow-lg group-hover/hotel:rotate-6 transition-transform`}>
-              <Hotel className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-2xl bg-[#19727d]/10 flex items-center justify-center text-[#19727d] flex-shrink-0">
+              <Hotel className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-1.5">Hospedagem Confirmada</p>
-              <h3 className="font-black text-xl text-gray-900 tracking-tight leading-tight">{item.hotelName || 'Nome do Hotel'}</h3>
+              <p className="text-[9px] font-black text-[#19727d] uppercase tracking-[0.25em] leading-none mb-1">Hospedagem</p>
+              <h3 className="font-black text-xl text-slate-900 tracking-tight leading-tight">{item.hotelName || 'Nome do Hotel'}</h3>
             </div>
           </div>
-          {item.value && item.value > 0 && (
-            <div className="text-right">
-              <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-1">Valor do Item</p>
-              <span className="px-4 py-1.5 bg-purple-50 text-purple-600 rounded-2xl text-lg font-black border border-purple-100 shadow-sm">
-                {formatCurrency(item.value)}
-              </span>
-            </div>
-          )}
-        </div>
 
-        <div className="flex flex-col gap-3">
-          {item.hotelAddress && (
-            <div className="flex items-start gap-2.5 bg-slate-50/80 p-3 rounded-2xl border border-slate-100/50">
-              <MapPin className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-              <p className="text-[11px] font-bold text-slate-600 leading-relaxed font-sans">{item.hotelAddress}</p>
-            </div>
-          )}
+          <div className="flex items-center gap-2.5">
+            {/* ALIMENTAÇÃO (Detecção Inteligente) */}
+            {(() => {
+              const hasBreakfast = (item.boardBasis?.toLowerCase().includes('café') || 
+                                   item.boardBasis?.toLowerCase().includes('pensão') || 
+                                   item.description?.toLowerCase().includes('café') ||
+                                   item.hotelDescription?.toLowerCase().includes('café'));
+              
+              if (!hasBreakfast || item.boardBasis === 'Sem Café da Manhã') return null;
 
-          <div className="grid grid-cols-2 gap-4">
-            {item.checkInDate && (
-              <div className="flex items-center gap-3 bg-white border border-slate-100 rounded-[20px] p-4 shadow-sm">
-                <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500">
-                  <Calendar className="w-4 h-4" />
+              return (
+                <div className="flex items-center gap-3 py-2 px-5 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all hover:bg-white/60 h-[80px] justify-center min-w-[110px]">
+                  <div className="flex flex-col items-center text-center">
+                    <span className="text-xl mb-1 leading-none">☕</span>
+                    <p className="text-[9px] font-black uppercase tracking-tight text-slate-800 leading-tight">Café da manhã</p>
+                    <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Incluso</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[9px] text-purple-400 font-black uppercase tracking-widest leading-none mb-1">Check-in</p>
-                  <p className="text-sm font-black text-gray-800">{formatDate(item.checkInDate)}</p>
+              );
+            })()}
+
+            {/* DATAS COMPACTAS (Sistema de Alta Resiliência) */}
+            {(() => {
+              // Mega Fallback: Procura por data em qualquer campo possível
+              const rawCheckIn = item.checkIn || item.checkInDate || (item as any).check_in || (item as any).checkin_date || fallbackCheckIn;
+              const rawCheckOut = item.checkOut || item.checkOutDate || (item as any).check_out || (item as any).checkout_date || fallbackCheckOut;
+              
+              return (
+                <div className="flex items-center gap-5 bg-white/40 backdrop-blur-xl p-4 rounded-2xl border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all hover:bg-white/60 h-[80px]">
+                  <div className="text-center border-r border-slate-200/50 pr-5 h-full flex flex-col justify-center min-w-[90px]">
+                    <p className="text-[7px] font-black text-[#19727d] uppercase tracking-wider mb-1 opacity-80">Check-in</p>
+                    <div className="flex flex-col items-center">
+                      <p className="text-[11px] font-black text-slate-800 leading-none mb-1.5 tracking-tight">
+                        {rawCheckIn ? formatDate(rawCheckIn) : "__/__/____"}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3.5 h-3.5 rounded-full bg-[#19727d]/10 flex items-center justify-center">
+                          <Clock className="w-2 h-2 text-[#19727d]" />
+                        </div>
+                        <p className="text-[9px] font-bold text-slate-500">
+                          {item.checkInTime || '14:00'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-center h-full flex flex-col justify-center pl-1 min-w-[90px]">
+                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-wider mb-1 opacity-80">Check-out</p>
+                    <div className="flex flex-col items-center">
+                      <p className="text-[11px] font-black text-slate-800 leading-none mb-1.5 tracking-tight">
+                        {rawCheckOut ? formatDate(rawCheckOut) : "__/__/____"}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3.5 h-3.5 rounded-full bg-slate-100 flex items-center justify-center">
+                          <Clock className="w-2 h-2 text-slate-400" />
+                        </div>
+                        <p className="text-[9px] font-bold text-slate-500">
+                          {item.checkOutTime || '12:00'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-            {item.checkOutDate && (
-              <div className="flex items-center gap-3 bg-white border border-slate-100 rounded-[20px] p-4 shadow-sm">
-                <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[9px] text-pink-400 font-black uppercase tracking-widest leading-none mb-1">Check-out</p>
-                  <p className="text-sm font-black text-gray-800">{formatDate(item.checkOutDate)}</p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
+
+        {/* ENDEREÇO */}
+        {item.hotelAddress && (
+          <div className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+            <MapPin className="w-4 h-4 text-[#19727d] mt-0.5 shrink-0" />
+            <p className="text-[11px] font-bold text-slate-500 leading-relaxed">{item.hotelAddress}</p>
+          </div>
+        )}
+
+
+
+
+
+        {/* COMODIDADES */}
+        {item.hotelAmenities && item.hotelAmenities.length > 0 && (
+          <div>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Principais Comodidades</p>
+            <div className="flex flex-wrap gap-2">
+              {item.hotelAmenities.slice(0, 8).map((amenity, idx) => {
+                const resolved = resolveAmenity(amenity);
+                return (
+                  <div key={idx} className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full">
+                    <span className="text-sm">{resolved.icon}</span>
+                    <span className="text-[10px] font-bold text-slate-600">{resolved.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* BOTÃO MAIS DETALHES */}
-        <div className="px-6 pb-6 pt-2">
-          <button 
-            onClick={() => setShowDetails(true)}
-            className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group/btn"
-          >
-            <Star className="w-4 h-4 text-yellow-300 fill-yellow-300 group-hover/btn:rotate-12 transition-transform" />
-            Mais Detalhes & Galeria Completa
-            <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowDetails(true)}
+          className="w-full py-3.5 bg-[#19727d] hover:bg-[#145d66] text-white rounded-2xl font-black text-sm shadow-md shadow-[#19727d]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group/btn"
+        >
+          <Star className="w-4 h-4 text-yellow-300 fill-yellow-300 group-hover/btn:rotate-12 transition-transform" />
+          Galeria Completa & Detalhes
+          <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+        </button>
       </div>
     </div>
 
@@ -1170,11 +1271,13 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
       >
         {/* HEADER MODAL */}
         <div className="relative h-48 sm:h-64 flex-shrink-0">
-          <img 
-            src={item.hotelPhotos?.[0] || ''} 
-            className="w-full h-full object-cover" 
-            alt={item.hotelName} 
-          />
+          {item.hotelPhotos?.[0] && <Image 
+            src={item.hotelPhotos[0]} 
+            fill
+            sizes="100vw"
+            className="object-cover" 
+            alt={item.hotelName || 'Hotel'} 
+          />}
           <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-black/30" />
           
           <button 
@@ -1185,10 +1288,10 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
           </button>
 
           <div className="absolute bottom-0 left-0 right-0 p-8">
-            <p className="text-[10px] font-black text-purple-600 uppercase tracking-[0.3em] mb-2 drop-shadow-sm">Detalhes da Hospedagem</p>
+            <p className="text-[10px] font-black text-[#19727d] uppercase tracking-[0.3em] mb-2 drop-shadow-sm">Detalhes da Hospedagem</p>
             <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">{item.hotelName}</h2>
             {item.hotelAddress && (
-              <div className="flex items-center gap-2 mt-3 text-gray-500 font-bold text-xs">
+              <div className="flex items-center gap-2 mt-3 text-slate-500 font-bold text-xs">
                 <MapPin className="w-3.5 h-3.5" />
                 {item.hotelAddress}
               </div>
@@ -1201,7 +1304,7 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
           <button 
             onClick={() => setActiveTab('info')}
             className={`px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
-              activeTab === 'info' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+              activeTab === 'info' ? 'border-[#19727d] text-[#19727d]' : 'border-transparent text-gray-400 hover:text-gray-600'
             }`}
           >
             Informações
@@ -1209,7 +1312,7 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
           <button 
             onClick={() => setActiveTab('galeria')}
             className={`px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
-              activeTab === 'galeria' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+              activeTab === 'galeria' ? 'border-[#19727d] text-[#19727d]' : 'border-transparent text-gray-400 hover:text-gray-600'
             }`}
           >
             Galeria ({item.hotelPhotos?.length || 0})
@@ -1217,14 +1320,57 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
         </div>
 
         {/* CONTEÚDO */}
+        {/* CONTEÚDO */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/30">
           {activeTab === 'info' ? (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              
+              {/* CHECK-IN / CHECK-OUT NO MODAL */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {item.checkInDate && (
+                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                    <p className="text-[10px] font-black text-[#19727d] uppercase tracking-widest mb-3 flex items-center gap-2">
+                       <ArrowRight className="w-4 h-4" /> Check-in na Propriedade
+                    </p>
+                    <p className="text-xl font-black text-slate-800">{formatDate(item.checkInDate)}</p>
+                    <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" /> {item.checkInTime || 'A partir das 14:00'}
+                    </p>
+                  </div>
+                )}
+                {item.checkOutDate && (
+                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                       <ArrowRight className="w-4 h-4 rotate-180" /> Check-out da Propriedade
+                    </p>
+                    <p className="text-xl font-black text-slate-800">{formatDate(item.checkOutDate)}</p>
+                    <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" /> {item.checkOutTime || 'Até às 12:00'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* REGIME DE ALIMENTAÇÃO NO MODAL */}
+              {(item.boardBasis && item.boardBasis !== 'Não informado') && (
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl">
+                    {item.boardBasis.includes('Café') ? '☕' : 
+                     item.boardBasis.includes('Pensão') ? '🍱' :
+                     item.boardBasis.includes('All') ? '🍹' : '🍽️'}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 uppercase tracking-tight">{item.boardBasis}</h4>
+                    <p className="text-xs font-bold text-slate-400">Regime de alimentação incluso nesta reserva</p>
+                  </div>
+                </div>
+              )}
+
               {/* DESCRIÇÃO */}
               {item.hotelDescription && (
                 <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
                       <FileText className="w-5 h-5" />
                     </div>
                     <h3 className="font-black text-xl text-gray-800">Sobre a Propriedade</h3>
@@ -1237,15 +1383,15 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
               {item.hotelAmenities && item.hotelAmenities.length > 0 && (
                 <div>
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-50 flex items-center justify-center text-[#19727d]">
                       <Star className="w-5 h-5" />
                     </div>
                     <h3 className="font-black text-xl text-gray-800">Comodidades & Serviços</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {item.hotelAmenities.map((amenity, idx) => (
-                      <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm group hover:border-green-200 transition-colors">
-                        <div className="w-2 h-2 rounded-full bg-green-400" />
+                      <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm group hover:border-cyan-200 transition-colors">
+                        <div className="w-2 h-2 rounded-full bg-cyan-400" />
                         <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{amenity}</span>
                       </div>
                     ))}
@@ -1261,7 +1407,7 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
                   onClick={() => setSelectedImage(photo)}
                   className="relative aspect-square rounded-3xl overflow-hidden group hover:ring-4 ring-purple-500/20 transition-all shadow-md"
                 >
-                  <img src={photo} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" loading="lazy" />
+                  <Image src={photo} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="Foto do hotel" />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
                     <Package className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100" />
                   </div>
@@ -1282,15 +1428,15 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
             className="fixed inset-0 z-[110] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out"
             onClick={() => setSelectedImage(null)}
           >
-            <motion.img 
+            <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              src={selectedImage} 
-              className="max-w-full max-h-full object-contain rounded-xl"
-              alt="Preview"
-            />
-            <button className="absolute top-8 right-8 text-white hover:text-purple-400 transition-colors p-2">
+              className="relative max-w-4xl max-h-[80vh] w-full h-[80vh]"
+            >
+              <Image src={selectedImage} fill sizes="100vw" className="object-contain rounded-xl" alt="Preview" />
+            </motion.div>
+            <button className="absolute top-8 right-8 text-white hover:text-cyan-400 transition-colors p-2">
               <X className="w-10 h-10" />
             </button>
           </motion.div>
@@ -1302,23 +1448,21 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
 
 function OtherItemCard({ item }: { item: LeadItem }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <div className={`h-1.5 w-full bg-gradient-to-r ${TypeGradient(item.type)}`} />
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="h-1.5 w-full bg-[#19727d]" />
       <div className="p-5 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${TypeGradient(item.type)} flex items-center justify-center text-white shadow-md`}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#19727d] border border-slate-100 shadow-sm transition-transform group-hover:scale-110">
             <TypeIcon type={item.type} />
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest"><TypeLabel type={item.type} /></p>
-            {item.description && <p className="font-bold text-gray-700 text-sm">{item.description}</p>}
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1"><TypeLabel type={item.type} /></p>
+            {item.description && <p className="font-black text-slate-800 text-sm tracking-tight">{item.description}</p>}
           </div>
         </div>
-        {item.value && item.value > 0 && (
-          <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-sm font-black border border-gray-100">
-            {formatCurrency(item.value)}
-          </span>
-        )}
+        <div className="flex items-center text-slate-300">
+           <ArrowRight className="w-4 h-4" />
+        </div>
       </div>
     </div>
   );
@@ -1336,6 +1480,7 @@ export default function CotacaoPage() {
   useEffect(() => {
     if (!id) return;
     fetchLead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchRates = async () => {
@@ -1394,7 +1539,7 @@ export default function CotacaoPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#19727d]/5 to-cyan-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center mx-auto animate-pulse">
-            <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-10 h-10 object-contain" />
+            <Image src={AGENCY.logoUrl} alt="Easy Fly" width={40} height={40} className="w-10 h-10 object-contain" />
           </div>
           <div className="space-y-1">
             <p className="font-black text-[#19727d] text-xl">Easy Fly</p>
@@ -1410,7 +1555,7 @@ export default function CotacaoPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#19727d]/5 to-cyan-50 flex items-center justify-center p-4">
         <div className="text-center space-y-5 max-w-sm">
           <div className="w-20 h-20 rounded-3xl bg-white shadow-xl flex items-center justify-center mx-auto">
-            <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-12 h-12 object-contain" />
+            <Image src={AGENCY.logoUrl} alt="Easy Fly" width={48} height={48} className="w-12 h-12 object-contain" />
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-gray-800">Cotação não encontrada</h1>
@@ -1480,6 +1625,19 @@ export default function CotacaoPage() {
   };
 
   const tripDuration = calculateDuration();
+
+  // FALLBACK DE DATAS PARA HOTEL (CASO O ITEM NÃO TENHA DATAS PRÓPRIAS)
+  const getFallbackDates = () => {
+    const flight = flights[0];
+    if (!flight) return { checkIn: undefined, checkOut: undefined };
+    const outbound = flight.outboundSegments || [];
+    const inbound = flight.inboundSegments || [];
+    const start = outbound[0]?.departureDate;
+    const end = inbound[inbound.length - 1]?.departureDate || inbound[inbound.length - 1]?.arrivalDate;
+    return { checkIn: start, checkOut: end };
+  };
+
+  const { checkIn: fIn, checkOut: fOut } = getFallbackDates();
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/30 font-sans">
@@ -1528,7 +1686,7 @@ export default function CotacaoPage() {
       <div className="print-only w-full border-b-2 border-slate-900 pb-10 mb-10">
          <div className="flex justify-between items-start">
             <div className="flex items-center gap-6">
-               <img src={AGENCY.logoUrl} alt="Logo" className="w-24 h-24 object-contain" />
+               <Image src={AGENCY.logoUrl} alt="Logo" width={96} height={96} className="w-24 h-24 object-contain" />
                <div>
                   <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{AGENCY.name}</h1>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{AGENCY.legalName}</p>
@@ -1555,7 +1713,7 @@ export default function CotacaoPage() {
           <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 mb-12">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl flex-shrink-0 p-2 transform hover:scale-105 transition-transform">
-                <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-full h-full object-contain" />
+                <Image src={AGENCY.logoUrl} alt="Easy Fly" width={64} height={64} className="w-full h-full object-contain" />
               </div>
               <div>
                 <p className="font-black text-white text-2xl leading-tight tracking-tight">Easy Fly</p>
@@ -1635,7 +1793,14 @@ export default function CotacaoPage() {
           <section>
             <SectionTitle icon={<Hotel className="w-4 h-4" />} title="Hospedagem" />
             <div className="space-y-4">
-              {hotels.map(item => <HotelItemCard key={item.id} item={item} />)}
+              {hotels.map(item => (
+                <HotelItemCard 
+                  key={item.id} 
+                  item={item} 
+                  fallbackCheckIn={fIn}
+                  fallbackCheckOut={fOut}
+                />
+              ))}
             </div>
           </section>
         )}
@@ -1829,7 +1994,7 @@ export default function CotacaoPage() {
                 {/* Left Side */}
                 <div className="p-10 pt-8 pb-12 flex flex-col items-center justify-start text-center bg-slate-50/50">
                    <div className="w-32 h-32 bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-5 transform hover:rotate-2 transition-transform mb-8">
-                      <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-full h-full object-contain" />
+                      <Image src={AGENCY.logoUrl} alt="Easy Fly" width={88} height={88} className="w-full h-full object-contain" />
                    </div>
                    <div className="space-y-2">
                       <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest leading-none whitespace-nowrap">{AGENCY.legalName}</p>

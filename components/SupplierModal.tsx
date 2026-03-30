@@ -21,20 +21,22 @@ export function SupplierModal({
   const [formData, setFormData] = useState<Partial<Supplier>>({});
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (isOpen) {
       if (supplier) {
-        setFormData(supplier);
+        timer = setTimeout(() => setFormData(supplier), 0);
       } else {
-        setFormData({
+        timer = setTimeout(() => setFormData({
           name: '',
           cnpj: '',
           phone: '',
           email: '',
           address: '',
           description: '',
-        });
+        }), 0);
       }
     }
+    return () => clearTimeout(timer);
   }, [supplier, isOpen]);
 
   if (!isOpen) return null;

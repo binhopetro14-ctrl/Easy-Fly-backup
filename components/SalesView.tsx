@@ -123,7 +123,7 @@ export function SalesView({
       });
     }
     return result;
-  }, [sales, searchTerm, currentDate, sortConfig]);
+  }, [sales, searchTerm, sortConfig]); // currentDate não filtrado aqui — o Supabase já retorna o mês correto via useEffect
 
   // --- CÁLCULOS DINÂMICOS ---
   const stats = useMemo(() => {

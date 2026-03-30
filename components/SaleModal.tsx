@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 import {
   X,
   Plus,
@@ -899,7 +900,7 @@ export function SaleModal({
                               className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-0 flex items-center gap-3"
                             >
                               <div className="w-10 h-10 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                                {h.photo ? <img src={h.photo} className="w-full h-full object-cover" /> : <Hotel className="w-5 h-5 text-gray-400" />}
+                                {h.photo ? <Image src={h.photo} alt={h.name || "Hotel"} width={40} height={40} className="w-full h-full object-cover" /> : <Hotel className="w-5 h-5 text-gray-400" />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{h.name}</p>

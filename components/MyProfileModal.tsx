@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
+import Image from 'next/image';
 
 interface MyProfileModalProps {
     isOpen: boolean;
@@ -27,6 +28,7 @@ export function MyProfileModal({ isOpen, onClose, userEmail }: MyProfileModalPro
         if (isOpen && userEmail) {
             loadProfile();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, userEmail]);
 
     const loadProfile = async () => {
@@ -120,7 +122,7 @@ export function MyProfileModal({ isOpen, onClose, userEmail }: MyProfileModalPro
                         <div className="relative group flex-shrink-0">
                             <div className="w-28 h-28 rounded-full bg-gray-100 dark:bg-slate-800 border-2 dashed border-gray-300 dark:border-slate-700 flex items-center justify-center overflow-hidden">
                                 {formData.avatar_url ? (
-                                    <img src={formData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                    <Image src={formData.avatar_url} alt="Profile" width={112} height={112} className="w-full h-full object-cover" />
                                 ) : (
                                     <span className="text-gray-400 text-xs font-bold uppercase">{formData.name.charAt(0)}</span>
                                 )}
