@@ -8,8 +8,9 @@ import {
   Plane, Hotel, Shield, Car, Package, Calendar, Users, Briefcase,
   Phone, MessageCircle, CheckCircle, Clock, CreditCard, ArrowRight,
   MapPin, ChevronDown, ChevronUp, Info, Map, TrendingDown, Backpack, Luggage, Instagram, RefreshCw, DollarSign,
-  Printer, ShieldAlert, Download, FileText
+  Printer, ShieldAlert, Download, FileText, Star, X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -138,6 +139,9 @@ interface LeadItem {
   hotelName?: string;
   hotelAddress?: string;
   hotelPhotos?: string[];
+  hotelId?: string;
+  hotelDescription?: string;
+  hotelAmenities?: string[];
   checkInDate?: string;
   checkOutDate?: string;
   value?: number;
@@ -1024,8 +1028,10 @@ function FlightItemCard({ item, lead }: { item: LeadItem; lead: Lead }) {
 
 function HotelItemCard({ item }: { item: LeadItem }) {
   const [activePhoto, setActivePhoto] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
+    <>
     <div className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-purple-500/5 transition-all duration-500 group/hotel">
       <div className={`h-1.5 w-full bg-gradient-to-r ${TypeGradient(item.type)}`} />
       
@@ -1116,8 +1122,181 @@ function HotelItemCard({ item }: { item: LeadItem }) {
             )}
           </div>
         </div>
+
+        {/* BOTÃO MAIS DETALHES */}
+        <div className="px-6 pb-6 pt-2">
+          <button 
+            onClick={() => setShowDetails(true)}
+            className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-black text-sm shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group/btn"
+          >
+            <Star className="w-4 h-4 text-yellow-300 fill-yellow-300 group-hover/btn:rotate-12 transition-transform" />
+            Mais Detalhes & Galeria Completa
+            <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+          </button>
+        </div>
       </div>
     </div>
+
+      <AnimatePresence>
+        {showDetails && (
+          <HotelDetailsModal 
+            item={item} 
+            onClose={() => setShowDetails(false)} 
+          />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<'info' | 'galeria'>('info');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 no-print"
+    >
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
+      
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="relative w-full max-w-6xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        {/* HEADER MODAL */}
+        <div className="relative h-48 sm:h-64 flex-shrink-0">
+          <img 
+            src={item.hotelPhotos?.[0] || ''} 
+            className="w-full h-full object-cover" 
+            alt={item.hotelName} 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-black/30" />
+          
+          <button 
+            onClick={onClose}
+            className="absolute top-6 right-6 p-3 bg-white/20 hover:bg-black/20 backdrop-blur-md rounded-full text-white sm:text-gray-800 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="absolute bottom-0 left-0 right-0 p-8">
+            <p className="text-[10px] font-black text-purple-600 uppercase tracking-[0.3em] mb-2 drop-shadow-sm">Detalhes da Hospedagem</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">{item.hotelName}</h2>
+            {item.hotelAddress && (
+              <div className="flex items-center gap-2 mt-3 text-gray-500 font-bold text-xs">
+                <MapPin className="w-3.5 h-3.5" />
+                {item.hotelAddress}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* NAVEGAÇÃO TABS */}
+        <div className="flex border-b border-gray-100 px-8">
+          <button 
+            onClick={() => setActiveTab('info')}
+            className={`px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
+              activeTab === 'info' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            Informações
+          </button>
+          <button 
+            onClick={() => setActiveTab('galeria')}
+            className={`px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
+              activeTab === 'galeria' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            Galeria ({item.hotelPhotos?.length || 0})
+          </button>
+        </div>
+
+        {/* CONTEÚDO */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/30">
+          {activeTab === 'info' ? (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* DESCRIÇÃO */}
+              {item.hotelDescription && (
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-black text-xl text-gray-800">Sobre a Propriedade</h3>
+                  </div>
+                  <p className="text-gray-600 leading-relaxed text-sm font-medium whitespace-pre-wrap">{item.hotelDescription}</p>
+                </div>
+              )}
+
+              {/* COMODIDADES */}
+              {item.hotelAmenities && item.hotelAmenities.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                      <Star className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-black text-xl text-gray-800">Comodidades & Serviços</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {item.hotelAmenities.map((amenity, idx) => (
+                      <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm group hover:border-green-200 transition-colors">
+                        <div className="w-2 h-2 rounded-full bg-green-400" />
+                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{amenity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {item.hotelPhotos?.map((photo, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setSelectedImage(photo)}
+                  className="relative aspect-square rounded-3xl overflow-hidden group hover:ring-4 ring-purple-500/20 transition-all shadow-md"
+                >
+                  <img src={photo} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" loading="lazy" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* LIGHTBOX */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.img 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              src={selectedImage} 
+              className="max-w-full max-h-full object-contain rounded-xl"
+              alt="Preview"
+            />
+            <button className="absolute top-8 right-8 text-white hover:text-purple-400 transition-colors p-2">
+              <X className="w-10 h-10" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -1702,7 +1881,7 @@ export default function CotacaoPage() {
                    </div>
 
                    <a 
-                    href={`https://wa.me/${AGENCY.whatsapp}?text=${whatsappMsg}`} 
+                    href={`https://wa.me/${AGENCY.whatsapp}?text=${encodeURIComponent(`Olá! Gostaria de falar sobre a cotação ${lead.id}`)}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center justify-center w-full py-4 bg-white border-2 border-slate-100 hover:border-cyan-500 hover:bg-cyan-50 text-slate-600 hover:text-cyan-700 rounded-2xl font-black transition-all group"

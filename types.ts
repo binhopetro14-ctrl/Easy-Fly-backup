@@ -64,6 +64,10 @@ export interface SaleItem {
   ticket_url?: string;
   ticket_url2?: string;
   commissionDate?: string;
+  hotelId?: string;
+  hotelImages?: string[];
+  hotelDescription?: string;
+  hotelAmenities?: string[];
 }
 
 export interface Sale {

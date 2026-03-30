@@ -84,24 +84,24 @@ export default function Page() {
   const [currentUser, setCurrentUser] = useState<TeamMember | null>(null);
 
   // --- HOOKS DE DADOS ---
-  const { 
-    customers, fetchCustomers, loading: loadingCustomers, 
-    saveCustomer: internalSaveCustomer, deleteCustomer: internalDeleteCustomer 
+  const {
+    customers, fetchCustomers, loading: loadingCustomers,
+    saveCustomer: internalSaveCustomer, deleteCustomer: internalDeleteCustomer
   } = useCustomers();
-  
-  const { 
-    groups, fetchGroups, loading: loadingGroups, 
-    saveGroup: internalSaveGroup, deleteGroup: internalDeleteGroup 
+
+  const {
+    groups, fetchGroups, loading: loadingGroups,
+    saveGroup: internalSaveGroup, deleteGroup: internalDeleteGroup
   } = useGroups();
-  
-  const { 
+
+  const {
     sales, fetchSales, loading: loadingSales, stats,
-    saveSale: internalSaveSale, deleteSale: internalDeleteSale 
+    saveSale: internalSaveSale, deleteSale: internalDeleteSale
   } = useSales();
-  
-  const { 
-    suppliers, fetchSuppliers, loading: loadingSuppliers, 
-    saveSupplier: internalSaveSupplier, deleteSupplier: internalDeleteSupplier 
+
+  const {
+    suppliers, fetchSuppliers, loading: loadingSuppliers,
+    saveSupplier: internalSaveSupplier, deleteSupplier: internalDeleteSupplier
   } = useSuppliers();
 
   const {
@@ -185,12 +185,12 @@ export default function Page() {
   const fetchData = async () => {
     fetchCustomers();
     fetchGroups();
-    
+
     // Calcula o primeiro e último dia do mês atual para o carregamento inicial
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    
+
     fetchSales({ startDate: firstDay, endDate: lastDay });
     fetchSuppliers();
     fetchLeads();
@@ -216,7 +216,7 @@ export default function Page() {
     setUser(userData);
     setIsAuthenticated(true);
     setSessionExpiredMessage('');
-    
+
     // Fetch full profile info
     if (userData?.email) {
       try {
@@ -225,7 +225,7 @@ export default function Page() {
           .select('*')
           .eq('email', userData.email)
           .single();
-        
+
         if (data && !error) {
           setCurrentUser({
             id: data.id,
@@ -347,8 +347,8 @@ export default function Page() {
   const handleSaveSale = async (saleData: Partial<Sale>) => {
     try {
       const savedSale = await internalSaveSale(
-        { 
-          ...editingSale, 
+        {
+          ...editingSale,
           ...saleData,
           emissor: editingSale?.emissor || `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() || user?.email || 'N/A'
         },
@@ -358,9 +358,22 @@ export default function Page() {
       setEditingSale(null);
       // Abre modal de link compartilhável
       if (savedSale?.id) {
-        setQuoteLinkSaleId(savedSale.id);
-        setQuoteLinkCopied(false);
+        console.log("Venda salva com ID:", savedSale.id);
+
+        // Pequeno delay pra garantir persistência no banco
+        setTimeout(() => {
+          setQuoteLinkSaleId(savedSale.id);
+          setQuoteLinkCopied(false);
+        }, 500);
+
+      } else {
+        console.error("Erro: venda salva sem ID válido");
+        setNotification({
+          message: "Erro ao gerar link do orçamento",
+          type: "error"
+        });
       }
+
     } catch (error: any) {
       console.error('Erro ao salvar venda:', error);
       setNotification({ message: 'Erro ao salvar venda: ' + (error.message || 'Erro desconhecido'), type: 'error' });
@@ -416,15 +429,15 @@ export default function Page() {
   // Supplier Handlers
   const handleSaveSupplier = async (supplierData: Partial<Supplier>) => {
     try {
-      await internalSaveSupplier({ 
-        ...editingSupplier, 
+      await internalSaveSupplier({
+        ...editingSupplier,
         ...supplierData,
         emissor: editingSupplier?.emissor || `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() || user?.email || 'N/A'
       });
       setIsSupplierModalOpen(false);
       setEditingSupplier(null);
-    } catch (error: any) { 
-      console.error(error); 
+    } catch (error: any) {
+      console.error(error);
       setNotification({ message: 'Erro ao salvar fornecedor: ' + (error.message || 'Erro desconhecido'), type: 'error' });
     }
   };
@@ -443,8 +456,8 @@ export default function Page() {
         await internalDeleteSupplier(supplierToDelete.id);
         setIsDeleteSupplierConfirmOpen(false);
         setSupplierToDelete(null);
-      } catch (error: any) { 
-        console.error(error); 
+      } catch (error: any) {
+        console.error(error);
         setNotification({ message: 'Erro ao excluir fornecedor: ' + (error.message || 'Erro desconhecido'), type: 'error' });
       }
     }
@@ -456,7 +469,7 @@ export default function Page() {
     if (editingLead) {
       const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
       const isOwner = editingLead.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() || editingLead.emissor === currentUser?.email;
-      
+
       if (!isAdminOrManager && !isOwner) {
         setNotification({ message: 'Você não tem permissão para alterar este orçamento.', type: 'warning' });
         return;
@@ -483,7 +496,7 @@ export default function Page() {
       // SEGURANÇA: Verificar se pode excluir
       const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
       const isOwner = lead.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() || lead.emissor === currentUser?.email;
-      
+
       if (!isAdminOrManager && !isOwner) {
         setNotification({ message: 'Você não tem permissão para excluir este orçamento.', type: 'warning' });
         return;
@@ -569,7 +582,7 @@ export default function Page() {
       {/* 0. NOTIFICAÇÃO PREMIUM GLOBAL */}
       <AnimatePresence>
         {notification && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -585,7 +598,7 @@ export default function Page() {
                 </p>
                 <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{notification.message}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setNotification(null)}
                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
               >
@@ -634,11 +647,10 @@ export default function Page() {
                     </p>
                     <button
                       onClick={handleCopyQuoteLink}
-                      className={`w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                        quoteLinkCopied
+                      className={`w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${quoteLinkCopied
                           ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
                           : 'bg-[#19727d] text-white hover:bg-[#145d66] shadow-lg shadow-[#19727d]/20'
-                      }`}
+                        }`}
                     >
                       {quoteLinkCopied ? (
                         <><CheckCircle2 className="w-4 h-4" /> Link Copiado!</>
@@ -674,26 +686,26 @@ export default function Page() {
       <MyProfileModal isOpen={isMyProfileModalOpen} onClose={() => setIsMyProfileModalOpen(false)} userEmail={user?.email || ''} />
       <CustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onSave={handleSaveCustomer} customer={editingCustomer} />
       <GroupModal isOpen={isGroupModalOpen} onClose={() => setIsGroupModalOpen(false)} onSave={handleSaveGroup} group={editingGroup} customers={customers} />
-      <SaleModal 
-        isOpen={isSaleModalOpen} 
-        onClose={() => setIsSaleModalOpen(false)} 
-        onSave={handleSaveSale} 
-        sale={editingSale} 
-        customers={customers} 
-        groups={groups} 
+      <SaleModal
+        isOpen={isSaleModalOpen}
+        onClose={() => setIsSaleModalOpen(false)}
+        onSave={handleSaveSale}
+        sale={editingSale}
+        customers={customers}
+        groups={groups}
         suppliers={suppliers}
-        onAddCustomerClick={openAddCustomer} 
-        onEditCustomerClick={openEditCustomer} 
-        onDeleteCustomerClick={handleDeleteCustomer} 
+        onAddCustomerClick={openAddCustomer}
+        onEditCustomerClick={openEditCustomer}
+        onDeleteCustomerClick={handleDeleteCustomer}
       />
       <SupplierModal isOpen={isSupplierModalOpen} onClose={() => setIsSupplierModalOpen(false)} onSave={handleSaveSupplier} supplier={editingSupplier} />
       <LeadModal
         isOpen={isLeadModalOpen}
         onClose={() => { setIsLeadModalOpen(false); setEditingLead(null); }}
-          onSave={handleSaveLead}
-          editingLead={editingLead}
-          suppliers={suppliers}
-        />
+        onSave={handleSaveLead}
+        editingLead={editingLead}
+        suppliers={suppliers}
+      />
       <DeleteConfirmationModal isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} onConfirm={confirmDeleteCustomer} customerName={customerToDelete?.name || ''} />
       <DeleteConfirmationModal isOpen={isDeleteSaleConfirmOpen} onClose={() => setIsDeleteSaleConfirmOpen(false)} onConfirm={confirmDeleteSale} customerName={`Venda #${saleToDelete?.id}`} />
       <DeleteConfirmationModal isOpen={isDeleteSupplierConfirmOpen} onClose={() => setIsDeleteSupplierConfirmOpen(false)} onConfirm={confirmDeleteSupplier} customerName={supplierToDelete?.name || ''} />
@@ -740,10 +752,10 @@ export default function Page() {
 
         <div className="px-3 py-4 border-t border-[#145d66] space-y-1 bg-[#19727d]">
           {mounted && (
-            <SidebarItem 
-              icon={theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />} 
-              label={theme === 'dark' ? "Modo Claro" : "Modo Escuro"} 
-              collapsed={isSidebarCollapsed && !isMobileMenuOpen} 
+            <SidebarItem
+              icon={theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              label={theme === 'dark' ? "Modo Claro" : "Modo Escuro"}
+              collapsed={isSidebarCollapsed && !isMobileMenuOpen}
               onClick={toggleTheme}
             />
           )}
@@ -795,29 +807,29 @@ export default function Page() {
                   onCustomerClick={(c: Customer) => setSelectedCustomer(c)}
                 />
               ) : activeView === 'vendas' ? (
-                <SalesView 
-                  sales={sales} 
+                <SalesView
+                  sales={sales}
                   currentUser={currentUser}
-                  onAddSale={openAddSale} 
-                  onEditSale={openEditSale} 
-                  onDeleteSale={handleDeleteSale} 
+                  onAddSale={openAddSale}
+                  onEditSale={openEditSale}
+                  onDeleteSale={handleDeleteSale}
                   onUpdateSale={handleQuickUpdateSale}
                   fetchSales={fetchSales}
                   showValues={showValues}
                 />
-               ) : activeView === 'crm' ? (
-            <CRMView 
-              leads={leads}
-              loading={loadingLeads}
-              updateLeadStatus={updateLeadStatus}
-              onUpdateLead={handleSaveLead}
-              fetchLeads={fetchLeads}
-              currentUser={currentUser} 
-              onAddLead={openAddLead} 
-              onEditLead={openEditLead} 
-              onDeleteLead={handleDeleteLead} 
-            />
-          ) : activeView === 'reservas' ? (
+              ) : activeView === 'crm' ? (
+                <CRMView
+                  leads={leads}
+                  loading={loadingLeads}
+                  updateLeadStatus={updateLeadStatus}
+                  onUpdateLead={handleSaveLead}
+                  fetchLeads={fetchLeads}
+                  currentUser={currentUser}
+                  onAddLead={openAddLead}
+                  onEditLead={openEditLead}
+                  onDeleteLead={handleDeleteLead}
+                />
+              ) : activeView === 'reservas' ? (
                 <ReservasView />
               ) : activeView === 'financeiro' ? (
                 <FinanceiroView />

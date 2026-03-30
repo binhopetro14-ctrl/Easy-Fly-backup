@@ -52,12 +52,12 @@ export async function GET(request: Request) {
 
     // 3. FACILIDADES E DESCRIÇÃO
     if (type === 'facilities' && hotelId) {
-      const descUrl = `https://apidojo-booking-v1.p.rapidapi.com/properties/get-description?hotel_ids=${encodeURIComponent(hotelId)}`;
-      const facUrl = `https://apidojo-booking-v1.p.rapidapi.com/properties/get-facilities?hotel_ids=${encodeURIComponent(hotelId)}`;
+      const descUrl = `https://apidojo-booking-v1.p.rapidapi.com/properties/get-description?hotel_ids=${encodeURIComponent(hotelId)}&languagecode=pt-br`;
+      const facUrl = `https://apidojo-booking-v1.p.rapidapi.com/properties/get-facilities?hotel_ids=${encodeURIComponent(hotelId)}&languagecode=pt-br`;
       
       const [descRes, facRes] = await Promise.all([
-        fetch(descUrl, { headers }),
-        fetch(facUrl, { headers })
+        fetch(descUrl, { headers, next: { revalidate: 86400 } }),
+        fetch(facUrl, { headers, next: { revalidate: 86400 } })
       ]);
 
       const descData = await descRes.json();
@@ -69,24 +69,43 @@ export async function GET(request: Request) {
       });
     }
 
-    // 4. LISTA DE QUARTOS (DUMMY SEARCH PARA HOJE+1)
+    // 4. LISTA DE QUARTOS (USANDO DATAS PARA PEGAR VARIEDADE REAL)
     if (type === 'rooms' && hotelId) {
-      const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-      const url = `https://apidojo-booking-v1.p.rapidapi.com/properties/v2/get-rooms?hotel_id=${hotelId}&arrival_date=${today}&departure_date=${tomorrow}&adults_number=1&units=metric&room_number=1`;
+      const arrival = searchParams.get('arrival_date') || new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0];
+      const departure = searchParams.get('departure_date') || new Date(Date.now() + 86400000 * 31).toISOString().split('T')[0];
+      
+      const url = `https://apidojo-booking-v1.p.rapidapi.com/properties/v2/get-rooms?hotel_id=${hotelId}&arrival_date=${arrival}&departure_date=${departure}&adults_number=1&units=metric&room_number=1&languagecode=pt-br`;
       
       const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error('Rooms Error');
-      const data = await res.json();
+      if (!res.ok) throw new Error('Rooms API Error');
+      const rawData = await res.json();
 
-      // Mapear tipos de quartos únicos
-      const roomTypes = (data?.data || []).map((r: any) => ({
-        id: r.room_id,
-        name: r.room_name || 'Quarto Standard',
-        beds: r.bed_configurations?.[0]?.bed_types?.[0]?.name || ''
-      }));
+      // A API v2 retorna um array na raiz
+      const result = Array.isArray(rawData) ? rawData[0] : (rawData.data?.[0] || rawData);
+      
+      const blocks = result?.block || [];
+      const roomsInfo = result?.rooms || {}; // Às vezes as informações extras do quarto estão aqui
+      
+      const roomsMap = new Map();
+      
+      blocks.forEach((b: any) => {
+        const roomId = b.room_id;
+        if (roomId && !roomsMap.has(roomId)) {
+          // Tentar pegar o nome traduzido se existir no objeto 'rooms', senão usa o room_name do bloco
+          const translatedName = roomsInfo[roomId]?.translated_name;
+          const name = translatedName || b.room_name || 'Quarto';
+          
+          roomsMap.set(roomId, {
+            id: roomId,
+            name: name,
+            beds: b.room_info?.bed_configurations?.[0]?.bed_types?.[0]?.name || ''
+          });
+        }
+      });
 
-      return NextResponse.json({ rooms: roomTypes });
+      const roomTypes = Array.from(roomsMap.values());
+
+      return NextResponse.json({ rooms: roomTypes.length > 0 ? roomTypes : [{ id: 0, name: 'Geral / Standard' }] });
     }
 
     return NextResponse.json({ error: 'Parâmetro inválido' }, { status: 400 });

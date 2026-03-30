@@ -89,6 +89,17 @@ export function SaleModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef2 = useRef<HTMLInputElement>(null);
 
+  // ESTADOS PARA BUSCA DE HOTEL (Portados do LeadModal)
+  const [hotelSuggestions, setHotelSuggestions] = useState<any[]>([]);
+  const [showHotelSuggestions, setShowHotelSuggestions] = useState(false);
+  const [hotelLookupLoading, setHotelLookupLoading] = useState(false);
+  const [hotelLookupError, setHotelLookupError] = useState<string | null>(null);
+  const [allPhotos, setAllPhotos] = useState<any[]>([]);
+  const [hotelDescription, setHotelDescription] = useState('');
+  const [hotelFacilities, setHotelFacilities] = useState<string[]>([]);
+  const [lastSearchedName, setLastSearchedName] = useState('');
+  const hotelSearchTimeout = useRef<any>(null);
+
   useEffect(() => {
     if (isOpen) {
       if (sale) {
@@ -284,6 +295,12 @@ export function SaleModal({
       hasBreakfast: false,
     }));
     // NÃO reseta additionalCustomerIds — passageiros permanecem os mesmos
+
+    // Limpar estados auxiliares de hotel
+    setHotelDescription('');
+    setHotelFacilities([]);
+    setAllPhotos([]);
+    (window as any)._lastHotelId = null;
   };
 
   const editItem = (item: SaleItem) => {
@@ -366,6 +383,80 @@ export function SaleModal({
 
     console.log('Submitting sale:', { ...formData, items: currentItems, totalValue, totalCost, productName: productSummary });
     onSave({ ...formData, items: currentItems, totalValue, totalCost, productName: productSummary });
+  };
+
+  const searchHotels = async (query: string) => {
+    if (query.length < 3) {
+      setHotelSuggestions([]);
+      setShowHotelSuggestions(false);
+      return;
+    }
+
+    if (hotelSearchTimeout.current) clearTimeout(hotelSearchTimeout.current);
+
+    hotelSearchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/lookup-hotel?type=search&query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (res.ok) {
+          setHotelSuggestions(data.hotels || []);
+          setShowHotelSuggestions(true);
+        }
+      } catch (err) {
+        console.error('Erro na busca de hotéis:', err);
+      }
+    }, 500);
+  };
+
+  const selectHotelSuggestion = async (suggestion: any) => {
+    setLastSearchedName(suggestion.name);
+    setCurrentItem((prev: any) => ({
+      ...prev,
+      hotelName: suggestion.name,
+      hotelPhotos: [] 
+    }));
+    setHotelSuggestions([]);
+    setShowHotelSuggestions(false);
+    setHotelLookupLoading(true);
+    setHotelLookupError(null);
+    
+    setHotelDescription('');
+    setHotelFacilities([]);
+
+    try {
+      const hotelId = suggestion.hotelId;
+      (window as any)._lastHotelId = hotelId; 
+
+      // 1. BUSCAR FOTOS
+      const resPhotos = await fetch(`/api/lookup-hotel?type=details&hotelId=${hotelId}`);
+      const dataPhotos = await resPhotos.json();
+      if (resPhotos.ok) {
+        setAllPhotos(dataPhotos.photos || []);
+        setCurrentItem((prev: any) => ({
+          ...prev,
+          hotelPhotos: (dataPhotos.photos || []).map((p: any) => p.url),
+          hotelId: hotelId
+        }));
+      }
+
+      // 2. BUSCAR DESCRIÇÃO E FACILIDADES
+      const resFac = await fetch(`/api/lookup-hotel?type=facilities&hotelId=${hotelId}`);
+      const dataFac = await resFac.json();
+      if (resFac.ok) {
+        setHotelDescription(dataFac.description || '');
+        setHotelFacilities(dataFac.facilities || []);
+        setCurrentItem((prev: any) => ({
+          ...prev,
+          hotelDescription: dataFac.description || '',
+          hotelAmenities: dataFac.facilities || []
+        }));
+      }
+
+    } catch (e) {
+      setHotelLookupError('Erro ao carregar detalhes do hotel');
+    } finally {
+      setHotelLookupLoading(false);
+    }
   };
 
 
@@ -770,15 +861,55 @@ export function SaleModal({
               <div className="space-y-4">
                 <span className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-400 uppercase">DADOS DO ITEM</span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Descrição / Nome</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ex: Hotel Copacabana Palace"
-                      className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none"
-                      value={currentItem.description || currentItem.hotelName || ''}
-                      onChange={e => setCurrentItem(prev => ({ ...prev, description: e.target.value, hotelName: e.target.value }))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder={activeItemType === 'hospedagem' ? "Digite para buscar hotel..." : "Ex: Seguro Prata"}
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none pr-10"
+                        value={currentItem.description || currentItem.hotelName || ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setCurrentItem(prev => ({ ...prev, description: val, hotelName: val }));
+                          if (activeItemType === 'hospedagem') searchHotels(val);
+                        }}
+                      />
+                      {hotelLookupLoading && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 animate-spin text-cyan-500" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sugestões de Hotel */}
+                    <AnimatePresence>
+                      {showHotelSuggestions && hotelSuggestions.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute z-[70] left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden max-h-[300px] overflow-y-auto"
+                        >
+                          {hotelSuggestions.map((h, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => selectHotelSuggestion(h)}
+                              className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-slate-700 border-b border-gray-100 dark:border-slate-700 last:border-0 flex items-center gap-3"
+                            >
+                              <div className="w-10 h-10 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                                {h.photo ? <img src={h.photo} className="w-full h-full object-cover" /> : <Hotel className="w-5 h-5 text-gray-400" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{h.name}</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{h.address}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Fornecedor <span className="text-red-500">*</span></label>

@@ -572,6 +572,28 @@ export function LeadModal({
     return () => clearTimeout(timer);
   }, [currentItem.hotelName, activeItemType]);
 
+  // ATUALIZAR QUARTOS QUANDO DATAS MUDAREM
+  useEffect(() => {
+    const hotelId = (window as any)._lastHotelId;
+    const arrival = currentItem.checkInDate;
+    const departure = currentItem.checkOutDate;
+    
+    if (activeItemType === 'hospedagem' && hotelId && arrival && departure) {
+      const updateRooms = async () => {
+        try {
+          const res = await fetch(`/api/lookup-hotel?type=rooms&hotelId=${hotelId}&arrival_date=${arrival}&departure_date=${departure}`);
+          const data = await res.json();
+          if (res.ok) {
+            setAvailableRooms(data.rooms || []);
+          }
+        } catch (e) {
+          console.error('Erro ao atualizar quartos por data', e);
+        }
+      };
+      updateRooms();
+    }
+  }, [currentItem.checkInDate, currentItem.checkOutDate]);
+
   const selectHotelSuggestion = async (suggestion: any) => {
     setLastSearchedName(suggestion.name);
     setCurrentItem((prev: any) => ({
@@ -585,10 +607,20 @@ export function LeadModal({
     setShowHotelSuggestions(false);
     setHotelLookupLoading(true);
     setHotelLookupError(null);
+    
+    // LIMPAR DADOS ANTERIORES PARA EVITAR LAYOUT SHIFT
+    setAvailableRooms([]);
+    setHotelDescription('');
+    setHotelFacilities([]);
+    setSelectedRoomId(null);
 
     try {
+      // SALVAR ID PARA ATUALIZAÇÕES DE DATA
+      const hotelId = suggestion.hotelId;
+      (window as any)._lastHotelId = hotelId; 
+
       // 1. BUSCAR FOTOS (COM ROOM_IDS)
-      const resPhotos = await fetch(`/api/lookup-hotel?type=details&hotelId=${suggestion.hotelId}`);
+      const resPhotos = await fetch(`/api/lookup-hotel?type=details&hotelId=${hotelId}`);
       const dataPhotos = await resPhotos.json();
       if (resPhotos.ok) {
         setAllPhotos(dataPhotos.photos || []);
@@ -598,15 +630,17 @@ export function LeadModal({
         }));
       }
 
-      // 2. BUSCAR QUARTOS (DUMMY CHECK BACKGROUND)
-      const resRooms = await fetch(`/api/lookup-hotel?type=rooms&hotelId=${suggestion.hotelId}`);
+      // 2. BUSCAR QUARTOS COM DATAS ATUAIS
+      const arrival = currentItem.checkInDate || '';
+      const departure = currentItem.checkOutDate || '';
+      const resRooms = await fetch(`/api/lookup-hotel?type=rooms&hotelId=${hotelId}${arrival ? `&arrival_date=${arrival}` : ''}${departure ? `&departure_date=${departure}` : ''}`);
       const dataRooms = await resRooms.json();
       if (resRooms.ok) {
         setAvailableRooms(dataRooms.rooms || []);
       }
 
       // 3. BUSCAR DESCRIÇÃO E FACILIDADES
-      const resFac = await fetch(`/api/lookup-hotel?type=facilities&hotelId=${suggestion.hotelId}`);
+      const resFac = await fetch(`/api/lookup-hotel?type=facilities&hotelId=${hotelId}`);
       const dataFac = await resFac.json();
       if (resFac.ok) {
         setHotelDescription(dataFac.description || '');
@@ -707,7 +741,14 @@ export function LeadModal({
     const newItem = {
       ...currentItem,
       id: editingItemId || Math.random().toString(36).substr(2, 9),
-      description: itemDescription
+      description: itemDescription,
+      // Salvar metadados extras se for hospedagem
+      ...(currentItem.type === 'hospedagem' ? {
+        hotelDescription,
+        hotelAmenities: hotelFacilities,
+        hotelId: (window as any)._lastHotelId,
+        hotelPhotos: currentItem.hotelPhotos // Já está no currentItem
+      } : {})
     };
 
     const newItems = [...(formData.items || []).filter((i:any) => i.id !== newItem.id), newItem];
@@ -739,6 +780,14 @@ export function LeadModal({
       hotelPhotos: [],
       value: 0, cost: 0, vendor: ''
     });
+
+    // Limpar estados auxiliares de hotel
+    setHotelDescription('');
+    setHotelFacilities([]);
+    setAllPhotos([]);
+    setAvailableRooms([]);
+    setSelectedRoomId(null);
+    (window as any)._lastHotelId = null;
   };
 
   const handleEditItem = (itemToEdit: any) => {
@@ -956,9 +1005,9 @@ export function LeadModal({
               {/* FORMULÁRIO HOSPEDAGEM INTELIGENTE */}
               {activeItemType === 'hospedagem' && (
                 <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="space-y-4">
-                    <div className="space-y-1 relative">
-                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Nome do Hotel</label>
+                    <div className="space-y-6">
+                      <div className="space-y-1 relative">
+                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight opacity-70">Nome do Hotel</label>
                       <div className="relative">
                         <Hotel className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 z-10" />
                         <input 
@@ -1024,95 +1073,128 @@ export function LeadModal({
                       {hotelLookupError && <p className="text-[8px] font-bold text-red-400 ml-1 mt-0.5">{hotelLookupError}</p>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Tipo de Quarto</label>
-                        <select 
-                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700/50 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white focus:border-cyan-400 shadow-sm transition-all"
-                          value={selectedRoomId || ''}
-                          onChange={e => {
-                            const val = e.target.value;
-                            const room = availableRooms.find(r => r.id === Number(val));
-                            handleRoomChange(Number(val), room?.name || 'Não informado');
-                          }}
-                        >
-                          <option value="">Geral / Ver Todos</option>
-                          {availableRooms.map(r => (
-                            <option key={r.id} value={r.id}>{r.name} {r.beds ? `(${r.beds})` : ''}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-amber-500 uppercase ml-1 tracking-tight">Classificação</label>
-                        <input className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-amber-600 dark:text-amber-400" value={currentItem.stars} readOnly />
-                      </div>
-                    </div>
+                    <div className="flex flex-col md:flex-row gap-5 items-start">
+                      {/* COLUNA ESQUERDA: MÍDIA E LOCALIZAÇÃO (40%) */}
+                      <div className="w-full md:w-[35%] space-y-4">
+                        {currentItem.hotelPhotos && currentItem.hotelPhotos.length > 0 ? (
+                          <div className="bg-gray-50/50 dark:bg-slate-900/40 p-2 rounded-2xl border border-gray-100 dark:border-slate-700/50">
+                            <div className="grid grid-cols-2 gap-1.5 h-48 content-start overflow-hidden rounded-xl">
+                              {currentItem.hotelPhotos.slice(0, 4).map((photo: string, idx: number) => (
+                                <div key={idx} className={`rounded-lg overflow-hidden border border-white dark:border-slate-700 shadow-sm relative group ${idx === 0 ? 'col-span-2 h-28' : 'h-18'}`}>
+                                  <img src={photo} alt={`Hotel ${idx}`} className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110" />
+                                </div>
+                              ))}
+                            </div>
+                            {currentItem.hotelPhotos.length > 4 && (
+                              <p className="text-[7px] text-gray-400 font-bold mt-1.5 text-center uppercase tracking-widest opacity-60">
+                                + {currentItem.hotelPhotos.length - 4} fotos
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="aspect-square rounded-2xl bg-gray-50 dark:bg-slate-900/60 border-2 border-dashed border-gray-100 dark:border-slate-700/50 flex flex-col items-center justify-center gap-2 opacity-40">
+                             <Hotel className="w-6 h-6" />
+                             <span className="text-[8px] font-black uppercase">Sem Imagens</span>
+                          </div>
+                        )}
 
-                    {hotelFacilities.length > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <label className="text-[9px] font-black text-emerald-500 uppercase ml-1 tracking-tight flex items-center gap-1.5">
-                          <CheckCircle className="w-3 h-3" /> Comodidades do Hotel
-                        </label>
-                        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1 custom-scrollbar">
-                          {hotelFacilities.map((f, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[9px] font-bold border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap">
-                              {f}
-                            </span>
-                          ))}
+                        <div className="space-y-1.5 px-1">
+                          <label className="text-[8px] font-black text-gray-400 uppercase tracking-tighter opacity-70">Localização</label>
+                          <div className="flex items-start gap-1.5 bg-gray-50/30 dark:bg-slate-900/30 p-2 rounded-xl border border-gray-100 dark:border-slate-700/30">
+                            <MapPin className="w-3 h-3 text-cyan-400 shrink-0 mt-0.5" />
+                            <p className="text-[9px] text-gray-600 dark:text-gray-400 font-bold leading-tight break-words">
+                              {currentItem.hotelAddress || 'Endereço não informado'}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    )}
 
-                    {hotelDescription && (
-                      <div className="space-y-1 pt-1 opacity-80">
-                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Sobre o Hotel</label>
-                        <p className="text-[9px] text-gray-500 dark:text-gray-400 leading-relaxed max-h-16 overflow-y-auto custom-scrollbar italic bg-gray-50/50 dark:bg-slate-900/30 p-2 rounded-lg">
-                          {hotelDescription}
-                        </p>
-                      </div>
-                    )}
+                      {/* COLUNA DIREITA: DADOS E DESCRIÇÃO (60%) */}
+                      <div className="flex-1 space-y-4">
+                        <div className="grid grid-cols-5 gap-3">
+                          <div className="space-y-1 col-span-2">
+                            <label className="text-[8px] font-black text-gray-400 uppercase tracking-tight opacity-70">Quarto</label>
+                            <select 
+                              className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700/50 rounded-xl outline-none text-[10px] font-bold text-gray-800 dark:text-white"
+                              value={selectedRoomId || ''}
+                              disabled={hotelLookupLoading}
+                              onChange={e => {
+                                const val = e.target.value;
+                                const room = availableRooms.find(r => r.id === Number(val));
+                                handleRoomChange(Number(val), room?.name || 'Não informado');
+                              }}
+                            >
+                              <option value="">{hotelLookupLoading ? 'Buscando...' : 'Geral / Ver Todos'}</option>
+                              {!hotelLookupLoading && availableRooms.map(r => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="space-y-1 col-span-2">
+                            <label className="text-[8px] font-black text-gray-400 uppercase tracking-tight opacity-70">Alimentação</label>
+                            <select 
+                              className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700/50 rounded-xl outline-none text-[10px] font-bold text-gray-800 dark:text-white"
+                              value={currentItem.boardBasis || 'Não informado'}
+                              onChange={e => setCurrentItem({...currentItem, boardBasis: e.target.value})}
+                            >
+                              <option value="Não informado">Escolha...</option>
+                              <option value="Inclui Café da Manhã">C. Manhã</option>
+                              <option value="Sem Café da Manhã">Sem Café</option>
+                              <option value="Meia Pensão">M. Pensão</option>
+                              <option value="Pensão Completa">Pensão C.</option>
+                              <option value="All Inclusive">All Inclusive</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1 col-span-1">
+                            <label className="text-[8px] font-black text-amber-500 uppercase tracking-tight opacity-70 text-center">Stars</label>
+                            <div className="w-full px-1 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700/50 rounded-xl flex items-center justify-center gap-1">
+                               <span className="text-[10px] font-black text-amber-600 dark:text-amber-400">{currentItem.stars?.split(' ')[0]}</span>
+                               <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Localização / Endereço</label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                        <input 
-                          placeholder="Auto-preenchido ou digite..." 
-                          className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" 
-                          value={currentItem.hotelAddress} 
-                          onChange={e => setCurrentItem({...currentItem, hotelAddress: e.target.value})} 
-                        />
+                        {(hotelLookupLoading || hotelDescription) && (
+                          <div className="space-y-1.5">
+                            <label className="text-[8px] font-black text-gray-400 uppercase tracking-tight opacity-70">Resumo da Propriedade</label>
+                            <div className="p-3 bg-gray-50/50 dark:bg-slate-900/40 rounded-xl border border-gray-100 dark:border-slate-700/30">
+                              <p className="text-[9px] text-gray-500 dark:text-gray-400 leading-relaxed italic line-clamp-4">
+                                {hotelDescription}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {(hotelLookupLoading || hotelFacilities.length > 0) && (
+                          <div className="space-y-1.5">
+                            <label className="text-[8px] font-black text-emerald-500 uppercase tracking-tight opacity-70 flex items-center gap-1">
+                              <CheckCircle className="w-2.5 h-2.5" /> Comodidades
+                            </label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-0.5">
+                              {hotelFacilities.map((f, i) => (
+                                <div key={i} className="flex items-center gap-1 group">
+                                  <div className="w-1 h-1 rounded-full bg-emerald-400 opacity-60 shrink-0" />
+                                  <span className="text-[8px] text-gray-500 dark:text-gray-400 font-bold truncate tracking-tighter">{f}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Check-in</label>
-                        <DateInput className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.checkInDate} onChange={v => setCurrentItem({...currentItem, checkInDate: v})} />
+                    {/* RODAPÉ DA SEÇÃO: DATAS COMPACTAS */}
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50 dark:border-slate-700/50">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-tighter opacity-70 shrink-0">Check-In</label>
+                        <DateInput className="flex-1 px-3 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white" value={currentItem.checkInDate} onChange={v => setCurrentItem({...currentItem, checkInDate: v})} />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase ml-1 tracking-tight">Check-out</label>
-                        <DateInput className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-transparent dark:border-slate-700 rounded-xl outline-none text-xs font-bold text-gray-800 dark:text-white" value={currentItem.checkOutDate} onChange={v => setCurrentItem({...currentItem, checkOutDate: v})} />
+                      <div className="flex items-center gap-2">
+                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-tighter opacity-70 shrink-0">Check-Out</label>
+                        <DateInput className="flex-1 px-3 py-1.5 bg-gray-50/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl text-[10px] font-bold text-gray-800 dark:text-white" value={currentItem.checkOutDate} onChange={v => setCurrentItem({...currentItem, checkOutDate: v})} />
                       </div>
                     </div>
                   </div>
-
-                  {/* MINIATURAS DAS FOTOS RECURERADAS */}
-                  {currentItem.hotelPhotos && currentItem.hotelPhotos.length > 0 && (
-                    <div className="bg-gray-50 dark:bg-slate-900/40 p-3 rounded-2xl border border-gray-100 dark:border-slate-700/50">
-                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Layout className="w-3 h-3 text-cyan-400" /> 
-                        Galeria do Hotel {selectedRoomId ? <span className="text-cyan-500">- Fotos do Quarto Selecionado</span> : ''}
-                      </p>
-                      <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                        {currentItem.hotelPhotos.map((photo: string, idx: number) => (
-                          <div key={idx} className="w-20 h-14 rounded-lg bg-gray-200 overflow-hidden shrink-0 border border-white dark:border-slate-700 shadow-sm transition-transform hover:scale-105">
-                            <img src={photo} alt={`Hotel ${idx}`} className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
