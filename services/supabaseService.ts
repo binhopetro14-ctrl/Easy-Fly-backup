@@ -167,7 +167,8 @@ export const saleService = {
       .select(`
         *,
         customer:customers(name),
-        group:groups(name)
+        group:groups(name),
+        sale_items(*)
       `)
       .order('sale_date', { ascending: false });
 
@@ -182,31 +183,18 @@ export const saleService = {
 
     if (salesError) {
       console.error('Supabase Error (getAll sales):', extractError(salesError));
-      throw new Error(salesError.message || 'Erro ao buscar vendas');
+      throw new Error('Não foi possível carregar as vendas. Tente novamente em breve.');
     }
 
     if (!sales || sales.length === 0) return [];
 
-    // Busca itens apenas para as vendas encontradas
-    const saleIds = sales.map(s => s.id);
-    const { data: items, error: itemsError } = await supabase
-      .from('sale_items')
-      .select('*')
-      .in('sale_id', saleIds);
-
-    if (itemsError) {
-      console.error('Supabase Error (get sale_items for filtered sales):', extractError(itemsError));
-      throw new Error(itemsError.message || 'Erro ao buscar itens de venda');
-    }
-
     return sales.map((sale: any) => {
-      const saleItems = (items || []).filter(i => i.sale_id === sale.id);
       const dataWithNames = {
         ...sale,
         customer_name: sale.customer?.name || 'Cliente Removido',
         group_name: sale.group?.name || ''
       };
-      return mapperService.fromSupabase.sale(dataWithNames, saleItems);
+      return mapperService.fromSupabase.sale(dataWithNames, sale.sale_items || []);
     });
   },
 

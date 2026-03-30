@@ -127,17 +127,21 @@ export function SalesView({
 
   // --- CÁLCULOS DINÂMICOS ---
   const stats = useMemo(() => {
-    const totalVendas = filteredSales.reduce((acc, s) => acc + (s.totalValue || 0), 0);
-    const lucroTotal = filteredSales.reduce((acc, s) => {
+    const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
+    const currentUserName = `${currentUser?.name} ${currentUser?.lastName || ''}`.trim();
+
+    // Filtra as vendas que compõem os INDICADORES (Cards de cima)
+    const mySales = filteredSales.filter(s => isAdminOrManager || s.emissor === currentUserName);
+
+    const totalVendas = mySales.reduce((acc, s) => acc + (s.totalValue || 0), 0);
+    const lucroTotal = mySales.reduce((acc, s) => {
       const saleCommissions = s.items?.reduce((sum, item) => sum + (item.additionalCosts || 0), 0) || 0;
       const saleProfit = saleCommissions > 0 ? saleCommissions : (s.totalValue - s.totalCost);
       return acc + (saleProfit || 0);
     }, 0);
-    // Para consistência visual nos cards: Venda - Custo = Lucro
-    // Logo: Custo = Venda - Lucro
     const custoTotal = totalVendas - lucroTotal;
     return { totalVendas, custoTotal, lucroTotal };
-  }, [filteredSales]);
+  }, [filteredSales, currentUser]);
 
   const fmt = (value: number) => showValues
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -389,14 +393,21 @@ export function SalesView({
                   </td>
 
                   {/* 5. Valor da Venda */}
-                  <td className="px-6 py-3 text-sm font-bold text-gray-800 dark:text-gray-200">{fmt(sale.totalValue)}</td>
+                  <td className="px-6 py-3 text-sm font-bold text-gray-800 dark:text-gray-200">
+                    {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
+                      ? fmt(sale.totalValue) : '••••••'}
+                  </td>
 
                   {/* 6. Custo Total */}
-                  <td className="px-6 py-3 text-sm font-bold text-gray-600 dark:text-gray-400">{fmt(sale.totalCost)}</td>
+                  <td className="px-6 py-3 text-sm font-bold text-gray-600 dark:text-gray-400">
+                    {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
+                      ? fmt(sale.totalCost) : '••••••'}
+                  </td>
 
                   {/* 6.1 Comissão Total */}
                   <td className="px-6 py-3 text-sm font-bold text-emerald-600 dark:text-emerald-400 text-center">
-                    {fmt(sale.items?.reduce((sum, i) => sum + (i.additionalCosts || 0), 0) || 0)}
+                    {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
+                      ? fmt(sale.items?.reduce((sum, i) => sum + (i.additionalCosts || 0), 0) || 0) : '••••••'}
                   </td>
 
                   {/* 6.2 Emissor */}
@@ -420,6 +431,7 @@ export function SalesView({
                     <select 
                       className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded-md uppercase border-none outline-none cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                       value={sale.items && sale.items[0]?.saleModel ? sale.items[0].saleModel : 'Revenda'}
+                      disabled={currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gerente' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()}
                       onChange={(e) => {
                         const newModel = e.target.value;
                         const updatedItems = sale.items?.map(item => ({ 
@@ -447,6 +459,7 @@ export function SalesView({
                           : 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
                       }`}
                       value={sale.costStatus || 'Pendente'}
+                      disabled={currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gerente' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()}
                       onChange={(e) => onUpdateSale(sale.id, { costStatus: e.target.value as any })}
                     >
                       <option value="Pendente">Pendente</option>
@@ -463,6 +476,7 @@ export function SalesView({
                           : 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
                       }`}
                       value={sale.saleStatus || 'Pendente'}
+                      disabled={currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gerente' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()}
                       onChange={(e) => onUpdateSale(sale.id, { saleStatus: e.target.value as any })}
                     >
                       <option value="Pendente">Pendente</option>
@@ -534,11 +548,13 @@ export function SalesView({
                   {/* 11. Ações */}
                   <td className="px-6 py-3">
                     <div className="flex gap-1 justify-end">
-                      {(currentUser?.role === 'Administrador' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()) && (
+                      {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()) ? (
                         <>
-                          <button onClick={() => onEditSale(sale)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-purple-600 cursor-pointer transition-colors"><Settings className="w-4 h-4" /></button>
-                          <button onClick={() => onDeleteSale(sale.id)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 cursor-pointer transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => onEditSale(sale)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-purple-600 cursor-pointer transition-colors" title="Editar Venda"><Settings className="w-4 h-4" /></button>
+                          <button onClick={() => onDeleteSale(sale.id)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 cursor-pointer transition-colors" title="Excluir Venda"><Trash2 className="w-4 h-4" /></button>
                         </>
+                      ) : (
+                        <div className="p-1.5 text-gray-300 dark:text-gray-600 italic text-[10px]">Restrito</div>
                       )}
                     </div>
                   </td>

@@ -62,12 +62,21 @@ export function DashboardView({
 
   const currentMonthSales = React.useMemo(() => {
     const now = new Date();
+    const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
+    const currentUserName = `${currentUser?.name} ${currentUser?.lastName || ''}`.trim();
+
     return sales.filter(sale => {
       const saleDate = new Date(sale.saleDate || sale.createdAt);
-      return saleDate.getMonth() === now.getMonth() && 
-             saleDate.getFullYear() === now.getFullYear();
+      const isThisMonth = saleDate.getMonth() === now.getMonth() && 
+                          saleDate.getFullYear() === now.getFullYear();
+      
+      if (!isThisMonth) return false;
+      if (isAdminOrManager) return true;
+      
+      // Se for vendedor, para os CARDS mostramos apenas as dele
+      return sale.emissor === currentUserName;
     });
-  }, [sales]);
+  }, [sales, currentUser]);
 
   const chartData = React.useMemo(() => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -87,8 +96,13 @@ export function DashboardView({
 
   const sellerRanking = React.useMemo(() => {
     const rankingMap: Record<string, { name: string, totalValue: number, count: number }> = {};
+    const now = new Date();
     
-    currentMonthSales.forEach(sale => {
+    sales.filter(sale => {
+      const saleDate = new Date(sale.saleDate || sale.createdAt);
+      return saleDate.getMonth() === now.getMonth() && 
+             saleDate.getFullYear() === now.getFullYear();
+    }).forEach(sale => {
       const emissor = sale.emissor || 'Não Informado';
       if (!rankingMap[emissor]) {
         rankingMap[emissor] = { name: emissor, totalValue: 0, count: 0 };
@@ -100,7 +114,7 @@ export function DashboardView({
     return Object.values(rankingMap)
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
-  }, [currentMonthSales]);
+  }, [sales]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -343,27 +357,35 @@ export function DashboardView({
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-gray-900 dark:text-gray-100 font-black">
-                          {fmt(sale.totalCost)}
+                        <span className={`text-sm dark:text-gray-100 font-black ${
+                          (currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
+                          ? 'text-gray-900' : 'text-gray-300 dark:text-gray-600 italic'
+                        }`}>
+                          {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
+                            ? fmt(sale.totalCost) : 'Restrito'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-gray-900 dark:text-gray-100 font-black">
-                          {fmt(sale.totalValue)}
+                        <span className={`text-sm dark:text-gray-100 font-black ${
+                          (currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
+                          ? 'text-gray-900' : 'text-gray-300 dark:text-gray-600 italic'
+                        }`}>
+                          {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
+                            ? fmt(sale.totalValue) : 'Restrito'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <StatusSelect
                           value={sale.costStatus || 'Pendente'}
                           onChange={(status) => onUpdateSaleStatus(sale.id, 'costStatus', status)}
-                          disabled={currentUser?.role !== 'Administrador' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()}
+                          disabled={(currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gerente' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())}
                         />
                       </td>
                       <td className="px-4 py-3">
                         <StatusSelect
                           value={sale.saleStatus || 'Pendente'}
                           onChange={(status) => onUpdateSaleStatus(sale.id, 'saleStatus', status)}
-                          disabled={currentUser?.role !== 'Administrador' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()}
+                          disabled={(currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gerente' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())}
                         />
                       </td>
                     </tr>

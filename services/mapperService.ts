@@ -98,13 +98,16 @@ export const mapperService = {
       items: data.items || [],
       tags: data.tags || [],
       duration: data.duration || '',
-      adults: data.adults || 1,
-      children: data.children || 0,
-      babies: data.babies || 0,
-      luggage23kg: data.luggage23kg || 0,
+      adults: Number(data.adults) || 1,
+      children: Number(data.children) || 0,
+      babies: Number(data.babies) || 0,
+      luggage23kg: Number(data.luggage23kg) || 0,
       title: data.title || '',
       responded: data.responded || false,
       slaStartAt: data.sla_start_at || data.created_at,
+      usd_rate: Number(data.usd_rate) || 0,
+      eur_rate: Number(data.eur_rate) || 0,
+      gbp_rate: Number(data.gbp_rate) || 0,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     })
@@ -218,6 +221,9 @@ export const mapperService = {
       if (lead.title !== undefined) data.title = lead.title;
       if (lead.responded !== undefined) data.responded = lead.responded;
       if (lead.slaStartAt !== undefined) data.sla_start_at = lead.slaStartAt;
+      if (lead.usd_rate !== undefined) data.usd_rate = lead.usd_rate;
+      if (lead.eur_rate !== undefined) data.eur_rate = lead.eur_rate;
+      if (lead.gbp_rate !== undefined) data.gbp_rate = lead.gbp_rate;
 
       // CRITICAL: Apenas incluir o ID se ele for válido e não for uma string vazia
       if (lead.id && lead.id.trim() !== '') {
