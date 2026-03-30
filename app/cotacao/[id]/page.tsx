@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import Script from 'next/script';
 import {
-  Plane, Hotel, Shield, Car, Package, Calendar, Users, Baby, Briefcase,
-  Phone, MessageCircle, CheckCircle, Clock, CreditCard, Star, ArrowRight,
-  Coffee, MapPin, Tag, ChevronDown, ChevronUp, Info, Map
+  Plane, Hotel, Shield, Car, Package, Calendar, Users, Briefcase,
+  Phone, MessageCircle, CheckCircle, Clock, CreditCard, ArrowRight,
+  MapPin, ChevronDown, ChevronUp, Info, Map, TrendingDown, Backpack, Luggage, Instagram
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -18,8 +19,11 @@ const AGENCY = {
   name: 'Easy Fly Agência de Viagens',
   legalName: 'EASY FLY AGENCIA DE VIAGENS LTDA',
   cnpj: '45.480.207/0001-49',
-  phone: '+55 (87) 9.9952-5083',
+  phone: '(87) 99952-5083',
   whatsapp: '5587999525083',
+  email: 'contato@easyflyagency.com.br',
+  instagram: '@easyflly',
+  address: 'Engenheiro brandao cavalcante, 224, Casa, Quadra 01, Petrolândia - PE, 56460-000',
   logoUrl: '/logo2.png',
 };
 
@@ -134,102 +138,256 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
   );
 }
 
-function MainTravelMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {
-  if (flights.length === 0) return null;
-  const firstFlight = flights[0];
-  const outbound = firstFlight.outboundSegments || [];
-  const inbound = firstFlight.inboundSegments || [];
-  const isIdaVolta = firstFlight.flightType === 'ida_volta';
+const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> = {
+  'REC': { coords: [-8.1264, -34.9228], name: 'Guararapes - Recife' },
+  'GIG': { coords: [-22.8100, -43.2506], name: 'Galeão - Rio de Janeiro' },
+  'GRU': { coords: [-23.4356, -46.4731], name: 'Guarulhos - São Paulo' },
+  'CGH': { coords: [-23.6273, -46.6566], name: 'Congonhas - São Paulo' },
+  'BSB': { coords: [-15.8711, -47.9186], name: 'Juscelino Kubitschek - Brasília' },
+  'VCP': { coords: [-23.0069, -47.1344], name: 'Viracopos - Campinas' },
+  'CNF': { coords: [-19.6244, -43.9719], name: 'Confins - Belo Horizonte' },
+  'SSA': { coords: [-12.9111, -38.3308], name: 'Dep. Luís Eduardo Magalhães - Salvador' },
+  'FOR': { coords: [-3.7763, -38.5326], name: 'Pinto Martins - Fortaleza' },
+  'CWB': { coords: [-25.5317, -49.1758], name: 'Afonso Pena - Curitiba' },
+  'POA': { coords: [-29.9939, -51.1711], name: 'Salgado Filho - Porto Alegre' },
+  'SDU': { coords: [-22.9102, -43.1631], name: 'Santos Dumont - Rio de Janeiro' },
+  'FLN': { coords: [-27.6701, -48.5525], name: 'Hercílio Luz - Florianópolis' },
+  'MCZ': { coords: [-9.5108, -35.7917], name: 'Zumbi dos Palmares - Maceió' },
+  'NAT': { coords: [-5.9114, -35.2477], name: 'Aluízio Alves - Natal' },
+  'VIX': { coords: [-20.2576, -40.2864], name: 'Eurico de Aguiar Salles - Vitória' },
+  'GYN': { coords: [-16.6322, -49.2214], name: 'Santa Genoveva - Goiânia' },
+  'MAO': { coords: [-3.0358, -60.0506], name: 'Eduardo Gomes - Manaus' },
+  'BEL': { coords: [-1.3847, -48.4788], name: 'Val-de-Cans - Belém' },
+  'CGB': { coords: [-15.6529, -56.1167], name: 'Marechal Rondon - Cuiabá' },
+  'JPA': { coords: [-7.1483, -34.9503], name: 'Castro Pinto - João Pessoa' },
+  'SLZ': { coords: [-2.5869, -44.2361], name: 'Marechal Cunha Machado - São Luís' },
+  'IGU': { coords: [-25.5977, -54.4853], name: 'Cataratas - Foz do Iguaçu' },
+  'AJU': { coords: [-10.9852, -37.0733], name: 'Santa Maria - Aracaju' },
+  'MIA': { coords: [25.7959, -80.2870], name: 'Miami International' },
+  'MCO': { coords: [28.4312, -81.3081], name: 'Orlando International' },
+  'JFK': { coords: [40.6413, -73.7781], name: 'John F. Kennedy - New York' },
+  'LIS': { coords: [38.7756, -9.1354], name: 'Humberto Delgado - Lisboa' },
+  'CDG': { coords: [49.0097, 2.5479], name: 'Charles de Gaulle - Paris' },
+  'MAD': { coords: [40.4839, -3.5680], name: 'Barajas - Madrid' },
+  'LHR': { coords: [51.4700, -0.4543], name: 'Heathrow - London' },
+  'EZE': { coords: [-34.8222, -58.5358], name: 'Ministro Pistarini - Buenos Aires' },
+  'SCL': { coords: [-33.3930, -70.7858], name: 'Arturo Merino Benítez - Santiago' },
+  'BOG': { coords: [4.7016, -74.1469], name: 'El Dorado - Bogotá' },
+  'PTY': { coords: [9.0714, -79.3835], name: 'Tocumen - Panama City' },
+  'MEX': { coords: [19.4361, -99.0719], name: 'Benito Juárez - Mexico City' }
+};
 
-  const firstOrigin = outbound[0]?.origin || '---';
-  const lastDest = outbound[outbound.length - 1]?.destination || '---';
+function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {
+  const mapRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isLeafletReady, setLeafletReady] = useState(false);
+
+  useEffect(() => {
+    if ((window as any).L) {
+      setLeafletReady(true);
+      return;
+    }
+    const interval = setInterval(() => {
+       if ((window as any).L) {
+         setLeafletReady(true);
+         clearInterval(interval);
+       }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!isLeafletReady || !containerRef.current || flights.length === 0) return;
+    const L = (window as any).L;
+    
+    if (mapRef.current) {
+      mapRef.current.remove();
+    }
+
+    const firstFlight = flights[0];
+    const outbound = firstFlight.outboundSegments || [];
+    const isIdaVolta = firstFlight.flightType === 'ida_volta';
+    
+    const ori = outbound[0]?.origin || 'REC';
+    const des = outbound[outbound.length - 1]?.destination || 'GIG';
+
+    const p1 = AIRPORT_INFO[ori]?.coords || [-15, -47];
+    const p2 = AIRPORT_INFO[des]?.coords || [-23, -46];
+
+    const map = L.map(containerRef.current, {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([ (p1[0]+p2[0])/2, (p1[1]+p2[1])/2 ], 4);
+    
+    mapRef.current = map;
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+
+    const getCurvePoints = (start: [number, number], end: [number, number], arcIntensity = 0.2) => {
+      const points: [number, number][] = [];
+      const steps = 30;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const lat = start[0] + (end[0] - start[0]) * t;
+        const lng = start[1] + (end[1] - start[1]) * t;
+        const offset = Math.sin(t * Math.PI) * arcIntensity * Math.sqrt(Math.pow(end[0]-start[0], 2) + Math.pow(end[1]-start[1], 2));
+        points.push([lat + offset, lng]);
+      }
+      return points;
+    };
+
+    const idaPoints = getCurvePoints(p1, p2, 0.15);
+    L.polyline(idaPoints, {
+      color: '#0891b2', // Cyan 600
+      weight: 3,
+      dashArray: '8, 8',
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    if (isIdaVolta) {
+      const voltaPoints = getCurvePoints(p2, p1, -0.1);
+      L.polyline(voltaPoints, {
+        color: '#9333ea', // Purple 600
+        weight: 2,
+        dashArray: '5, 10',
+        opacity: 0.8
+      }).addTo(map);
+    }
+
+    const createDot = (color: string) => L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div style="background-color: ${color}; width: 10px; height: 10px; border: 2.5px solid white; border-radius: 50%; box-shadow: 0 0 10px ${color}80;"></div>`,
+      iconSize: [10, 10],
+      iconAnchor: [5, 5]
+    });
+
+    L.marker(p1, { icon: createDot('#0891b2') }).addTo(map);
+    L.marker(p2, { icon: isIdaVolta ? createDot('#9333ea') : createDot('#0891b2') }).addTo(map);
+
+    const bounds = L.latLngBounds([p1, p2]);
+    map.fitBounds(bounds, { padding: [50, 50] });
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [isLeafletReady, flights]);
 
   return (
-    <div className="relative w-full h-80 sm:h-96 rounded-[32px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50 mb-12 group/map bg-[#f8f9fa]">
-      {/* Light Clean Map Background */}
-      <div className="absolute inset-0 opacity-80 mix-blend-multiply">
-         <img 
-            src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&q=80&w=1600" 
-            alt="Clean Light Map" 
-            className="w-full h-full object-cover" 
-         />
-         <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/60" />
-      </div>
-
-      {/* Trajectory Layers */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none">
-        <defs>
-          <filter id="routeGlow">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
+    <div className="mb-12">
+      <div className="relative w-full h-[400px] sm:h-[450px] rounded-[32px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/40 bg-[#f8f9fa] group">
+        {/* Container Leaflet */}
+        <div ref={containerRef} className="w-full h-full z-0" />
         
-        {/* Ida Path - Purple Curved Dash */}
-        <path 
-          fill="none" 
-          stroke="#8b5cf6" 
-          strokeWidth="3" 
-          strokeDasharray="8,6"
-          filter="url(#routeGlow)"
-          style={{ d: "path('M 22% 55% Q 50% 12% 78% 50%')" }}
-        />
-
-        {/* Volta Path - Subtle gray dash */}
-        {isIdaVolta && (
-          <path 
-            fill="none" 
-            stroke="#94a3b8" 
-            strokeWidth="2" 
-            strokeDasharray="6,8"
-            opacity="0.4"
-            style={{ d: "path('M 78% 50% Q 50% 88% 22% 55%')" }}
-          />
+        {!isLeafletReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-50/50 backdrop-blur-sm z-50">
+             <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+          </div>
         )}
-      </svg>
 
-      {/* Location Indicators */}
-      <div className="absolute inset-0 z-20 pointer-events-none">
-         {/* Origin Pin */}
-         <div className="absolute top-[55%] left-[22%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-            <div className="w-5 h-5 bg-purple-600 border-[3px] border-white rounded-full shadow-xl" />
-         </div>
-         
-         {/* Destination Pin */}
-         <div className="absolute top-[50%] left-[78%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-            <div className="w-5 h-5 bg-purple-600 border-[3px] border-white rounded-full shadow-xl" />
-         </div>
-      </div>
+        {/* Legend Overlay INSIDE Map */}
+        <div className="absolute bottom-3 left-3 right-3 z-[400] flex items-center justify-between gap-4 pointer-events-none">
+           <p className="text-[7px] sm:text-[8px] text-slate-400 font-bold italic leading-none truncate flex-1 opacity-80">
+              *As linhas do trajeto exibidas são ilustrativas e podem não representar o trajeto exato da aeronave.
+           </p>
 
-      {/* Legend & Note */}
-      <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3">
-         <div className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-100 shadow-xl flex items-center gap-4">
-            <div className="flex items-center gap-2">
-               <div className="w-6 h-0.5 bg-purple-500 border-b-2 border-dashed border-purple-500" />
-               <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Ida</span>
-            </div>
-            {isIdaVolta && (
-              <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
-                 <div className="w-6 h-0.5 bg-slate-300 border-b-2 border-dashed border-slate-300" />
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Volta</span>
+           <div className="bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/40 flex items-center gap-4 shadow-sm pointer-events-auto scale-90 origin-right transition-transform hover:scale-95">
+              <div className="flex items-center gap-2">
+                 <div className="w-3 h-1 rounded-full bg-[#0891b2] shadow-[0_0_8px_rgba(8,145,178,0.5)]" />
+                 <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest whitespace-nowrap">Ida</span>
               </div>
-            )}
-         </div>
-         <p className="text-[9px] text-slate-400 font-bold italic max-w-xs text-right bg-white/50 px-2 py-1 rounded-md backdrop-blur-sm">
-            *As linhas do trajeto entre os aeroportos exibidas neste mapa podem não representar exatamente o trajeto que a aeronave executará.
-         </p>
-      </div>
+              {flights[0]?.flightType === 'ida_volta' && (
+                <div className="flex items-center gap-2 border-l border-slate-200/50 pl-3">
+                   <div className="w-3 h-1 rounded-full bg-[#9333ea] shadow-[0_0_8px_rgba(147,51,234,0.5)]" />
+                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest whitespace-nowrap">Volta</span>
+                </div>
+              )}
+           </div>
+        </div>
 
-      {/* Zoom Controls Mockup */}
-      <div className="absolute top-6 left-6 flex flex-col gap-px bg-white border border-slate-200 rounded-lg shadow-md overflow-hidden">
-         <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-50 text-slate-600 font-bold">+</button>
-         <div className="h-px bg-slate-200" />
-         <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-50 text-slate-600 font-bold">−</button>
+        {/* Custom Style for Zoom Controls (No Borders) */}
+        <style jsx global>{`
+          .leaflet-bar {
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            border-radius: 12px !important;
+            overflow: hidden;
+            margin-top: 10px !important;
+            margin-left: 10px !important;
+          }
+          .leaflet-bar a {
+            border: none !important;
+            background-color: white !important;
+            color: #475569 !important;
+            font-weight: bold !important;
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            transition: all 0.2s;
+          }
+          .leaflet-bar a:hover {
+            background-color: #f8fafc !important;
+            color: #1e293b !important;
+          }
+        `}</style>
       </div>
     </div>
+  );
+}
+
+function MainTravelMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {
+  return <InteractiveMap lead={lead} flights={flights} />;
+}
+
+function AirlineLogo({ name }: { name: string }) {
+  const airlineMap: Record<string, string> = {
+    'latam': 'latam.com',
+    'gol': 'voegol.com.br',
+    'azul': 'voeazul.com.br',
+    'tap': 'flytap.com',
+    'american': 'aa.com',
+    'delta': 'delta.com',
+    'united': 'united.com',
+    'lufthansa': 'lufthansa.com',
+    'emirates': 'emirates.com',
+    'qatar': 'qatarairways.com',
+    'copa': 'copaair.com',
+    'avianca': 'avianca.com',
+    'british': 'britishairways.com',
+    'air france': 'airfrance.com',
+    'klm': 'klm.com',
+    'iberia': 'iberia.com',
+    'aerolineas': 'aerolineas.com.ar',
+    'sky': 'skyairline.com'
+  };
+
+  const domain = Object.entries(airlineMap).find(([k]) => name.toLowerCase().includes(k))?.[1];
+  
+  if (domain) {
+    return (
+      <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-100 shadow-sm shrink-0">
+        <img 
+          src={`https://logo.clearbit.com/${domain}`} 
+          alt={name}
+          className="w-6 h-6 object-contain"
+          onError={(e) => (e.currentTarget.style.display = 'none')}
+        />
+        <span className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{name}</span>
+      </div>
+    );
+  }
+
+  return (
+    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-slate-200">
+      {name}
+    </span>
   );
 }
 
@@ -249,6 +407,20 @@ function FlightLegCard({
     if (!t) return null;
     const [h, m] = t.split(':');
     return `${h}h${m}`;
+  };
+
+  const calculateConnectionTime = (arrival: string, departure: string) => {
+    try {
+      const [h1, m1] = arrival.split(':').map(Number);
+      const [h2, m2] = departure.split(':').map(Number);
+      let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diff < 0) diff += 1440; // Next day
+      const h = Math.floor(diff / 60);
+      const m = diff % 60;
+      return `${h}h ${m}min`;
+    } catch (e) {
+      return null;
+    }
   };
 
   if (!segments || segments.length === 0) return null;
@@ -280,95 +452,278 @@ function FlightLegCard({
             </button>
           </div>
 
-          {/* Main Visual Route Row */}
           <div className="flex items-center justify-between mt-8 mb-4 px-2">
-            <div className="text-left">
+            {/* Left Block - Departure */}
+            <div className="text-left w-[200px] flex flex-col justify-start">
               <p className="text-3xl font-black text-slate-900 leading-none">{firstSeg?.departureTime ? fmt(firstSeg.departureTime) : '--:--'}</p>
-              <p className="text-xs font-black text-slate-400 uppercase mt-1">{firstSeg?.origin || '---'}</p>
+              <div className="mt-1.5 h-7 flex items-start overflow-hidden">
+                <p className="text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase">
+                  {AIRPORT_INFO[firstSeg?.origin || '']?.name || firstSeg?.origin || '---'}
+                </p>
+              </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center relative px-6 group">
-               <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200 flex items-center justify-around">
-                  <div className="w-2 h-2 rounded-full border-2 border-slate-300 bg-white" />
-                  {hasConnections && <div className={`w-2 h-2 rounded-full ${type === 'Ida' ? 'bg-cyan-400 shadow-cyan-400/50' : 'bg-purple-400 shadow-purple-400/50'} shadow-sm`} />}
-                  <div className="w-2 h-2 rounded-full border-2 border-slate-300 bg-white" />
+            {/* Middle Block - Timeline */}
+            <div className="flex-1 flex flex-col items-center relative h-12 group self-center">
+               {/* Journey Duration above badge */}
+               <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap">
+                  <Clock className="w-3 h-3 text-slate-300" />
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest tabular-nums leading-none">
+                    {(() => {
+                      try {
+                        const getNums = (val: any) => {
+                          if (typeof val === 'number') return [val];
+                          if (typeof val !== 'string' || !val) return [];
+                          return val.match(/\d+/g)?.map((n: string) => parseInt(n, 10)) || [];
+                        };
+                        // 1. Prioritize pre-calculated duration from the segment (most accurate for time zones)
+                        if (segments.length === 1 && segments[0].duration) {
+                          const nums = getNums(segments[0].duration);
+                          if (nums.length >= 2) {
+                             return `${nums[0].toString().padStart(2, '0')}h ${nums[1].toString().padStart(2, '0')} min`;
+                          }
+                          return segments[0].duration; // Fallback to raw if logic fails
+                        }
+
+                        // 2. Fallback to itemDuration if segments logic isn't applicable
+                        if (itemDuration && typeof itemDuration === 'string') {
+                          const nums = itemDuration.match(/\d+/g)?.map((n: string) => parseInt(n, 10)) || [];
+                          if (nums.length >= 2) {
+                            return `${nums[0].toString().padStart(2, '0')}h ${nums[1].toString().padStart(2, '0')} min`;
+                          }
+                        }
+
+                        // 3. Last resort: Dynamic calculation (only if everything else is missing)
+                        if (firstSeg && lastSeg) {
+                          const extract = (str: any) => str?.match(/\d+/g)?.map((n: string) => parseInt(n, 10)) || [];
+                          const dD = extract(firstSeg.departureDate); 
+                          const dT = extract(firstSeg.departureTime); 
+                          const aD = extract(lastSeg.arrivalDate);
+                          const aT = extract(lastSeg.arrivalTime);
+
+                          if (dD.length >= 3 && dT.length >= 2 && aT.length >= 2) {
+                            const start = new Date(dD[2] > 1000 ? dD[0] : dD[2], dD[1]-1, dD[2] > 1000 ? dD[2] : dD[0], dT[0], dT[1]);
+                            let end;
+                            if (aD.length >= 3) {
+                              end = new Date(aD[2] > 1000 ? aD[0] : aD[2], aD[1]-1, aD[2] > 1000 ? aD[2] : aD[0], aT[0], aT[1]);
+                            } else {
+                              end = new Date(start.getTime());
+                              end.setHours(aT[0], aT[1], 0, 0);
+                              if (end < start) end.setDate(end.getDate() + 1);
+                            }
+                            const diff = end.getTime() - start.getTime();
+                            if (diff > 0) {
+                              const tmin = Math.floor(diff / 60000);
+                              return `${Math.floor(tmin / 60).toString().padStart(2, '0')}h ${(tmin % 60).toString().padStart(2, '0')} min`;
+                            }
+                          }
+                        }
+                      } catch (err) {}
+                      return '--:--';
+                    })()}
+                  </span>
                </div>
-               <span className="relative z-10 text-[10px] font-black uppercase text-slate-400 bg-white px-3 py-1 border border-slate-100 rounded-full tracking-widest">{hasConnections ? 'Com Conexão' : 'Voo Direto'}</span>
+
+               {/* Timeline Line */}
+               <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-100 flex items-center justify-around translate-y-[-50%]">
+                  <div className="w-2 h-2 rounded-full border-2 border-slate-200 bg-white" />
+                  {hasConnections && (
+                    <div className={`w-2 h-2 rounded-full ${type === 'Ida' ? 'bg-cyan-400 shadow-cyan-400/50' : 'bg-purple-400 shadow-purple-400/50'} shadow-sm`} />
+                  )}
+                  <div className="w-2 h-2 rounded-full border-2 border-slate-200 bg-white" />
+               </div>
+               
+               {/* Badge centered absolutely */}
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pt-1">
+                  <span className="relative z-10 text-[9px] font-black uppercase text-slate-400 bg-white px-3 py-1 border border-slate-100 rounded-full tracking-[0.15em] whitespace-nowrap shadow-sm">
+                    {hasConnections ? 'Com Conexão' : 'Voo Direto'}
+                  </span>
+               </div>
             </div>
 
-            <div className="text-right">
+            {/* Right Block - Arrival */}
+            <div className="text-right w-[200px] flex flex-col items-end justify-start">
               <p className="text-3xl font-black text-slate-900 leading-none">{lastSeg?.arrivalTime ? fmt(lastSeg.arrivalTime) : '--:--'}</p>
-              <p className="text-xs font-black text-slate-400 uppercase mt-1">{lastSeg?.destination || '---'}</p>
+              <div className="mt-1.5 h-7 flex items-start justify-end overflow-hidden">
+                <p className="text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase text-right">
+                  {AIRPORT_INFO[lastSeg?.destination || '']?.name || lastSeg?.destination || '---'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Expanded Details Section */}
         {isExpanded && (
-          <div className="p-6 pt-2 border-t border-slate-50 bg-slate-50/30 animate-in gap-y-6 flex flex-col duration-300">
-             <div className="space-y-6 flex flex-col items-stretch">
-              {segments.map((seg, sidx) => (
-                <div key={sidx} className="flex gap-6 items-start relative pb-2 group">
-                  {sidx < segments.length - 1 && (
-                    <div className="absolute left-10 top-12 bottom-0 w-1 border-l-2 border-dashed border-slate-200" />
-                  )}
-                  
-                  <div className="flex flex-col items-center gap-1 w-20 flex-shrink-0">
-                     <p className="text-xs text-slate-400 font-bold uppercase">{formatDate(seg.departureDate)}</p>
-                     <p className="text-xl font-black text-slate-900">{fmt(seg.departureTime) || '--:--'}</p>
-                     <p className={`text-sm font-black ${type === 'Ida' ? 'text-cyan-600' : 'text-purple-600'}`}>{seg.origin}</p>
-                  </div>
+          <div className="p-6 pt-4 border-t border-slate-50 bg-[#fafbfc] animate-in fade-in slide-in-from-top-4 duration-500">
+             <div className="relative">
+                {/* Timeline Line */}
+                <div className="absolute left-[23px] top-6 bottom-6 w-0.5 bg-gradient-to-b from-slate-200 via-slate-200 to-slate-200 border-l border-white shadow-sm" />
 
-                  <div className="flex-1 space-y-4">
-                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group-hover:shadow-lg group-hover:border-cyan-100 transition-all">
-                        <div className="space-y-2">
-                           <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-black px-2 py-0.5 ${type === 'Ida' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-purple-50 text-purple-600 border-purple-100'} rounded-md border uppercase tracking-tighter`}>{seg.airline || 'Cia Aérea'}</span>
-                              <span className="text-xs font-black text-slate-400 font-mono tracking-tighter">{seg.flightNumber || '---'}</span>
+                <div className="space-y-8">
+                  {segments.map((seg, sidx) => {
+                    const nextSeg = segments[sidx + 1];
+                    const connectionTime = nextSeg ? calculateConnectionTime(seg.arrivalTime, nextSeg.departureTime) : null;
+
+                    return (
+                      <div key={sidx} className="relative group/seg">
+                        {/* Segment Timeline Block */}
+                        <div className="flex gap-8 items-start">
+                           {/* Dots Column */}
+                           <div className="flex flex-col items-center gap-1 mt-1 shrink-0 z-10">
+                              <div className="w-12 h-12 bg-white rounded-2xl border-2 border-slate-100 shadow-sm flex items-center justify-center group-hover/seg:border-cyan-300 transition-colors">
+                                 <Plane className="w-5 h-5 text-slate-400 group-hover/seg:text-cyan-500 transition-colors" />
+                              </div>
                            </div>
-                           <div className="flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-slate-300" />
-                              <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Duração: {seg.duration || '--'}</span>
+
+                           {/* Info Column */}
+                           <div className="flex-1">
+                              <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-5 hover:shadow-md transition-all duration-300">
+                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                                    <div className="flex items-center gap-4">
+                                       <AirlineLogo name={seg.airline || 'LATAM'} />
+                                       <div className="h-6 w-px bg-slate-100 hidden md:block" />
+                                       <div className="flex flex-col">
+                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Voo</p>
+                                          <p className="text-sm font-black text-slate-800 font-mono tracking-tighter">{seg.flightNumber || '---'}</p>
+                                       </div>
+                                       <div className="h-6 w-px bg-slate-100 hidden md:block" />
+                                       <div className="flex flex-col">
+                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Classe</p>
+                                          <p className="text-sm font-black text-slate-800">{seg.flightClass || 'Econômica'}</p>
+                                       </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100/50">
+                                       <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                       <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">Duração: {seg.duration || '--'}</span>
+                                    </div>
+                                 </div>
+
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="flex gap-4">
+                                       <div className="flex flex-col items-center">
+                                          <div className="w-2.5 h-2.5 rounded-full bg-slate-300 border-2 border-white ring-4 ring-slate-100/30" />
+                                       </div>
+                                       <div className="space-y-1">
+                                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{formatDate(seg.departureDate)}</p>
+                                          <div className="flex items-baseline gap-2">
+                                             <span className="text-2xl font-black text-slate-900">{fmt(seg.departureTime) || '--:--'}</span>
+                                             <span className="text-base font-black text-slate-400">{seg.origin}</span>
+                                          </div>
+                                          <p className="text-xs font-bold text-slate-500 opacity-60">
+                                             {AIRPORT_INFO[seg.origin]?.name || `Aeroporto ${seg.origin}`}
+                                          </p>
+                                       </div>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                       <div className="flex flex-col items-center">
+                                          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 border-2 border-white ring-4 ring-cyan-100/30" />
+                                       </div>
+                                       <div className="space-y-1">
+                                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{seg.arrivalDate ? formatDate(seg.arrivalDate) : formatDate(seg.departureDate)}</p>
+                                          <div className="flex items-baseline gap-2">
+                                             <span className="text-2xl font-black text-slate-900">{fmt(seg.arrivalTime) || '--:--'}</span>
+                                             <span className="text-base font-black text-slate-400">{seg.destination}</span>
+                                          </div>
+                                          <p className="text-xs font-bold text-slate-500 opacity-60">
+                                             {AIRPORT_INFO[seg.destination]?.name || `Aeroporto ${seg.destination}`}
+                                          </p>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+
+                              {/* Connection Display */}
+                              {connectionTime && (
+                                <div className="my-8 relative">
+                                   <div className="absolute left-[-23px] top-1/2 w-[23px] h-px border-t-2 border-dashed border-slate-200" />
+                                   <div className="bg-orange-50/80 backdrop-blur-sm border border-orange-100 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                                      <div className="flex items-center gap-3">
+                                         <div className="w-10 h-10 bg-orange-100/50 rounded-xl flex items-center justify-center">
+                                            <Clock className="w-5 h-5 text-orange-600" />
+                                         </div>
+                                         <div>
+                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest leading-none mb-1">Conexão em {seg.destination}</p>
+                                            <p className="text-sm font-black text-orange-900 uppercase">Aguarde por {connectionTime}</p>
+                                         </div>
+                                      </div>
+                                      <Info className="w-4 h-4 text-orange-300" />
+                                   </div>
+                                </div>
+                              )}
                            </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 text-right justify-end">
-                           <div className="text-right">
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mb-1">Classe</p>
-                              <span className="px-3 py-1.5 bg-slate-50 text-slate-700 text-[11px] font-black rounded-xl border border-slate-100">{seg.flightClass || 'Econômica'}</span>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-1 w-20 flex-shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
-                     <p className="text-xs text-slate-400 font-bold uppercase">{seg.arrivalDate ? formatDate(seg.arrivalDate) : formatDate(seg.departureDate)}</p>
-                     <p className="text-xl font-black text-slate-900">{fmt(seg.arrivalTime) || '--:--'}</p>
-                     <p className="text-sm font-black text-slate-400 uppercase">{seg.destination}</p>
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
              </div>
 
-             {/* Final Baggage Row in Expanded View */}
-             <div className="bg-white rounded-[20px] p-5 border border-slate-200 shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1">
-                   <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Bagagem Incluída</p>
-                   <p className="text-[10px] text-slate-400 font-bold uppercase">Por passageiro adulto</p>
+             <div className="mt-8 bg-slate-50/50 rounded-[28px] p-5 border border-slate-100 shadow-inner group/baggage">
+                <div className="flex items-center gap-3 mb-5 px-1">
+                   <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-cyan-600 border border-cyan-100">
+                      <Luggage className="w-4 h-4" />
+                   </div>
+                   <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Confira sua franquia</p>
+                      <p className="text-sm font-black text-slate-800 uppercase tracking-tight">POLÍTICA DE BAGAGENS INCLUSAS</p>
+                   </div>
                 </div>
-                <div className="flex flex-wrap gap-4">
-                   {[
-                     { label: 'Item Pessoal', val: segments[0]?.personalItem, icon: '🎒' },
-                     { label: 'Mala de Mão', val: segments[0]?.carryOn, icon: '💼' },
-                     { label: 'Despachada 23kg', val: segments[0]?.checkedBag23kg, icon: '🧳' }
-                   ].map(b => (
-                     <div key={b.label} className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl">
-                       <span className="text-xl">{b.icon}</span>
-                       <div className="text-left">
-                          <p className="text-[9px] text-slate-400 font-black uppercase leading-none mb-0.5">{b.label}</p>
-                          <p className="text-xs font-black text-slate-800 leading-none">{b.val || (b.label === 'Mala de Mão' || b.label === 'Item Pessoal' ? 1 : 0)}x Incluso</p>
-                       </div>
-                     </div>
-                   ))}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                   {(() => {
+                      const airline = segments[0]?.airline?.toLowerCase() || '';
+                      const isLatamGol = airline.includes('latam') || airline.includes('gol');
+                      
+                      const baggageRules = [
+                        { 
+                          label: 'Item Pessoal', 
+                          weight: isLatamGol ? '10kg' : '5kg',
+                          val: segments[0]?.personalItem ?? 1,
+                          icon: <Briefcase className="w-5 h-5" />,
+                          desc: 'Abaixo do assento'
+                        },
+                        { 
+                          label: 'Mochila / Mão', 
+                          weight: isLatamGol ? '12kg' : '10kg',
+                          val: segments[0]?.carryOn ?? 1,
+                          icon: <Backpack className="w-5 h-5" />,
+                          desc: 'Bagageiro superior'
+                        },
+                        { 
+                          label: 'Despachada', 
+                          weight: '23kg',
+                          val: segments[0]?.checkedBag23kg ?? 0,
+                          icon: <Luggage className="w-5 h-5" />,
+                          desc: 'No porão do avião'
+                        }
+                      ];
+
+                      return baggageRules.map((b) => (
+                        <div key={b.label} className={`relative p-4 rounded-2xl border transition-all duration-300 ${b.val > 0 ? 'bg-white border-slate-100 shadow-sm' : 'bg-slate-100/30 border-dashed border-slate-200 opacity-60'}`}>
+                           <div className="flex justify-between items-start mb-3">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${b.val > 0 ? 'bg-cyan-50 text-cyan-600' : 'bg-slate-100 text-slate-400'}`}>
+                                 {b.icon}
+                              </div>
+                              <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-tight ${b.val > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-200 text-slate-500'}`}>
+                                 {b.val > 0 ? `${b.val}x Incluso` : 'Não incluso'}
+                              </div>
+                           </div>
+                           <div>
+                              <div className="flex items-baseline gap-1.5 mb-1">
+                                 <h4 className={`text-[11px] font-black uppercase tracking-tight ${b.val > 0 ? 'text-slate-800' : 'text-slate-400'}`}>{b.label}</h4>
+                                 <span className={`text-[13px] font-black ${b.val > 0 ? 'text-cyan-600' : 'text-slate-400'}`}>{b.weight}</span>
+                              </div>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{b.desc}</p>
+                           </div>
+                        </div>
+                      ));
+                   })()}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-center gap-2">
+                   <Info className="w-3 h-3 text-slate-300" />
+                   <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter">Franquia por passageiro adulto. Sujeito às regras tarifárias da Cia Aérea.</p>
                 </div>
              </div>
           </div>
@@ -401,15 +756,6 @@ function FlightItemCard({ item, lead }: { item: LeadItem; lead: Lead }) {
          />
        )}
        
-       {/* Price display if any */}
-       {item.value && item.value > 0 && (
-         <div className="flex justify-end p-2">
-            <div className="flex items-center gap-3 bg-cyan-600 text-white px-6 py-2 rounded-2xl shadow-lg">
-               <span className="text-xs font-black uppercase tracking-widest">Valor do Trecho</span>
-               <span className="text-xl font-black">{formatCurrency(item.value)}</span>
-            </div>
-         </div>
-       )}
     </div>
   );
 }
@@ -575,17 +921,32 @@ export default function CotacaoPage() {
 
   const calculateDuration = () => {
     const flight = flights[0];
-    if (!flight) return lead.duration ? `${lead.duration} dias` : null;
+    
+    const getDurationText = (days: number) => {
+      if (days <= 0) return null;
+      const nights = days - 1;
+      const daysText = `${days} ${days === 1 ? 'dia' : 'dias'}`;
+      const nightsText = `${nights} ${nights === 1 ? 'noite' : 'noites'}`;
+      return `${daysText} e ${nightsText}`;
+    };
+
+    if (!flight) {
+      const d = parseInt(lead.duration || '0');
+      return d > 0 ? getDurationText(d) : null;
+    }
+
     if (flight.flightType === 'ida') return 'Somente Ida';
     
     const outbound = flight.outboundSegments || [];
     const inbound = flight.inboundSegments || [];
     
-    // Pegar primeira data de partida e última data de volta (ou chegada)
     const startStr = outbound[0]?.departureDate;
-    const endStr = inbound[inbound.length - 1]?.arrivalDate || inbound[inbound.length - 1]?.departureDate;
+    const endStr = inbound[inbound.length - 1]?.departureDate || inbound[inbound.length - 1]?.arrivalDate;
     
-    if (!startStr || !endStr) return lead.duration ? `${lead.duration} dias` : null;
+    if (!startStr || !endStr) {
+      const d = parseInt(lead.duration || '0');
+      return d > 0 ? getDurationText(d) : null;
+    }
 
     const parse = (s: string) => {
       if (s.includes('/')) {
@@ -600,18 +961,20 @@ export default function CotacaoPage() {
       const end = parse(endStr);
       const diffTime = end.getTime() - start.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      return diffDays > 0 ? `${diffDays} dias` : lead.duration ? `${lead.duration} dias` : null;
+      return diffDays > 0 ? getDurationText(diffDays) : null;
     } catch {
-      return lead.duration ? `${lead.duration} dias` : null;
+      const d = parseInt(lead.duration || '0');
+      return d > 0 ? getDurationText(d) : null;
     }
   };
 
   const tripDuration = calculateDuration();
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/30 font-sans">
+      <Script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" strategy="afterInteractive" />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-      {/* HERO HEADER */}
       <header className="bg-gradient-to-br from-[#19727d] via-[#1a8090] to-[#0d5c66] text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
@@ -718,12 +1081,34 @@ export default function CotacaoPage() {
         {/* VALORES */}
         {lead.value > 0 && (
           <section>
-            <SectionTitle icon={<CreditCard className="w-4 h-4" />} title="Valores & Pagamento" />
+            <SectionTitle icon={<CreditCard className="w-4 h-4" />} title="Investimento" />
             <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] rounded-2xl p-6 text-white shadow-xl shadow-[#19727d]/20">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-white/70 text-sm font-bold uppercase tracking-widest">Total da Viagem</p>
-                  <p className="text-4xl font-black tracking-tight mt-1">{formatCurrency(lead.value)}</p>
+                  <p className="text-white/70 text-sm font-bold uppercase tracking-widest leading-none mb-3">INVESTIMENTO TOTAL</p>
+                  <div className="flex flex-wrap items-baseline gap-2.5">
+                    <p className="text-5xl font-black tracking-tighter leading-none">{formatCurrency(lead.value)}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-xl border border-white/5">
+                       <span className="text-[10px] font-black text-white uppercase tracking-wider">À vista</span>
+                       <div className="flex items-center gap-1.5">
+                          {(lead.adults || 0) > 0 && (
+                            <span className="text-[10px] font-black text-cyan-200 uppercase tracking-tight">
+                               {(lead.adults || 0)} {(lead.adults || 0) === 1 ? 'Adulto' : 'Adultos'}
+                            </span>
+                          )}
+                          {(lead.children || 0) > 0 && (
+                            <span className="text-[10px] font-black text-cyan-200 uppercase tracking-tight">
+                               • {(lead.children || 0)} {(lead.children || 0) === 1 ? 'Criança' : 'Crianças'}
+                            </span>
+                          )}
+                          {(lead.babies || 0) > 0 && (
+                            <span className="text-[10px] font-black text-cyan-200 uppercase tracking-tight">
+                               • {(lead.babies || 0)} {(lead.babies || 0) === 1 ? 'Bebê' : 'Bebês'}
+                            </span>
+                          )}
+                       </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center">
                   <CreditCard className="w-7 h-7 text-white" />
@@ -733,14 +1118,17 @@ export default function CotacaoPage() {
               <div className="border-t border-white/20 pt-4">
                 <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-3">Simulação de parcelamento</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {INSTALLMENTS.map(n => (
+                  {INSTALLMENTS.map((n: number) => (
                     <div key={n} className="bg-white/10 rounded-xl p-2.5 text-center hover:bg-white/20 transition-colors">
                       <p className="text-[11px] text-white/60 font-bold">{n}x de</p>
                       <p className="text-sm font-black text-white">{formatCurrency(lead.value / n)}</p>
                     </div>
                   ))}
                 </div>
-                <p className="text-white/40 text-[10px] mt-2 text-center">* Valores sem juros. Consulte condições com a agência.</p>
+                <p className="text-white/60 text-[10px] mt-4 text-center leading-relaxed">
+                  * Os valores apresentados podem sofrer alterações a qualquer momento, de acordo com as regras das companhias aéreas.<br />
+                  A reserva só é garantida após confirmação de pagamento.
+                </p>
               </div>
             </div>
           </section>
@@ -755,55 +1143,114 @@ export default function CotacaoPage() {
           </section>
         )}
 
-        {/* CTA WHATSAPP */}
-        <section className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-6 text-center space-y-4">
-          <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-green-500/30">
-            <MessageCircle className="w-6 h-6 text-white" />
+        {/* INFORMAÇÕES GERAIS */}
+        <section className="space-y-6">
+          <SectionTitle icon={<Info className="w-4 h-4" />} title="Informações gerais" />
+          <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm text-center">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Formas de Pagamento:</p>
+             <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-3 group">
+                   <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100 group-hover:scale-110 transition-transform">
+                      <CreditCard className="w-4 h-4" />
+                   </div>
+                   <span className="text-sm font-bold text-slate-700">Pix ou Wise</span>
+                </div>
+                <div className="flex items-center gap-3 group">
+                   <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100 group-hover:scale-110 transition-transform">
+                      <Hotel className="w-4 h-4" />
+                   </div>
+                   <span className="text-sm font-bold text-slate-700">Boleto financiado</span>
+                </div>
+                <div className="flex items-center gap-3 group">
+                   <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100 group-hover:scale-110 transition-transform">
+                      <CreditCard className="w-4 h-4" />
+                   </div>
+                   <span className="text-sm font-bold text-slate-700">Cartão de Crédito em até 12x</span>
+                </div>
+             </div>
           </div>
-          <div>
-            <p className="font-black text-gray-800 text-lg">Gostou? Vamos confirmar sua viagem!</p>
-            <p className="text-gray-500 text-sm mt-1">Fale diretamente com nosso consultor pelo WhatsApp.</p>
+        </section>
+
+        {/* CONTATO */}
+        <section className="space-y-6 pb-20">
+          <SectionTitle icon={<Phone className="w-4 h-4" />} title="Informações e contato" />
+          <div className="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-xl shadow-slate-200/50">
+             <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* Left Side */}
+                <div className="p-10 pt-8 pb-12 flex flex-col items-center justify-start text-center bg-slate-50/50">
+                   <div className="w-32 h-32 bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-5 transform hover:rotate-2 transition-transform mb-8">
+                      <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-full h-full object-contain" />
+                   </div>
+                   <div className="space-y-2">
+                      <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest leading-none whitespace-nowrap">{AGENCY.legalName}</p>
+                      <p className="text-[10px] font-bold text-slate-400">CNPJ: {AGENCY.cnpj}</p>
+                      <p className="text-[9px] font-bold text-slate-400 leading-tight uppercase max-w-[200px] mx-auto opacity-70 mt-4">
+                        {AGENCY.address}
+                      </p>
+                   </div>
+                </div>
+
+                {/* Right Side */}
+                <div className="p-10 bg-white border-l border-slate-100 space-y-6">
+                   <div className="space-y-4">
+                      <div className="flex items-center gap-4 group">
+                         <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-cyan-50 group-hover:text-cyan-600 transition-all border border-slate-100">
+                            <Users className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <p className="text-sm font-black text-slate-800 leading-none">{lead.emissor || 'Consultor Easy Fly'}</p>
+                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 group">
+                         <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-green-50 group-hover:text-green-600 transition-all border border-slate-100">
+                            <MessageCircle className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <p className="text-sm font-bold text-slate-600 leading-none">{AGENCY.phone}</p>
+                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 group">
+                         <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-cyan-50 group-hover:text-cyan-600 transition-all border border-slate-100">
+                            <Package className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <p className="text-sm font-bold text-slate-600 leading-none lowercase">{AGENCY.email}</p>
+                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 group">
+                         <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-600 transition-all border border-slate-100">
+                            <Instagram className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <p className="text-sm font-bold text-slate-600 leading-none">{AGENCY.instagram}</p>
+                         </div>
+                      </div>
+                   </div>
+
+                   <a 
+                    href={`https://wa.me/${AGENCY.whatsapp}?text=${whatsappMsg}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full py-4 bg-white border-2 border-slate-100 hover:border-cyan-500 hover:bg-cyan-50 text-slate-600 hover:text-cyan-700 rounded-2xl font-black transition-all group"
+                   >
+                     Entrar em contato
+                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                   </a>
+                </div>
+             </div>
           </div>
-          <a href={`https://wa.me/${AGENCY.whatsapp}?text=${whatsappMsg}`} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-green-500 text-white rounded-2xl font-black shadow-xl shadow-green-500/30 hover:bg-green-600 active:scale-95 transition-all">
-            <MessageCircle className="w-5 h-5" /> Confirmar no WhatsApp <ArrowRight className="w-4 h-4" />
-          </a>
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="border-t border-gray-100 bg-white mt-10">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#19727d]/10 flex items-center justify-center p-1">
-                <img src={AGENCY.logoUrl} alt="Easy Fly" className="w-full h-full object-contain" />
-              </div>
-              <div>
-                <p className="font-black text-[#19727d] text-base leading-tight">Easy Fly</p>
-                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Agência de Viagens</p>
-              </div>
-            </div>
-            <div className="space-y-1.5 text-sm">
-              <div className="flex items-center gap-2 text-gray-500">
-                <Phone className="w-3.5 h-3.5 text-[#19727d]" />
-                <span className="font-bold">{AGENCY.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-500">
-                <MessageCircle className="w-3.5 h-3.5 text-green-500" />
-                <a href={`https://wa.me/${AGENCY.whatsapp}`} target="_blank" rel="noopener noreferrer"
-                  className="font-bold hover:text-green-600 transition-colors">WhatsApp</a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-50 mt-6 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <p className="text-[11px] text-gray-400 font-bold">{AGENCY.legalName}</p>
-            <p className="text-[11px] text-gray-400">CNPJ {AGENCY.cnpj}</p>
-          </div>
-          <p className="text-center text-[10px] text-gray-300 mt-4 font-medium">
-            Esta cotação é válida por 72 horas a partir da data de emissão. • Easy Fly © {new Date().getFullYear()}
-          </p>
-        </div>
+      {/* FOOTER - LEGAL ONLY */}
+      <footer className="bg-slate-50 border-t border-slate-100 py-10 text-center">
+         <div className="max-w-3xl mx-auto px-6 space-y-4">
+            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">{AGENCY.legalName} • CNPJ {AGENCY.cnpj}</p>
+            <p className="text-[10px] text-slate-400 font-medium">Esta cotação é válida por 72 horas a partir da data de emissão. • Easy Fly Agência de Viagens © {new Date().getFullYear()}</p>
+         </div>
       </footer>
     </div>
   );
