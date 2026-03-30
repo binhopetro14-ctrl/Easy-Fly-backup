@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, Settings, Plus, MoreHorizontal, 
   ChevronDown, Pencil, Columns, Filter,
   Phone, Mail, Calendar, User, DollarSign,
   GripVertical, Plane, Hotel, Shield, Car, LayoutGrid,
-  Trash2, Luggage, Baby, ArrowRight, Clock, Users, MessageCircle, CheckCircle2
+  Trash2, Luggage, Baby, ArrowRight, Clock, Users, MessageCircle, CheckCircle2,
+  AlertCircle, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lead, CRMStatus, TeamMember } from '@/types';
@@ -45,6 +46,15 @@ export function CRMView({
 }: CRMViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [now, setNow] = useState(new Date());
+  const [notification, setNotification] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
+
+  // Fecha notificação após 3 segundos
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // Atualiza o tempo atual a cada minuto para cores dinâmicas
   React.useEffect(() => {
@@ -89,7 +99,21 @@ export function CRMView({
     };
   };
 
+  const canModifyLead = (lead: Lead) => {
+    if (!currentUser) return false;
+    // Admins e Gerentes podem tudo
+    if (currentUser.role === 'Administrador' || currentUser.role === 'Gerente') return true;
+    
+    // Outros perfis (Vendedor, Representante, etc.) só podem se forem os donos
+    const currentUserName = `${currentUser.name} ${currentUser.lastName || ''}`.trim();
+    return lead.emissor === currentUserName || lead.emissor === currentUser.email;
+  };
+
   const handleToggleResponded = async (lead: Lead) => {
+    if (!canModifyLead(lead)) {
+      setNotification({ message: "Você não tem permissão para alterar este orçamento.", type: 'warning' });
+      return;
+    }
     await onUpdateLead({ ...lead, responded: !lead.responded });
   };
 
@@ -127,6 +151,12 @@ export function CRMView({
     if (leadId) {
       const lead = leads.find(l => l.id === leadId);
       if (lead) {
+        // SEGURANÇA: Verificar se o usuário pode mover este lead
+        if (!canModifyLead(lead)) {
+          setNotification({ message: "Você não tem permissão para mover este orçamento de outro vendedor.", type: 'warning' });
+          return;
+        }
+
         // Preparamos apenas os dados que realmente mudaram (Delta Update)
         // Regra Especial 1: Se mover para Aprovado, abre o modal para obrigar preenchimento de venda e custo
         if (newStatus === 'aprovado' && lead.status !== 'aprovado') {
@@ -160,7 +190,35 @@ export function CRMView({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] bg-[#f8fafc] dark:bg-slate-950 p-2 pt-1 pb-0 animate-in fade-in duration-500">
+    <div className="flex flex-col h-[calc(100vh-80px)] bg-[#f8fafc] dark:bg-slate-950 p-2 pt-1 pb-0 animate-in fade-in duration-500 relative">
+      
+      {/* 0. NOTIFICAÇÃO PREMIUM */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[200]"
+          >
+            <div className="bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-500/20 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                <AlertCircle className="w-4 h-4 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">Acesso Restrito</p>
+                <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400">{notification.message}</p>
+              </div>
+              <button 
+                onClick={() => setNotification(null)}
+                className="ml-2 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="w-3 h-3 text-gray-400" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* 1. HEADER DO CRM */}
       <div className="flex justify-between items-center gap-3 mb-2 shrink-0">
@@ -275,20 +333,22 @@ export function CRMView({
                           </div>
 
                           {/* Botões de Ação */}
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); onEditLead(lead); }}
-                              className="p-1 px-1.5 bg-white dark:bg-slate-700 text-blue-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-blue-50"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); onDeleteLead(lead.id); }}
-                              className="p-1 px-1.5 bg-white dark:bg-slate-700 text-red-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
+                          {canModifyLead(lead) && (
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); onEditLead(lead); }}
+                                className="p-1 px-1.5 bg-white dark:bg-slate-700 text-blue-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-blue-50"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); onDeleteLead(lead.id); }}
+                                className="p-1 px-1.5 bg-white dark:bg-slate-700 text-red-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
 
                           <div className="flex flex-col gap-1.5">
                             {/* Linha 1: Título */}

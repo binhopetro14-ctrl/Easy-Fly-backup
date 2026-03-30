@@ -143,6 +143,15 @@ export default function Page() {
   const [isMyProfileModalOpen, setIsMyProfileModalOpen] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string>('');
+  const [notification, setNotification] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
+
+  // Fecha notificação após 3 segundos
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   useEffect(() => {
     const handleOpenMyProfile = () => setIsMyProfileModalOpen(true);
@@ -354,7 +363,7 @@ export default function Page() {
       }
     } catch (error: any) {
       console.error('Erro ao salvar venda:', error);
-      alert('Erro ao salvar venda: ' + (error.message || 'Erro desconhecido'));
+      setNotification({ message: 'Erro ao salvar venda: ' + (error.message || 'Erro desconhecido'), type: 'error' });
     }
   };
 
@@ -372,7 +381,7 @@ export default function Page() {
       await internalSaveSale(updatedSale, itemsToSave as any);
     } catch (error: any) {
       console.error('Erro ao atualizar venda:', error);
-      alert('Erro ao atualizar venda: ' + (error.message || 'Erro desconhecido'));
+      setNotification({ message: 'Erro ao atualizar venda: ' + (error.message || 'Erro desconhecido'), type: 'error' });
     }
   };
 
@@ -443,6 +452,17 @@ export default function Page() {
 
   // --- LEAD HANDLERS ---
   const handleSaveLead = async (leadData: Partial<Lead>) => {
+    // SEGURANÇA: Verificar se pode alterar (se for update)
+    if (editingLead) {
+      const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
+      const isOwner = editingLead.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() || editingLead.emissor === currentUser?.email;
+      
+      if (!isAdminOrManager && !isOwner) {
+        setNotification({ message: 'Você não tem permissão para alterar este orçamento.', type: 'warning' });
+        return;
+      }
+    }
+
     try {
       await internalSaveLead({
         ...editingLead,
@@ -453,13 +473,22 @@ export default function Page() {
       setEditingLead(null);
     } catch (error: any) {
       console.error(error);
-      alert('Erro ao salvar lead: ' + (error.message || 'Erro desconhecido'));
+      setNotification({ message: 'Erro ao salvar lead: ' + (error.message || 'Erro desconhecido'), type: 'error' });
     }
   };
 
   const handleDeleteLead = (id: string) => {
     const lead = leads.find(l => l.id === id);
     if (lead) {
+      // SEGURANÇA: Verificar se pode excluir
+      const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
+      const isOwner = lead.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim() || lead.emissor === currentUser?.email;
+      
+      if (!isAdminOrManager && !isOwner) {
+        setNotification({ message: 'Você não tem permissão para excluir este orçamento.', type: 'warning' });
+        return;
+      }
+
       setLeadToDelete(lead);
       setIsDeleteLeadConfirmOpen(true);
     }
@@ -472,7 +501,7 @@ export default function Page() {
         setIsDeleteLeadConfirmOpen(false);
         setLeadToDelete(null);
       } catch (error: any) {
-        alert('Erro ao excluir lead: ' + error.message);
+        setNotification({ message: 'Erro ao excluir lead: ' + error.message, type: 'error' });
       }
     }
   };
@@ -535,7 +564,37 @@ export default function Page() {
   };
 
   return (
-    <div className="flex h-screen bg-[#F3F4F6] dark:bg-[#0f172a] font-sans text-[#1A1A1A] dark:text-gray-100 overflow-hidden transition-colors duration-300">
+    <div className="flex h-screen bg-[#F3F4F6] dark:bg-[#0f172a] font-sans text-[#1A1A1A] dark:text-gray-100 overflow-hidden transition-colors duration-300 relative">
+
+      {/* 0. NOTIFICAÇÃO PREMIUM GLOBAL */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[300]"
+          >
+            <div className={`bg-white dark:bg-slate-800 border ${notification.type === 'error' ? 'border-red-200 dark:border-red-500/20' : 'border-amber-200 dark:border-amber-500/20'} px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[320px]`}>
+              <div className={`w-10 h-10 rounded-full ${notification.type === 'error' ? 'bg-red-50 dark:bg-red-500/10' : 'bg-amber-50 dark:bg-amber-500/10'} flex items-center justify-center`}>
+                <AlertCircle className={`w-5 h-5 ${notification.type === 'error' ? 'text-red-500' : 'text-amber-500'}`} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[12px] font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                  {notification.type === 'error' ? 'Ops! Algo deu errado' : 'Ação Restrita'}
+                </p>
+                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400">{notification.message}</p>
+              </div>
+              <button 
+                onClick={() => setNotification(null)}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ===== MODAL DE LINK DO ORÇAMENTO ===== */}
       <AnimatePresence>
@@ -751,7 +810,7 @@ export default function Page() {
               leads={leads}
               loading={loadingLeads}
               updateLeadStatus={updateLeadStatus}
-              onUpdateLead={internalSaveLead}
+              onUpdateLead={handleSaveLead}
               fetchLeads={fetchLeads}
               currentUser={currentUser} 
               onAddLead={openAddLead} 

@@ -55,17 +55,17 @@ const checkInternational = (lead?: Lead) => {
   let isIntl = false;
 
   const MERCOSUL = [
-    { name: 'Argentina', keys: ['ARGENTINA', 'BUENOS AIRES', 'MENDOZA', 'BARILOCHE', 'USHUAIA'] },
-    { name: 'Chile', keys: ['CHILE', 'SANTIAGO', 'SANTIAGO DO CHILE', 'VALPARAISO', 'VIÑA DEL MAR', 'PASCUA'] },
+    { name: 'Argentina', keys: ['ARGENTINA', 'BUENOS AIRES', 'MENDOZA', 'BARILOCHE', 'USHUAIA', 'EZE', 'AEP', 'MDZ', 'BRC', 'USH', 'IGR'] },
+    { name: 'Chile', keys: ['CHILE', 'SANTIAGO', 'SANTIAGO DO CHILE', 'VALPARAISO', 'VIÑA DEL MAR', 'PASCUA', 'SCL'] },
     { name: 'Uruguai', keys: ['URUGUAI', 'MONTEVIDEO', 'PUNTA DEL ESTE', 'COLONIA'] },
     { name: 'Paraguai', keys: ['PARAGUAI', 'ASUNCAO', 'CIUDAD DEL ESTE'] },
     { name: 'Peru', keys: ['PERU', 'LIMA', 'CUSCO', 'MACHU PICCHU'] },
     { name: 'Colombia', keys: ['COLOMBIA', 'BOGOTA', 'CARTAGENA', 'MEDELLIN'] }
   ];
 
-  const EUROPA = ['PORTUGAL', 'ESPANHA', 'FRANÇA', 'ITALIA', 'ALEMANHA', 'REINO UNIDO', 'INGLATERRA', 'LISBOA', 'MADRID', 'PARIS', 'ROMA', 'LONDRES', 'BERLIM', 'AMSTERDAM', 'SUIÇA', 'EUROPA'];
-  const EUA = ['EUA', 'USA', 'ESTADOS UNIDOS', 'UNITED STATES', 'MIAMI', 'ORLANDO', 'NY', 'NEW YORK', 'LAS VEGAS', 'CHICAGO', 'LOS ANGELES'];
-  const MEXICO = ['MEXICO', 'CANCUN', 'RIVIERA MAYA', 'TULUM', 'CIDADE DO MEXICO'];
+  const EUROPA = ['PORTUGAL', 'ESPANHA', 'FRANÇA', 'ITALIA', 'ALEMANHA', 'REINO UNIDO', 'INGLATERRA', 'LISBOA', 'MADRID', 'PARIS', 'ROMA', 'LONDRES', 'BERLIM', 'AMSTERDAM', 'SUIÇA', 'EUROPA', 'LIS', 'MAD', 'CDG', 'ORY', 'LHR', 'LGW', 'LCY', 'CIA', 'FCO', 'BCN'];
+  const EUA = ['EUA', 'USA', 'ESTADOS UNIDOS', 'UNITED STATES', 'MIAMI', 'ORLANDO', 'NY', 'NEW YORK', 'LAS VEGAS', 'CHICAGO', 'LOS ANGELES', 'MIA', 'MCO', 'JFK', 'EWR', 'LAX', 'SFO', 'LAS'];
+  const MEXICO = ['MEXICO', 'CANCUN', 'RIVIERA MAYA', 'TULUM', 'CIDADE DO MEXICO', 'MEX', 'CUN'];
   const DUBAI = ['DUBAI', 'UAE', 'EMIRADOS ARABES', 'ABU DHABI'];
 
   const getCleanText = (t?: string) => (t || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -384,7 +384,20 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'SCL': { coords: [-33.3930, -70.7858], name: 'Arturo Merino Benítez - Santiago' },
   'BOG': { coords: [4.7016, -74.1469], name: 'El Dorado - Bogotá' },
   'PTY': { coords: [9.0714, -79.3835], name: 'Tocumen - Panama City' },
-  'MEX': { coords: [19.4361, -99.0719], name: 'Benito Juárez - Mexico City' }
+  'MEX': { coords: [19.4361, -99.0719], name: 'Benito Juárez - Mexico City' },
+  'LCY': { coords: [51.5048, 0.0503], name: 'London City Airport' },
+  'ORY': { coords: [48.7262, 2.3652], name: 'Orly - Paris' },
+  'CIA': { coords: [41.7994, 12.5949], name: 'Ciampino - Roma' },
+  'LAX': { coords: [33.9416, -118.4085], name: 'Los Angeles International' },
+  'SFO': { coords: [37.6191, -122.3749], name: 'San Francisco International' },
+  'LAS': { coords: [36.0840, -115.1537], name: 'Las Vegas - Harry Reid' },
+  'CUN': { coords: [21.0365, -86.8771], name: 'Cancún International' },
+  'PUJ': { coords: [18.5674, -68.3634], name: 'Punta Cana International' },
+  'USH': { coords: [-54.8433, -68.2958], name: 'Ushuaia International' },
+  'BRC': { coords: [-41.1511, -71.1394], name: 'Teniente L. Candelaria - Bariloche' },
+  'MDZ': { coords: [-32.8317, -68.7928], name: 'El Plumerillo - Mendoza' },
+  'IGR': { coords: [-25.7372, -54.4733], name: 'Cataratas del Iguazú - Argentina' },
+  'VVI': { coords: [-17.6447, -63.1353], name: 'Viru Viru - Santa Cruz' }
 };
 
 function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {
@@ -420,7 +433,6 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
     
     const ori = outbound[0]?.origin || 'REC';
     const des = outbound[outbound.length - 1]?.destination || 'GIG';
-
     const p1 = AIRPORT_INFO[ori]?.coords || [-15, -47];
     const p2 = AIRPORT_INFO[des]?.coords || [-23, -46];
 
@@ -436,7 +448,7 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
     }).addTo(map);
 
     L.control.zoom({ position: 'topleft' }).addTo(map);
-
+    
     const getCurvePoints = (start: [number, number], end: [number, number], arcIntensity = 0.2) => {
       const points: [number, number][] = [];
       const steps = 30;
@@ -450,25 +462,6 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
       return points;
     };
 
-    const idaPoints = getCurvePoints(p1, p2, 0.15);
-    L.polyline(idaPoints, {
-      color: '#0891b2', // Cyan 600
-      weight: 3,
-      dashArray: '8, 8',
-      lineCap: 'round',
-      lineJoin: 'round'
-    }).addTo(map);
-
-    if (isIdaVolta) {
-      const voltaPoints = getCurvePoints(p2, p1, -0.1);
-      L.polyline(voltaPoints, {
-        color: '#9333ea', // Purple 600
-        weight: 2,
-        dashArray: '5, 10',
-        opacity: 0.8
-      }).addTo(map);
-    }
-
     const createDot = (color: string) => L.divIcon({
       className: 'custom-div-icon',
       html: `<div style="background-color: ${color}; width: 10px; height: 10px; border: 2.5px solid white; border-radius: 50%; box-shadow: 0 0 10px ${color}80;"></div>`,
@@ -476,11 +469,66 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
       iconAnchor: [5, 5]
     });
 
-    L.marker(p1, { icon: createDot('#0891b2') }).addTo(map);
-    L.marker(p2, { icon: isIdaVolta ? createDot('#9333ea') : createDot('#0891b2') }).addTo(map);
+    const allPoints: [number, number][] = [];
 
-    const bounds = L.latLngBounds([p1, p2]);
-    map.fitBounds(bounds, { padding: [50, 50] });
+    // --- IDA ---
+    if (outbound.length > 0) {
+      outbound.forEach((seg: any, idx: number) => {
+        const pStart = AIRPORT_INFO[seg.origin]?.coords || [-15, -47];
+        const pEnd = AIRPORT_INFO[seg.destination]?.coords || [-23, -46];
+        
+        allPoints.push(pStart);
+        if (idx === outbound.length - 1) allPoints.push(pEnd);
+
+        // Draw Arc
+        const pts = getCurvePoints(pStart, pEnd, 0.15);
+        L.polyline(pts, {
+          color: '#0891b2',
+          weight: 3,
+          dashArray: '8, 8',
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(map);
+
+        // Marker for each point in IDA
+        L.marker(pStart, { icon: createDot('#0891b2') }).addTo(map);
+        if (idx === outbound.length - 1) {
+          L.marker(pEnd, { icon: createDot('#0891b2') }).addTo(map);
+        }
+      });
+    }
+
+    // --- VOLTA ---
+    const inbound = firstFlight.inboundSegments || [];
+    if (isIdaVolta && inbound.length > 0) {
+      inbound.forEach((seg: any, idx: number) => {
+        const pStart = AIRPORT_INFO[seg.origin]?.coords || [-23, -46];
+        const pEnd = AIRPORT_INFO[seg.destination]?.coords || [-15, -47];
+        
+        allPoints.push(pStart);
+        if (idx === inbound.length - 1) allPoints.push(pEnd);
+
+        // Draw Arc
+        const pts = getCurvePoints(pStart, pEnd, -0.1);
+        L.polyline(pts, {
+          color: '#9333ea',
+          weight: 2,
+          dashArray: '5, 10',
+          opacity: 0.8
+        }).addTo(map);
+
+        // Marker for each point in VOLTA
+        L.marker(pStart, { icon: createDot('#9333ea') }).addTo(map);
+        if (idx === inbound.length - 1) {
+          L.marker(pEnd, { icon: createDot('#9333ea') }).addTo(map);
+        }
+      });
+    }
+
+    if (allPoints.length > 0) {
+       const bounds = L.latLngBounds(allPoints);
+       map.fitBounds(bounds, { padding: [50, 50] });
+    }
 
     return () => {
       if (mapRef.current) {
@@ -686,46 +734,49 @@ function FlightLegCard({
                           if (typeof val !== 'string' || !val) return [];
                           return val.match(/\d+/g)?.map((n: string) => parseInt(n, 10)) || [];
                         };
-                        // 1. Prioritize pre-calculated duration from the segment (most accurate for time zones)
+
+                        // 1. Try SUM of segments + connections (Most accurate for International)
+                        if (segments.length > 1) {
+                          let totalMinutes = 0;
+                          let validSum = true;
+
+                          segments.forEach((seg, idx) => {
+                            const sNum = getNums(seg.duration);
+                            if (sNum.length >= 2) {
+                              totalMinutes += (sNum[0] * 60) + sNum[1];
+                            } else {
+                              validSum = false;
+                            }
+
+                            // Add connection if not last segment
+                            if (idx < segments.length - 1) {
+                              const connStr = calculateConnectionTime(seg.arrivalTime, segments[idx + 1].departureTime);
+                              const cNum = getNums(connStr);
+                              if (cNum.length >= 2) {
+                                totalMinutes += (cNum[0] * 60) + cNum[1];
+                              }
+                            }
+                          });
+
+                          if (validSum && totalMinutes > 0) {
+                            return `${Math.floor(totalMinutes / 60).toString().padStart(2, '0')}h ${(totalMinutes % 60).toString().padStart(2, '0')} min`;
+                          }
+                        }
+
+                        // 2. Single segment or fallback for length 1
                         if (segments.length === 1 && segments[0].duration) {
                           const nums = getNums(segments[0].duration);
                           if (nums.length >= 2) {
                              return `${nums[0].toString().padStart(2, '0')}h ${nums[1].toString().padStart(2, '0')} min`;
                           }
-                          return segments[0].duration; // Fallback to raw if logic fails
+                          return segments[0].duration;
                         }
 
-                        // 2. Fallback to itemDuration if segments logic isn't applicable
+                        // 3. Last fallback (itemDuration if provided)
                         if (itemDuration && typeof itemDuration === 'string') {
-                          const nums = itemDuration.match(/\d+/g)?.map((n: string) => parseInt(n, 10)) || [];
+                          const nums = getNums(itemDuration);
                           if (nums.length >= 2) {
                             return `${nums[0].toString().padStart(2, '0')}h ${nums[1].toString().padStart(2, '0')} min`;
-                          }
-                        }
-
-                        // 3. Last resort: Dynamic calculation (only if everything else is missing)
-                        if (firstSeg && lastSeg) {
-                          const extract = (str: any) => str?.match(/\d+/g)?.map((n: string) => parseInt(n, 10)) || [];
-                          const dD = extract(firstSeg.departureDate); 
-                          const dT = extract(firstSeg.departureTime); 
-                          const aD = extract(lastSeg.arrivalDate);
-                          const aT = extract(lastSeg.arrivalTime);
-
-                          if (dD.length >= 3 && dT.length >= 2 && aT.length >= 2) {
-                            const start = new Date(dD[2] > 1000 ? dD[0] : dD[2], dD[1]-1, dD[2] > 1000 ? dD[2] : dD[0], dT[0], dT[1]);
-                            let end;
-                            if (aD.length >= 3) {
-                              end = new Date(aD[2] > 1000 ? aD[0] : aD[2], aD[1]-1, aD[2] > 1000 ? aD[2] : aD[0], aT[0], aT[1]);
-                            } else {
-                              end = new Date(start.getTime());
-                              end.setHours(aT[0], aT[1], 0, 0);
-                              if (end < start) end.setDate(end.getDate() + 1);
-                            }
-                            const diff = end.getTime() - start.getTime();
-                            if (diff > 0) {
-                              const tmin = Math.floor(diff / 60000);
-                              return `${Math.floor(tmin / 60).toString().padStart(2, '0')}h ${(tmin % 60).toString().padStart(2, '0')} min`;
-                            }
                           }
                         }
                       } catch (err) {}
