@@ -7,7 +7,8 @@ import Script from 'next/script';
 import {
   Plane, Hotel, Shield, Car, Package, Calendar, Users, Briefcase,
   Phone, MessageCircle, CheckCircle, Clock, CreditCard, ArrowRight,
-  MapPin, ChevronDown, ChevronUp, Info, Map, TrendingDown, Backpack, Luggage, Instagram
+  MapPin, ChevronDown, ChevronUp, Info, Map, TrendingDown, Backpack, Luggage, Instagram, RefreshCw, DollarSign,
+  Printer, ShieldAlert, Download, FileText
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -38,6 +39,69 @@ const formatDate = (dateStr?: string) => {
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
   } catch { return dateStr; }
+};
+
+const BRAZILIAN_STATES = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+  'BRASIL', 'BRAZIL'
+];
+
+const checkInternational = (lead?: Lead) => {
+  if (!lead) return { isIntl: false, region: 'Nacional' };
+  
+  const items = lead.items;
+  let region = 'Nacional';
+  let isIntl = false;
+
+  const MERCOSUL = [
+    { name: 'Argentina', keys: ['ARGENTINA', 'BUENOS AIRES', 'MENDOZA', 'BARILOCHE', 'USHUAIA'] },
+    { name: 'Chile', keys: ['CHILE', 'SANTIAGO', 'SANTIAGO DO CHILE', 'VALPARAISO', 'VIÑA DEL MAR', 'PASCUA'] },
+    { name: 'Uruguai', keys: ['URUGUAI', 'MONTEVIDEO', 'PUNTA DEL ESTE', 'COLONIA'] },
+    { name: 'Paraguai', keys: ['PARAGUAI', 'ASUNCAO', 'CIUDAD DEL ESTE'] },
+    { name: 'Peru', keys: ['PERU', 'LIMA', 'CUSCO', 'MACHU PICCHU'] },
+    { name: 'Colombia', keys: ['COLOMBIA', 'BOGOTA', 'CARTAGENA', 'MEDELLIN'] }
+  ];
+
+  const EUROPA = ['PORTUGAL', 'ESPANHA', 'FRANÇA', 'ITALIA', 'ALEMANHA', 'REINO UNIDO', 'INGLATERRA', 'LISBOA', 'MADRID', 'PARIS', 'ROMA', 'LONDRES', 'BERLIM', 'AMSTERDAM', 'SUIÇA', 'EUROPA'];
+  const EUA = ['EUA', 'USA', 'ESTADOS UNIDOS', 'UNITED STATES', 'MIAMI', 'ORLANDO', 'NY', 'NEW YORK', 'LAS VEGAS', 'CHICAGO', 'LOS ANGELES'];
+  const MEXICO = ['MEXICO', 'CANCUN', 'RIVIERA MAYA', 'TULUM', 'CIDADE DO MEXICO'];
+  const DUBAI = ['DUBAI', 'UAE', 'EMIRADOS ARABES', 'ABU DHABI'];
+
+  const getCleanText = (t?: string) => (t || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  // 1. Verificar itens de passagem (Maior precisão)
+  if (items) {
+    for (const item of items) {
+      if (item.type !== 'passagem') continue;
+      const dest = getCleanText(item.destination);
+      
+      if (dest && !BRAZILIAN_STATES.includes(dest) && dest !== 'BRASIL' && dest !== 'BRAZIL' && dest.length > 2) {
+        isIntl = true;
+        if (EUA.some(k => dest.includes(k))) return { isIntl: true, region: 'Estados Unidos' };
+        if (EUROPA.some(k => dest.includes(k))) return { isIntl: true, region: 'Europa' };
+        if (MEXICO.some(k => dest.includes(k))) return { isIntl: true, region: 'México' };
+        if (DUBAI.some(k => dest.includes(k))) return { isIntl: true, region: 'Dubai' };
+        
+        const merc = MERCOSUL.find(m => m.keys.some(k => dest.includes(k)));
+        if (merc) return { isIntl: true, region: merc.name };
+        
+        return { isIntl: true, region: 'Internacional' };
+      }
+    }
+  }
+
+  // 2. Fallback: Título ou Tags
+  const context = getCleanText(lead.title + (lead.tags?.join(' ') || ''));
+  if (EUA.some(k => context.includes(k))) return { isIntl: true, region: 'Estados Unidos' };
+  if (EUROPA.some(k => context.includes(k))) return { isIntl: true, region: 'Europa' };
+  if (MEXICO.some(k => context.includes(k))) return { isIntl: true, region: 'México' };
+  if (DUBAI.some(k => context.includes(k))) return { isIntl: true, region: 'Dubai' };
+  
+  const mercFallback = MERCOSUL.find(m => m.keys.some(k => context.includes(k)));
+  if (mercFallback) return { isIntl: true, region: mercFallback.name };
+
+  return { isIntl, region };
 };
 
 type ItemType = 'passagem' | 'hospedagem' | 'seguro' | 'carro' | 'adicionais';
@@ -96,6 +160,9 @@ interface Lead {
   emissor?: string;
   notes?: string;
   phone?: string;
+  usd_rate: number;
+  eur_rate: number;
+  gbp_rate: number;
 }
 
 function TypeIcon({ type }: { type: string }) {
@@ -133,7 +200,150 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
         {icon}
       </div>
       <h2 className="text-lg font-black text-gray-800 tracking-tight">{title}</h2>
-      <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
+    </div>
+  );
+}
+
+function TravelChecklist({ isIntl, region }: { isIntl: boolean, region: string }) {
+  const getItems = () => {
+    if (region === 'Argentina') {
+      return [
+        { icon: <Briefcase className="w-4 h-4" />, title: "RG Original (ID)", desc: "RG físico original com menos de 10 anos e em bom estado. CNH NÃO é aceita na imigração." },
+        { icon: <Shield className="w-4 h-4" />, title: "Seguro Viagem Obrigatório", desc: "Exigência legal (Decreto 2025). O seguro médico é indispensável para entrar na Argentina." },
+        { icon: <CheckCircle className="w-4 h-4" />, title: "Passaporte Opcional", desc: "Embora o RG seja suficiente, o passaporte é aceito e recomendado." },
+        { icon: <Users className="w-4 h-4" />, title: "Menores de Idade", desc: "RG original + autorização se viajar com apenas um dos pais." }
+      ];
+    }
+    if (region === 'Chile') {
+      return [
+        { icon: <Briefcase className="w-4 h-4" />, title: "RG Original (ID)", desc: "RG físico original com menos de 10 anos e em bom estado. CNH NÃO é aceita na imigração." },
+        { icon: <Shield className="w-4 h-4" />, title: "Seguro Viagem", desc: "Altamente recomendado devido aos elevados custos da saúde privada no Chile." },
+        { icon: <CheckCircle className="w-4 h-4" />, title: "Passaporte Opcional", desc: "Brasileiros podem entrar no Chile apenas com o RG em bom estado." },
+        { icon: <Users className="w-4 h-4" />, title: "Menores de Idade", desc: "RG original + autorização se viajar com apenas um dos pais." }
+      ];
+    }
+    if (['Uruguai', 'Paraguai', 'Peru', 'Colombia'].includes(region)) {
+      return [
+        { icon: <Briefcase className="w-4 h-4" />, title: "RG Original (ID)", desc: "RG físico original com menos de 10 anos. CNH não possui validade para imigração no Mercosul." },
+        { icon: <CheckCircle className="w-4 h-4" />, title: "Passaporte Opcional", desc: "Como país do Mercosul, o passaporte não é obrigatório, mas recomendado." },
+        { icon: <Shield className="w-4 h-4" />, title: "Seguro Viagem", desc: "Recomendado para garantir atendimento médico hospitalar seguro durante sua estadia." },
+        { icon: <Users className="w-4 h-4" />, title: "Menores de Idade", desc: "Documentação original e autorizações de viagem obrigatórias." }
+      ];
+    }
+    
+    switch(region) {
+      case 'Estados Unidos':
+        return [
+          { icon: <Briefcase className="w-4 h-4" />, title: "Visto Americano", desc: "Obrigatório Visto B1/B2 ou ESTA aprovado. Verifique a validade do seu visto atual." },
+          { icon: <Clock className="w-4 h-4" />, title: "Passaporte 6 Meses", desc: "O passaporte deve ter validade mínima de 6 meses no momento da entrada." },
+          { icon: <Shield className="w-4 h-4" />, title: "Seguro de Saúde", desc: "Altamente recomendado. Custos médicos nos EUA são extremamente elevados." },
+          { icon: <CheckCircle className="w-4 h-4" />, title: "Endereço nos EUA", desc: "Tenha em mãos o endereço completo da sua primeira hospedagem para a imigração." }
+        ];
+      case 'Europa':
+        return [
+          { icon: <Shield className="w-4 h-4" />, title: "Seguro Schengen", desc: "Obrigatório seguro com cobertura mínima de €30.000 para despesas médicas." },
+          { icon: <Briefcase className="w-4 h-4" />, title: "Passaporte 3-6 Meses", desc: "Validade mínima conforme o país da UE (recomenda-se 6 meses pós-retorno)." },
+          { icon: <CheckCircle className="w-4 h-4" />, title: "Isento de Visto", desc: "Brasileiros não precisam de visto para turismo até 90 dias (ETIAS inicia em 2026)." },
+          { icon: <Package className="w-4 h-4" />, title: "Comprovante Financeiro", desc: "Podem solicitar comprovante de fundos (dinheiro/cartão) para estadia diária." }
+        ];
+      case 'México':
+        return [
+          { icon: <Briefcase className="w-4 h-4" />, title: "Visto Mexicano", desc: "Obrigatório Visto Físico ou e-Visa (disponível Fevereiro/2026). Isento se tiver Visto EUA." },
+          { icon: <CheckCircle className="w-4 h-4" />, title: "Isenção Visto EUA", desc: "Se possui Visto Americano válido, você NÃO precisa do Visto Mexicano." },
+          { icon: <Briefcase className="w-4 h-4" />, title: "Passaporte Original", desc: "Validade mínima de 6 meses. Documentos físicos são prioritários." },
+          { icon: <Info className="w-4 h-4" />, title: "Formulário de Imigração", desc: "Pode ser solicitado o preenchimento da migração eletrônica antecipadamente." }
+        ];
+      case 'Dubai':
+        return [
+          { icon: <CheckCircle className="w-4 h-4" />, title: "Visto Grátis (90 dias)", desc: "Brasileiros têm isenção de visto para turismo em Dubai/Abu Dhabi por até 90 dias." },
+          { icon: <Briefcase className="w-4 h-4" />, title: "Passaporte (6 meses)", desc: "Obrigatório passaporte original com validade de pelo menos 6 meses." },
+          { icon: <Clock className="w-4 h-4" />, title: "Seguro Local", desc: "Recomendado Seguro Viagem com cobertura para grandes hospitais privados." },
+          { icon: <Plane className="w-4 h-4" />, title: "Passagem de Retorno", desc: "Tenha em mãos a confirmação da passagem de volta ou saída dos Emirados." }
+        ];
+      case 'Internacional':
+        return [
+          { icon: <Briefcase className="w-4 h-4" />, title: "Passaporte Original", desc: "Deve ter validade mínima de 6 meses a partir da data de embarque." },
+          { icon: <ShieldAlert className="w-4 h-4" />, title: "Vistos e Taxas", desc: "Verifique se o destino exige visto e se há taxas de turismo de entrada/saída." },
+          { icon: <Shield className="w-4 h-4" />, title: "Seguro Internacional", desc: "Essencial para garantir atendimento médico e repatriação em caso de emergência." },
+          { icon: <CheckCircle className="w-4 h-4" />, title: "Saúde e Vacinas", desc: "Certificado Internacional de Vacinação (Febre Amarela) se solicitado." }
+        ];
+      default:
+        return [
+          { icon: <Briefcase className="w-4 h-4" />, title: "Documento Oficial", desc: "RG ou CNH original dentro da validade para embarque nacional." },
+          { icon: <Users className="w-4 h-4" />, title: "Menores de Idade", desc: "RG ou Certidão de Nascimento original. Verifique autorizações se viajar sem os pais." },
+          { icon: <Package className="w-4 h-4" />, title: "Franquia de Bagagem", desc: "Confirme se o seu bilhete inclui bagagem de mão (10kg) e despachada (23kg)." },
+          { icon: <MapPin className="w-4 h-4" />, title: "Localização", desc: "Confirme o endereço de hospedagem e pontos de interesse próximos." }
+        ];
+    }
+  };
+
+  const items = getItems();
+
+  return (
+    <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm relative overflow-hidden group/card shadow-emerald-900/5">
+      <div className="absolute top-0 right-0 py-1 px-4 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl shadow-lg no-print">
+        Informações Atualizadas 2025/26
+      </div>
+
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-12 h-12 bg-[#19727d]/10 rounded-2xl flex items-center justify-center text-[#19727d] border border-[#19727d]/10 group-hover/card:scale-110 transition-transform duration-500">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1.5 uppercase">Checklist de Segurança</h3>
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${isIntl ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+              {isIntl ? 'Viagem Internacional' : 'Viagem Nacional'}
+            </span>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic leading-none">
+              Configurado para: <span className="text-slate-900 not-italic">{region}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex gap-4 p-5 rounded-2xl bg-slate-50/50 border border-slate-100/50 hover:bg-white hover:border-[#19727d]/20 transition-all duration-300 group cursor-default">
+            <div className="shrink-0 w-6 h-6 border-2 border-slate-200 rounded-lg group-hover:border-[#19727d] transition-colors flex items-center justify-center">
+               <CheckCircle className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="text-[#19727d] group-hover:scale-110 transition-transform">
+                  {item.icon}
+                </div>
+                <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{item.title}</p>
+              </div>
+              <p className="text-[10px] font-medium text-slate-500 leading-relaxed font-sans">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 pt-8 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex-1 opacity-60">
+            <p className="text-[10px] font-bold text-slate-400 leading-relaxed italic uppercase tracking-wider flex items-center gap-2">
+               <Info className="w-3.5 h-3.5" />
+               A agência não se responsabiliza por documentos inválidos ou falta de vistos. Verifique sempre os canais oficiais do país de destino.
+            </p>
+        </div>
+        
+        {isIntl && (
+          <a 
+            href={`https://apply.joinsherpa.com/travel-restrictions?language=pt-BR&destination=${region === 'Chile' ? 'CHL' : region === 'Argentina' ? 'ARG' : region === 'Estados Unidos' ? 'USA' : region === 'Europa' ? 'ESP' : region === 'México' ? 'MEX' : region === 'Dubai' ? 'ARE' : ''}`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group relative flex items-center gap-3 bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-200"
+          >
+            <div className="bg-cyan-400 p-2 rounded-xl group-hover:rotate-12 transition-transform shadow-lg shadow-cyan-400/20">
+               <Map className="w-4 h-4 text-slate-900" />
+            </div>
+            Verificar Exigências em Tempo Real (Sherpa)
+          </a>
+        )}
+      </div>
     </div>
   );
 }
@@ -281,8 +491,8 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
   }, [isLeafletReady, flights]);
 
   return (
-    <div className="mb-12">
-      <div className="relative w-full h-[400px] sm:h-[450px] rounded-[32px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/40 bg-[#f8f9fa] group">
+    <div className="mb-12 no-print">
+      <div id="main-travel-map" className="relative w-full h-[400px] sm:h-[450px] rounded-[32px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/40 bg-[#f8f9fa] group">
         {/* Container Leaflet */}
         <div ref={containerRef} className="w-full h-full z-0" />
         
@@ -844,11 +1054,29 @@ export default function CotacaoPage() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [fallbackRates, setFallbackRates] = useState<{USD: number, EUR: number, GBP: number} | null>(null);
+  const { isIntl, region: tripRegion } = checkInternational(lead || undefined);
 
   useEffect(() => {
     if (!id) return;
     fetchLead();
   }, [id]);
+
+  const fetchRates = async () => {
+    try {
+      const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,GBP-BRL');
+      const data = await res.json();
+      if (data) {
+        setFallbackRates({
+          USD: parseFloat(data.USDBRL?.bid || '0'),
+          EUR: parseFloat(data.EURBRL?.bid || '0'),
+          GBP: parseFloat(data.GBPBRL?.bid || '0')
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao buscar câmbio fallback:', err);
+    }
+  };
 
   const fetchLead = async () => {
     try {
@@ -870,7 +1098,14 @@ export default function CotacaoPage() {
         emissor: data.emissor || '',
         notes: data.notes || '',
         phone: data.phone || '',
+        usd_rate: parseFloat(data.usd_rate || '0'),
+        eur_rate: parseFloat(data.eur_rate || '0'),
+        gbp_rate: parseFloat(data.gbp_rate || '0'),
       });
+      // Se não tiver câmbio salvo, busca fallback
+      if (!data.usd_rate || parseFloat(data.usd_rate) === 0) {
+        fetchRates();
+      }
     } catch (err) {
       setNotFound(true);
     } finally {
@@ -972,10 +1207,70 @@ export default function CotacaoPage() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/30 font-sans">
+      <style jsx global>{`
+        @media print {
+          @page { size: A4; margin: 8mm; }
+          html, body { zoom: 0.85 !important; }
+          body { background: white !important; -webkit-print-color-adjust: exact; color: #000 !important; font-size: 10pt !important; line-height: 1.1 !important; }
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          
+          /* COMPACTAÇÃO EXTREMA */
+          section { margin-bottom: 0.5rem !important; break-inside: avoid; border-bottom: none !important; padding-bottom: 0.5rem !important; }
+          .p-8, .p-10, .p-6, .p-5 { padding: 0.75rem !important; }
+          .mb-12, .mb-10, .mb-8, .mb-6 { margin-bottom: 0.4rem !important; }
+          .mt-12, .mt-10, .mt-8 { margin-top: 0.4rem !important; }
+          .gap-10, .gap-8, .gap-6, .gap-4 { gap: 0.25rem !important; }
+          .rounded-[32px], .rounded-[2.5rem] { border-radius: 12px !important; }
+          
+          /* TEXT COMPRESSION */
+          h1 { font-size: 16pt !important; margin-bottom: 0.25rem !important; }
+          h2 { font-size: 12pt !important; margin-bottom: 0.2rem !important; }
+          h3 { font-size: 11pt !important; }
+          .text-5xl, .text-6xl { font-size: 20pt !important; }
+          p, span, div { font-size: 9pt !important; }
+
+          /* MAP & CONTACT COMPRESSION */
+          #main-travel-map { height: 180px !important; margin-bottom: 0.5rem !important; }
+          .w-32.h-32 { width: 50px !important; height: 50px !important; padding: 0.25rem !important; margin-bottom: 0.25rem !important; }
+          .w-16.h-16 { width: 40px !important; height: 40px !important; }
+          .p-10.pt-8.pb-12 { padding: 0.5rem !important; }
+          
+          /* HEADER RE-STYLED FOR PRINT */
+          header { border-bottom: 2px solid #000; padding-bottom: 0.5rem !important; margin-bottom: 1rem !important; background: none !important; }
+          header * { color: black !important; }
+          
+          footer { padding: 1rem 0 !important; margin-top: 1rem !important; border-top: 1px solid #eee; }
+          
+          .shadow-xl, .shadow-2xl, .shadow-sm { box-shadow: none !important; border: 1px solid #f1f5f9 !important; }
+          .grid-cols-1, .grid-cols-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 0.5rem !important; }
+        }
+        .print-only { display: none; }
+      `}</style>
+      
+      {/* CABEÇALHO DE IMPRESSÃO (PAPEL TIMBRADO) */}
+      <div className="print-only w-full border-b-2 border-slate-900 pb-10 mb-10">
+         <div className="flex justify-between items-start">
+            <div className="flex items-center gap-6">
+               <img src={AGENCY.logoUrl} alt="Logo" className="w-24 h-24 object-contain" />
+               <div>
+                  <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{AGENCY.name}</h1>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{AGENCY.legalName}</p>
+                  <p className="text-[10px] font-medium text-slate-500 mt-1">{AGENCY.address}</p>
+               </div>
+            </div>
+            <div className="text-right">
+               <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Orçamento Oficial</p>
+               <p className="text-[10px] font-bold text-slate-400">PROPOSTA Nº: {lead.id.substring(0, 8).toUpperCase()}</p>
+               <p className="text-[10px] font-bold text-slate-400">DATA: {new Date().toLocaleDateString('pt-BR')}</p>
+            </div>
+         </div>
+      </div>
+
       <Script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" strategy="afterInteractive" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-      <header className="bg-gradient-to-br from-[#19727d] via-[#1a8090] to-[#0d5c66] text-white relative overflow-hidden">
+      <header className="bg-gradient-to-br from-[#19727d] via-[#1a8090] to-[#0d5c66] text-white relative overflow-hidden no-print">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
@@ -1110,13 +1405,50 @@ export default function CotacaoPage() {
                     </div>
                   </div>
                 </div>
-                <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center">
-                  <CreditCard className="w-7 h-7 text-white" />
+                {/* CÂMBIO E ÍCONE PRINCIPAL */}
+                <div className="flex flex-col items-end gap-3 shrink-0 self-start -mt-2">
+                   {/* CÂMBIO (SEGURO OU FALLBACK) */}
+                   {(() => {
+                     const isPersisted = lead.usd_rate > 0;
+                     const displayRates = isPersisted ? 
+                       { USD: lead.usd_rate, EUR: lead.eur_rate, GBP: lead.gbp_rate } : 
+                       fallbackRates;
+
+                     if (!displayRates || displayRates.USD <= 0) return null;
+
+                     return (
+                       <div className="flex gap-2.5">
+                          {[
+                            { code: 'USD', symbol: '$', rate: displayRates.USD },
+                            { code: 'EUR', symbol: '€', rate: displayRates.EUR },
+                            { code: 'GBP', symbol: '£', rate: displayRates.GBP }
+                          ].filter(c => c.rate > 0).map(c => (
+                            <div key={c.code} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3.5 py-2.5 flex flex-col items-center min-w-[85px] shadow-sm animate-in fade-in zoom-in duration-500">
+                               <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="text-[8px] font-black text-cyan-300 tracking-widest leading-none">{c.code}</span>
+                                  {isPersisted ? (
+                                    <Clock className="w-2.5 h-2.5 text-cyan-300 opacity-60" />
+                                  ) : (
+                                    <RefreshCw className="w-2.5 h-2.5 text-cyan-300 animate-[spin_4s_linear_infinite]" />
+                                  )}
+                               </div>
+                               <p className="text-[13px] font-black text-white leading-none">
+                                  {c.symbol} {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(lead.value / c.rate)}
+                                </p>
+                               <p className="text-[8px] font-bold text-white/40 mt-1 uppercase tracking-tighter">R$ {c.rate.toFixed(2)}</p>
+                            </div>
+                          ))}
+                       </div>
+                     );
+                   })()}
                 </div>
               </div>
 
               <div className="border-t border-white/20 pt-4">
-                <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-3">Simulação de parcelamento</p>
+                <div className="flex items-center gap-2 mb-3">
+                   <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Simulação de parcelamento no cartão</p>
+                   <CreditCard className="w-3.5 h-3.5 text-white/40" />
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {INSTALLMENTS.map((n: number) => (
                     <div key={n} className="bg-white/10 rounded-xl p-2.5 text-center hover:bg-white/20 transition-colors">
@@ -1133,6 +1465,12 @@ export default function CotacaoPage() {
             </div>
           </section>
         )}
+
+        {/* CHECKLIST DE REQUISITOS */}
+        <section className="space-y-6">
+          <SectionTitle icon={<ShieldAlert className="w-4 h-4" />} title="Checklist de embarque e segurança" />
+          <TravelChecklist isIntl={isIntl} region={tripRegion} />
+        </section>
 
         {lead.notes && (
           <section>
@@ -1151,15 +1489,51 @@ export default function CotacaoPage() {
              <div className="flex flex-col items-center gap-4">
                 <div className="flex items-center gap-3 group">
                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100 group-hover:scale-110 transition-transform">
-                      <CreditCard className="w-4 h-4" />
+                      <DollarSign className="w-4 h-4" />
                    </div>
-                   <span className="text-sm font-bold text-slate-700">Pix ou Wise</span>
+                   <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Pix ou Moedas Internacionais</span>
                 </div>
-                <div className="flex items-center gap-3 group">
+                <div className="flex items-center gap-3 group relative cursor-help">
                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 border border-blue-100 group-hover:scale-110 transition-transform">
-                      <Hotel className="w-4 h-4" />
+                      <Info className="w-4 h-4" />
                    </div>
-                   <span className="text-sm font-bold text-slate-700">Boleto financiado</span>
+                   <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-700">Boleto financiado</span>
+                      <div className="w-3.5 h-3.5 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-[10px] font-black group-hover:bg-blue-600 group-hover:text-white transition-colors">!</div>
+                   </div>
+
+                   {/* TOOLTIP ELITE - BOLETO FINANCIADO */}
+                   <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-[280px] bg-white border border-slate-100 shadow-2xl rounded-2xl p-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 text-left scale-95 group-hover:scale-100 origin-bottom pointer-events-none">
+                      <div className="flex items-center gap-2 mb-3 border-b border-slate-50 pb-2">
+                         <div className="w-5 h-5 bg-blue-50 rounded flex items-center justify-center text-blue-600">
+                            <Info className="w-3 h-3" />
+                         </div>
+                         <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">Como funciona?</span>
+                      </div>
+                      <div className="space-y-3">
+                         <p className="text-[11px] text-slate-600 leading-relaxed">
+                            O boleto financiado é disponível para quem tem <strong>CPF</strong> e passa por <strong>2 análises</strong>:
+                         </p>
+                         <div className="space-y-2.5">
+                            <div className="flex gap-2">
+                               <span className="bg-blue-600 text-white font-black text-[8px] w-4 h-4 rounded-full flex items-center justify-center shrink-0">1º</span>
+                               <p className="text-[10px] text-slate-500 leading-snug">
+                                  Verificação de crédito inicial e opção de parcelamento (<strong>Mínimo 6x e Máximo 24x</strong> dependendo do CPF). 
+                                  <span className="block text-emerald-600 font-bold mt-0.5">*Pode ser sem juros</span>
+                               </p>
+                            </div>
+                            <div className="flex gap-2">
+                               <span className="bg-blue-600 text-white font-black text-[8px] w-4 h-4 rounded-full flex items-center justify-center shrink-0">2º</span>
+                               <p className="text-[10px] text-slate-500 leading-snug">Validação de Segurança: A <strong>Koin</strong> entrará em contato via telefone, e-mail e WhatsApp para validar sua identidade.</p>
+                            </div>
+                         </div>
+                         <div className="bg-slate-50 p-2.5 rounded-lg border-l-2 border-blue-400">
+                            <p className="text-[10px] text-slate-600 font-bold leading-tight mb-1">Pagamento:</p>
+                            <p className="text-[9px] text-slate-500 leading-tight italic">Após a aprovação, pague o 1º boleto para garantir a reserva. Os seguintes chegam por e-mail ou app.</p>
+                         </div>
+                      </div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r border-b border-slate-100 rotate-45 -mt-1.5 shadow-[2px_2px_2px_rgba(0,0,0,0.02)]" />
+                   </div>
                 </div>
                 <div className="flex items-center gap-3 group">
                    <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 border border-amber-100 group-hover:scale-110 transition-transform">
@@ -1252,6 +1626,17 @@ export default function CotacaoPage() {
             <p className="text-[10px] text-slate-400 font-medium">Esta cotação é válida por 72 horas a partir da data de emissão. • Easy Fly Agência de Viagens © {new Date().getFullYear()}</p>
          </div>
       </footer>
+      {/* FLOATING PRINT BUTTON (FAB) */}
+      <button 
+        onClick={() => window.print()}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-[#19727d] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[100] no-print group hover:rotate-6"
+        title="Imprimir / Gerar PDF"
+      >
+        <div className="absolute -top-12 right-0 bg-slate-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
+           BAIXAR PDF OFICIAL 🖨️
+        </div>
+        <Printer className="w-7 h-7" />
+      </button>
     </div>
   );
 }

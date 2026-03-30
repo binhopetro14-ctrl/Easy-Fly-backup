@@ -135,4 +135,7 @@ export interface Lead {
   title?: string;
   responded?: boolean;
   slaStartAt?: string;
+  usd_rate?: number;
+  eur_rate?: number;
+  gbp_rate?: number;
 }

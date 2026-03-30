@@ -363,7 +363,10 @@ export function LeadModal({
     luggage23kg: 0,
     items: [],
     value: 0,
-    notes: ''
+    notes: '',
+    usd_rate: 0,
+    eur_rate: 0,
+    gbp_rate: 0
   });
 
   const [currentItem, setCurrentItem] = useState<any>({
@@ -432,7 +435,10 @@ export function LeadModal({
              }
              return item;
           }) || [],
-          tags: editingLead.tags || []
+          tags: editingLead.tags || [],
+          usd_rate: editingLead.usd_rate || 0,
+          eur_rate: editingLead.eur_rate || 0,
+          gbp_rate: editingLead.gbp_rate || 0
         });
       } else {
         setFormData({
@@ -447,12 +453,38 @@ export function LeadModal({
           luggage23kg: 0,
           items: [],
           value: 0,
-          notes: ''
+          notes: '',
+          usd_rate: 0,
+          eur_rate: 0,
+          gbp_rate: 0
         });
       }
       setEditingItemId(null);
     }
   }, [editingLead, isOpen]);
+
+  // CAPTURA DO CÂMBIO NO MOMENTO DA GERAÇÃO
+  useEffect(() => {
+    if (isOpen && !formData.usd_rate) {
+      const fetchRates = async () => {
+        try {
+          const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,GBP-BRL');
+          const data = await res.json();
+          if (data) {
+            setFormData(prev => ({
+              ...prev,
+              usd_rate: parseFloat(data.USDBRL?.bid || '0'),
+              eur_rate: parseFloat(data.EURBRL?.bid || '0'),
+              gbp_rate: parseFloat(data.GBPBRL?.bid || '0')
+            }));
+          }
+        } catch (err) {
+          console.error('Erro ao capturar câmbio:', err);
+        }
+      };
+      fetchRates();
+    }
+  }, [isOpen, formData.usd_rate]);
 
   if (!isOpen) return null;
 
