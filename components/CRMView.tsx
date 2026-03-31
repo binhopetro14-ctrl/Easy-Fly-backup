@@ -359,6 +359,11 @@ export function CRMView({
                             {/* Linha 2: Cliente + Rota + DURAÇÃO */}
                             <div className="flex items-center gap-1.5 text-[9.5px] font-bold text-gray-400 uppercase tracking-tighter truncate">
                               <span className="shrink-0">{lead.name}</span>
+                              {lead.duration && (
+                                <span className="ml-1 px-1.5 py-0.5 rounded-md font-black text-gray-500 bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700/50 shadow-sm animate-in fade-in duration-300">
+                                  {lead.duration}{lead.duration.toUpperCase().includes('D') ? '' : 'D'}
+                                </span>
+                              )}
                               {route && (
                                 <>
                                   <div className="w-0.5 h-0.5 bg-gray-300 rounded-full shrink-0" />
@@ -366,11 +371,6 @@ export function CRMView({
                                     <span>{route.origin}</span>
                                     <ArrowRight className="w-2.5 h-2.5" />
                                     <span>{route.destination}</span>
-                                    {lead.duration && (
-                                      <span className="ml-1 px-1 py-0.5 rounded-sm font-bold text-gray-400 bg-gray-50 dark:bg-slate-900/40">
-                                        {lead.duration}D
-                                      </span>
-                                    )}
                                   </div>
                                 </>
                               )}

@@ -141,6 +141,10 @@ export interface Lead {
   title?: string;
   responded?: boolean;
   slaStartAt?: string;
+  markup?: number;
+  taxes?: number;
+  markup_type?: 'percentage' | 'fixed';
+  cost?: number;
   usd_rate?: number;
   eur_rate?: number;
   gbp_rate?: number;
