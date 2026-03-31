@@ -5,7 +5,7 @@ import {
   X, Plus, Plane, Hotel, Shield, Car, Trash2, Layout, 
   Tag as TagIcon, Minus, Luggage, User, Baby, Clock,
   MapPin, Pencil, Search, ChevronDown, Target, Phone, Mail, FileText, Users, MessageCircle, Loader2, Star, CheckCircle, Calendar,
-  CreditCard, Percent, LayoutGrid
+  CreditCard, Percent, LayoutGrid, Coffee
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NumericFormat } from 'react-number-format';
@@ -28,21 +28,21 @@ const formatDateRange = (start: string, end: string) => {
   if (!sDay || !eDay) return '';
 
   if (sMonth === eMonth) {
-    return `${sDay} à ${eDay} ${months[parseInt(sMonth, 10) - 1]}`;
+    return `${sDay} Ã  ${eDay} ${months[parseInt(sMonth, 10) - 1]}`;
   } else {
-    return `${sDay} ${months[parseInt(sMonth, 10) - 1]} à ${eDay} ${months[parseInt(eMonth, 10) - 1]}`;
+    return `${sDay} ${months[parseInt(sMonth, 10) - 1]} Ã  ${eDay} ${months[parseInt(eMonth, 10) - 1]}`;
   }
 };
 
 const STATUS_OPTIONS: { value: CRMStatus; label: string }[] = [
   { value: 'novo_contato', label: 'Novo Contato' },
-  { value: 'em_cotacao', label: 'Em Cotação' },
+  { value: 'em_cotacao', label: 'Em CotaÃ§Ã£o' },
   { value: 'proposta_enviada', label: 'Proposta Enviada' },
   { value: 'aprovado', label: 'Aprovado' },
   { value: 'perdido', label: 'Perdido' },
 ];
 
-const AIRLINES = ['LATAM','Gol','Azul','Avianca','TAP Portugal','British Airways','Iberia','Air France','KLM','Lufthansa','ITA Airways','Swiss Airlines','Turkish Airlines','Ryanair','easyJet','Vueling','Norwegian','Air Europa','Finnair','SAS','American Airlines','Delta Air Lines','United Airlines','Emirates','Qatar Airways','Copa Airlines','Aeromexico','Air Canada'];
+const AIRLINES = ['LATAM','Gol','Azul','Avianca','Aerolineas Argentinas','Sky Airline','Boliviana de AviaciÃ³n','TAP Portugal','British Airways','Iberia','Air France','KLM','Lufthansa','ITA Airways','Swiss Airlines','Turkish Airlines','Ryanair','easyJet','Vueling','Norwegian','Air Europa','Finnair','SAS','American Airlines','Delta Air Lines','United Airlines','Emirates','Qatar Airways','Copa Airlines','Aeromexico','Air Canada'];
 
 function DateInput({ value, onChange, className, placeholder }: {
   value: string;
@@ -118,7 +118,7 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookup
       arrivalTime: '',
       airline: lastSeg?.airline || '',
       duration: '',
-      flightClass: lastSeg?.flightClass || 'Econômica',
+      flightClass: lastSeg?.flightClass || 'EconÃ´mica',
       personalItem: lastSeg?.personalItem ?? 1,
       carryOn: lastSeg?.carryOn ?? 1,
       checkedBag23kg: lastSeg?.checkedBag23kg ?? 0
@@ -155,7 +155,7 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookup
           <div key={idx} className={`relative p-3 rounded-xl border-dashed border-2 ${idx > 0 ? 'border-gray-100 dark:border-slate-700/50 mt-2 bg-gray-50/30' : 'border-transparent'}`}>
             {idx > 0 && (
               <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-slate-700/50 pb-2">
-                 <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Conexão {idx}</span>
+                 <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">ConexÃ£o {idx}</span>
                  <button onClick={() => removeSegment(idx)} className="p-1 hover:bg-red-50 rounded text-red-300 hover:text-red-500 transition-colors"><Trash2 className="w-3 h-3" /></button>
               </div>
             )}
@@ -167,7 +167,7 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookup
                    <DateInput className="w-24 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black text-center" value={segment.departureDate || ''} onChange={v => updateSegment(idx, { departureDate: v })} />
                 </div>
                 <div className="space-y-0.5">
-                   <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">Nº Voo</label>
+                   <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">NÂº Voo</label>
                    <input className="w-20 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-center" value={segment.flightNumber || ''} onChange={e => updateSegment(idx, { flightNumber: e.target.value.toUpperCase() })} />
                 </div>
                 <div className="pt-2.5">
@@ -180,7 +180,7 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookup
 
             {flightLookupError && (
               <div className="flex justify-center -mt-2 mb-3">
-                <p className="text-[9px] font-black text-red-500 bg-red-50 px-4 py-1.5 rounded-full border border-red-100 animate-in fade-in slide-in-from-top-1 duration-300">⚠️ {flightLookupError}</p>
+                <p className="text-[9px] font-black text-red-500 bg-red-50 px-4 py-1.5 rounded-full border border-red-100 animate-in fade-in slide-in-from-top-1 duration-300">âš ï¸ {flightLookupError}</p>
               </div>
             )}
 
@@ -192,27 +192,27 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookup
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className={lbl}>📅 Partida</label>
+                  <label className={lbl}>ðŸ“… Partida</label>
                   <div className="flex gap-1.5"><DateInput className={inp} value={segment.departureDate || ''} onChange={v => updateSegment(idx, { departureDate: v })} /><input type="time" className={`${inp} w-24`} value={segment.departureTime || ''} onChange={e => updateSegment(idx, { departureTime: e.target.value })} /></div>
                 </div>
                 <div className="space-y-1">
-                  <label className={lbl}>📅 Chegada</label>
+                  <label className={lbl}>ðŸ“… Chegada</label>
                   <div className="flex gap-1.5"><DateInput className={inp} value={segment.arrivalDate || ''} onChange={v => updateSegment(idx, { arrivalDate: v })} /><input type="time" className={`${inp} w-24`} value={segment.arrivalTime || ''} onChange={e => updateSegment(idx, { arrivalTime: e.target.value })} /></div>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                 <div className="space-y-1"><label className={lbl}>Duração</label><input className={inp} placeholder="--" value={segment.duration || ''} onChange={e => updateSegment(idx, { duration: e.target.value })} /></div>
+                 <div className="space-y-1"><label className={lbl}>DuraÃ§Ã£o</label><input className={inp} placeholder="--" value={segment.duration || ''} onChange={e => updateSegment(idx, { duration: e.target.value })} /></div>
                  <div className="space-y-1">
-                    <label className={lbl}>Cia Aérea</label>
+                    <label className={lbl}>Cia AÃ©rea</label>
                     <select className={sel} value={segment.airline || ''} onChange={e => updateSegment(idx, { airline: e.target.value })}>
                       <option value="">Selecione</option>{AIRLINES.map(a => <option key={a}>{a}</option>)}
                     </select>
                  </div>
                  <div className="space-y-1">
                     <label className={lbl}>Classe</label>
-                    <select className={sel} value={segment.flightClass || 'Econômica'} onChange={e => updateSegment(idx, { flightClass: e.target.value })}>
-                      <option>Econômica</option><option>Premium Economy</option><option>Executiva</option><option>Primeira Classe</option>
+                    <select className={sel} value={segment.flightClass || 'EconÃ´mica'} onChange={e => updateSegment(idx, { flightClass: e.target.value })}>
+                      <option>EconÃ´mica</option><option>Premium Economy</option><option>Executiva</option><option>Primeira Classe</option>
                     </select>
                  </div>
               </div>
@@ -222,7 +222,7 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookup
                 <div className="flex gap-4">
                   {[
                     { key: 'personalItem', label: 'Item Pes.' },
-                    { key: 'carryOn', label: 'C. Mão' },
+                    { key: 'carryOn', label: 'C. MÃ£o' },
                     { key: 'checkedBag23kg', label: '23kg' }
                   ].map(bag => (
                     <div key={bag.key} className="flex items-center gap-1.5">
@@ -241,7 +241,7 @@ function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookup
         ))}
         
         <button type="button" onClick={addSegment} className="w-full py-2 border-2 border-dashed border-gray-200 hover:border-cyan-300 rounded-xl text-[10px] font-black text-gray-400 hover:text-cyan-500 transition-all flex items-center justify-center gap-2 bg-gray-50/50 hover:bg-cyan-50 group">
-          <Clock className="w-3.5 h-3.5" /> ADICIONAR CONEXÃO
+          <Clock className="w-3.5 h-3.5" /> ADICIONAR CONEXÃƒO
         </button>
       </div>
     </div>
@@ -254,7 +254,7 @@ function PassagemForm(props: any) {
       ...prev,
       flightType: type,
       inboundSegments: type === 'ida_volta' 
-        ? (prev.inboundSegments?.length > 0 ? prev.inboundSegments : [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }])
+        ? (prev.inboundSegments?.length > 0 ? prev.inboundSegments : [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'EconÃ´mica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }])
         : []
     }));
   };
@@ -264,8 +264,8 @@ function PassagemForm(props: any) {
         <button type="button" onClick={() => toggleFlightType('ida')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'ida' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Ida</button>
         <button type="button" onClick={() => toggleFlightType('ida_volta')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'ida_volta' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Ida e Volta</button>
       </div>
-      <TrechoCard label="Trecho 1 — Ida" {...props} />
-      {props.currentItem.flightType === 'ida_volta' && <TrechoCard label="Trecho 2 — Volta" isReturn {...props} />}
+      <TrechoCard label="Trecho 1 â€” Ida" {...props} />
+      {props.currentItem.flightType === 'ida_volta' && <TrechoCard label="Trecho 2 â€” Volta" isReturn {...props} />}
     </div>
   );
 }
@@ -298,7 +298,8 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
   const [currentItem, setCurrentItem] = useState<any>({
     type: 'passagem', flightType: 'ida', outboundSegments: [{}], inboundSegments: [], 
-    value: 0, cost: 0, vendor: '', hotelName: '', address: '', checkInDate: '', checkOutDate: '', roomType: '', stars: ''
+    value: 0, cost: 0, vendor: '', hotelName: '', address: '', checkInDate: '', checkOutDate: '', roomType: '', stars: '',
+    hasBreakfast: false
   });
 
   useEffect(() => {
@@ -364,23 +365,96 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
       const res = await fetch(`/api/lookup-flight?flight=${encodeURIComponent(fn)}&date=${dt}`);
       const data = await res.json();
       if (!res.ok) { setFlightLookupError(data.error); return; }
+      
       const key = isReturn ? 'inboundSegments' : 'outboundSegments';
       setCurrentItem((prev: any) => {
         const segs = [...(prev[key] || [])];
-        segs[idx] = { ...segs[idx], ...data, flightNumber: fn };
+        // AutomaÃ§Ã£o: Tentar encontrar a cia aÃ©rea na lista ou usar a vinda da API
+        let airline = data.airline || '';
+        const found = AIRLINES.find(a => airline.toLowerCase().includes(a.toLowerCase()));
+        if (found) airline = found;
+
+        segs[idx] = { ...segs[idx], ...data, airline, flightNumber: fn };
         return { ...prev, [key]: segs };
       });
     } catch (e) { setFlightLookupError('Erro na busca'); } finally { setFlightLookupLoading(false); }
   };
 
   const handleAddItem = () => {
-    const desc = currentItem.type === 'passagem' ? (currentItem.outboundSegments?.[0]?.origin + ' → ' + currentItem.outboundSegments?.[currentItem.outboundSegments.length-1]?.destination) : (currentItem.hotelName || 'Serviço');
-    const newItem = { ...currentItem, id: editingItemId || Math.random().toString(36).substr(2,9), description: desc };
-    const newItems = [...(formData.items || []).filter((i:any) => i.id !== newItem.id), newItem];
-    const totalVenda = newItems.reduce((sum, i) => sum + (i.value || 0), 0);
-    setFormData({ ...formData, items: newItems, value: totalVenda, cost: newItems.reduce((sum, i) => sum + (i.cost || 0), 0) });
+    const desc = currentItem.type === 'passagem' 
+      ? (currentItem.outboundSegments?.[0]?.origin + ' â†’ ' + currentItem.outboundSegments?.[currentItem.outboundSegments.length-1]?.destination) 
+      : (currentItem.hotelName || 'ServiÃ§o');
+    
+    const hotelMetaData = currentItem.type === 'hospedagem' ? {
+      hotelImages: allPhotos,
+      hotelAmenities: hotelFacilities,
+      hotelDescription: hotelDescription
+    } : {};
+
+    const newItem = { 
+      ...currentItem, 
+      ...hotelMetaData,
+      id: editingItemId || Math.random().toString(36).substr(2,9), 
+      description: desc 
+    };
+
+    const newItems = editingItemId 
+      ? formData.items?.map((i: any) => i.id === editingItemId ? newItem : i)
+      : [...(formData.items || []), newItem];
+
+    const totalVenda = (newItems || []).reduce((sum: number, i: any) => sum + (i.value || 0), 0);
+    const totalCusto = (newItems || []).reduce((sum: number, i: any) => sum + (i.cost || 0), 0);
+    
+    setFormData({ ...formData, items: newItems, value: totalVenda, cost: totalCusto });
+    
+    // Reset form
     setEditingItemId(null);
-    setCurrentItem({ type: activeItemType, flightType: 'ida', outboundSegments: [{}], inboundSegments: [], value: 0, cost: 0, hotelName: '' });
+    setCurrentItem({ 
+      type: activeItemType, 
+      flightType: 'ida', 
+      outboundSegments: [{}], 
+      inboundSegments: [], 
+      value: 0, 
+      cost: 0, 
+      hotelName: '', 
+      hasBreakfast: false 
+    });
+    setAvailableRooms([]);
+    setAllPhotos([]);
+    setHotelDescription('');
+    setHotelFacilities([]);
+  };
+
+  const handleEditItem = (item: any) => {
+    setEditingItemId(item.id);
+    setActiveItemType(item.type);
+    setCurrentItem({ ...item });
+    
+    if (item.type === 'hospedagem') {
+      setAllPhotos(item.hotelImages || []);
+      setHotelFacilities(item.hotelAmenities || []);
+      setHotelDescription(item.hotelDescription || '');
+      // Note: availableRooms might not be available without a new lookup, 
+      // but we have the selected room type in currentItem.roomType
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingItemId(null);
+    setCurrentItem({ 
+      type: 'passagem', 
+      flightType: 'ida', 
+      outboundSegments: [{}], 
+      inboundSegments: [], 
+      value: 0, 
+      cost: 0, 
+      hotelName: '', 
+      hasBreakfast: false 
+    });
+    setAvailableRooms([]);
+    setAllPhotos([]);
+    setHotelDescription('');
+    setHotelFacilities([]);
   };
 
   const handleCounter = (field: keyof Lead, delta: number) => {
@@ -401,7 +475,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
              <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center"><Target className="w-5 h-5 text-cyan-600" /></div>
              <div>
                <h2 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">Nova Venda</h2>
-               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Gestão de Lead e Cotação</p>
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">GestÃ£o de Lead e CotaÃ§Ã£o</p>
              </div>
            </div>
            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors"><X className="w-5 h-5" /></button>
@@ -413,7 +487,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700/50 shadow-sm space-y-5 animate-in slide-in-from-left-4 duration-500">
               <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Título da Viagem</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">TÃ­tulo da Viagem</label>
                   <input placeholder="Ex: Lua de Mel Maldivas" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl outline-none font-bold text-gray-800 dark:text-white focus:border-cyan-400 transition-all shadow-sm" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
                 </div>
                 <div className="space-y-1.5">
@@ -425,8 +499,8 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
               <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50/50 dark:bg-slate-900/40 rounded-2xl border border-gray-100 dark:border-slate-700/50">
                  {[
                    { id: 'adults', label: 'Adultos', icon: Users },
-                   { id: 'children', label: 'Crianças', icon: User },
-                   { id: 'babies', label: 'Bebês', icon: Baby },
+                   { id: 'children', label: 'CrianÃ§as', icon: User },
+                   { id: 'babies', label: 'BebÃªs', icon: Baby },
                    { id: 'luggage23kg', label: 'Malas 23kg', icon: Luggage }
                  ].map(c => (
                    <div key={c.id} className="flex flex-col items-center gap-2">
@@ -452,7 +526,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                  </div>
                  <div className="space-y-1.5 col-span-2">
                    <label className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase ml-1">
-                     Tags & Duração
+                     Tags & DuraÃ§Ã£o
                    </label>
                    <div className="flex flex-col gap-2">
                      <div className="flex gap-2">
@@ -487,7 +561,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                        </div>
                        
                        <div className="w-28 flex flex-col gap-1.5">
-                          <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Duração</label>
+                          <label className="text-[10px] font-black text-gray-400 uppercase ml-1">DuraÃ§Ã£o</label>
                           <div className="relative">
                             <input 
                               placeholder="QTD DIAS" 
@@ -503,7 +577,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                        {formData.tags?.map((tag, i) => (
                          <span key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 text-[9px] font-black rounded-lg border border-cyan-100 dark:border-cyan-500/20 group animate-in fade-in zoom-in-95 duration-200">
                            {tag}
-                           <button type="button" onClick={() => setFormData({...formData, tags: formData.tags?.filter((_, index) => index !== i)})} className="hover:text-red-500 opacity-60 hover:opacity-100">×</button>
+                           <button type="button" onClick={() => setFormData({...formData, tags: formData.tags?.filter((_, index) => index !== i)})} className="hover:text-red-500 opacity-60 hover:opacity-100">Ã—</button>
                          </span>
                        ))}
                      </div>
@@ -578,7 +652,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-cyan-500 uppercase ml-1 tracking-widest flex items-center gap-1.5 mb-1.5">
-                        <LayoutGrid className="w-3.5 h-3.5" /> Seleção do Quarto
+                        <LayoutGrid className="w-3.5 h-3.5" /> SeleÃ§Ã£o do Quarto
                       </label>
                       <select 
                         className="w-full px-5 py-3 bg-white dark:bg-slate-900 border-2 border-gray-100 dark:border-slate-700/50 rounded-2xl font-black text-xs uppercase text-gray-800 dark:text-white outline-none focus:border-cyan-400 transition-all shadow-sm appearance-none"
@@ -597,10 +671,10 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                           }
                         }}
                       >
-                        <option value="" disabled>{availableRooms.length > 0 ? "— Escolha um tipo de quarto —" : "Pesquise um hotel primeiro"}</option>
+                        <option value="" disabled>{availableRooms.length > 0 ? "â€” Escolha um tipo de quarto â€”" : "Pesquise um hotel primeiro"}</option>
                         {availableRooms.map(r => (
                           <option key={r.id} value={r.id}>
-                            {r.name.toUpperCase()} (MÁX {r.maxOccupancy || 2} PERS.) — R$ {r.price.toLocaleString()}
+                            {(r.name || "AcomodaÃ§Ã£o").toUpperCase()} (MÃX {r.maxOccupancy || 2} PERS.)
                           </option>
                         ))}
                       </select>
@@ -608,10 +682,10 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                     <div className="space-y-1.5">
                        <label className="text-[10px] font-black text-orange-500 uppercase ml-1 tracking-widest flex items-center gap-1.5 mb-1.5">
-                         <MapPin className="w-3.5 h-3.5" /> Endereço da Hospedagem
+                         <MapPin className="w-3.5 h-3.5" /> EndereÃ§o da Hospedagem
                        </label>
                        <input 
-                         placeholder="Localização automática" 
+                         placeholder="LocalizaÃ§Ã£o automÃ¡tica" 
                          className="w-full px-5 py-3 bg-gray-50 dark:bg-slate-900 border-2 border-transparent dark:border-slate-700/50 rounded-2xl font-black text-xs uppercase text-gray-500 dark:text-gray-400 outline-none transition-all shadow-sm" 
                          value={currentItem.address}
                          readOnly
@@ -644,12 +718,29 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                            <Star className="w-3.5 h-3.5" /> Estrelas
                         </label>
                         <input 
-                          placeholder="Ex: 5 ★"
+                          placeholder="Ex: 5 â˜…"
                           className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border-2 border-transparent dark:border-slate-700/50 rounded-2xl font-black text-xs uppercase text-gray-400 dark:text-gray-500 outline-none transition-all shadow-sm"
-                          value={currentItem.stars ? `${currentItem.stars} ★` : ''}
+                          value={currentItem.stars ? `${currentItem.stars} â˜…` : ''}
                           readOnly
                         />
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 bg-orange-50/30 dark:bg-orange-500/5 rounded-2xl border border-orange-100/50 dark:border-orange-500/10">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${currentItem.hasBreakfast ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-gray-100 text-gray-400 dark:bg-slate-800'}`}>
+                         <Coffee className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest leading-none mb-1">CafÃ© da ManhÃ£</p>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">Opcional incluso no voucher</p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setCurrentItem({...currentItem, hasBreakfast: !currentItem.hasBreakfast})}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${currentItem.hasBreakfast ? 'bg-orange-600 text-white' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-400'}`}
+                      >
+                        {currentItem.hasBreakfast ? 'REMOVER CAFÃ‰' : 'ADICIONAR CAFÃ‰'}
+                      </button>
                     </div>
                   </div>
 
@@ -689,13 +780,13 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                                    <FileText className="w-3 h-3" /> Detalhes do Hotel
                                  </h4>
                                  <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-3 italic">
-                                    {hotelDescription || "Descrição não disponível para este hotel."}
+                                    {hotelDescription || "DescriÃ§Ã£o nÃ£o disponÃ­vel para este hotel."}
                                  </p>
                               </div>
                               
                               <div>
                                  <h4 className="text-[10px] font-black text-cyan-500 uppercase flex items-center gap-2 mb-3 tracking-widest">
-                                   <Shield className="w-3 h-3" /> Amenidades & Serviços
+                                   <Shield className="w-3 h-3" /> Amenidades & ServiÃ§os
                                  </h4>
                                  <div className="flex flex-wrap gap-1.5">
                                     {hotelFacilities.length > 0 ? hotelFacilities.slice(0, 15).map((f: any, i: number) => (
@@ -726,14 +817,23 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                     </div>
                  </div>
                  
-                 <div className="flex justify-end">
+                  <div className="flex justify-end gap-3">
+                    {editingItemId && (
+                      <button 
+                        onClick={() => { setEditingItemId(null); setCurrentItem({ type: "passagem", flightType: "ida", outboundSegments: [{}], inboundSegments: [], value: 0, cost: 0, travelers: [], adults: 1, children: 0, babies: 0, bags23kg: 0, cabin: "Y", airline: "" }); }}
+                        className="px-8 py-3.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-500 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                      >
+                        Cancelar
+                      </button>
+                    )}
                     <button 
                       onClick={handleAddItem} 
-                      className="w-full md:w-auto px-10 py-4 bg-[#0f172a] hover:bg-black text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:shadow-cyan-500/10 transition-all active:scale-95 flex items-center justify-center gap-3"
+                      className={`w-full md:w-auto px-10 py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 ${editingItemId ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20' : 'bg-[#0f172a] hover:bg-black text-white shadow-slate-900/10 hover:shadow-cyan-500/10'}`}
                     >
-                      <Plus className="w-5 h-5" /> {editingItemId ? 'Atualizar Serviço' : 'Incluir no Orçamento'}
+                      {editingItemId ? <Pencil className="w-4 h-4" /> : <Plus className="w-5 h-5" />}
+                      {editingItemId ? 'Atualizar Item' : 'Incluir no Orçamento'}
                     </button>
-                 </div>
+                  </div>
               </div>
             </div>
           </div>
@@ -764,7 +864,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
             <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-slate-800 dark:to-slate-800/50 p-6 rounded-3xl border border-amber-100/50 dark:border-amber-500/10 space-y-4">
                <div className="flex items-center gap-2 mb-1">
                  <CreditCard className="w-4 h-4 text-amber-600" />
-                 <label className="font-black text-[10px] uppercase text-amber-600 tracking-widest">Parcelamento na Cotação</label>
+                 <label className="font-black text-[10px] uppercase text-amber-600 tracking-widest">Parcelamento na CotaÃ§Ã£o</label>
                </div>
                <div className="grid grid-cols-2 gap-2">
                  <button onClick={() => setFormData({...formData, fees_type: 'interest_free'})} className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${formData.fees_type === 'interest_free' ? 'bg-amber-600 text-white shadow-lg' : 'bg-white text-amber-600 border border-amber-200'}`}>Sem Juros</button>
@@ -788,17 +888,54 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                   <h3 className="text-[9px] font-black uppercase text-gray-400 tracking-widest pl-1">Itens Adicionados ({formData.items.length})</h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {formData.items.map((item: any) => (
-                      <motion.div initial={{ opacity:0, x:10 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, scale:0.9 }} key={item.id} className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700/50 flex justify-between items-center group">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${item.type === 'passagem' ? 'bg-cyan-50 text-cyan-600' : 'bg-orange-50 text-orange-600'}`}>
-                             {item.type === 'passagem' ? <Plane className="w-3.5 h-3.5" /> : <Hotel className="w-3.5 h-3.5" />}
+                      <motion.div 
+                        initial={{ opacity:0, x:10 }} 
+                        animate={{ opacity:1, x:0 }} 
+                        exit={{ opacity:0, scale:0.9 }} 
+                        key={item.id} 
+                        onClick={() => handleEditItem(item)}
+                        className={`p-3 rounded-xl border flex justify-between items-center group cursor-pointer transition-all ${editingItemId === item.id ? 'bg-cyan-50 border-cyan-200 shadow-md ring-2 ring-cyan-500/20' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.type === 'passagem' ? 'bg-cyan-50 text-cyan-600' : 'bg-orange-50 text-orange-600'}`}>
+                             {item.type === 'passagem' ? <Plane className="w-4 h-4" /> : <Hotel className="w-4 h-4" />}
                           </div>
-                          <div>
-                            <p className="text-[10px] font-black text-gray-800 dark:text-white uppercase leading-none">{item.description}</p>
-                            <p className="text-[8px] font-bold text-gray-400 tracking-tighter mt-1">R$ {item.value?.toLocaleString()}</p>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black text-gray-800 dark:text-white uppercase leading-tight truncate">{item.description}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                               <p className="text-[8px] font-black text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded-md">R$ {item.value?.toLocaleString()}</p>
+                               {item.type === 'hospedagem' && item.checkInDate && (
+                                 <p className="text-[7px] font-bold text-gray-400 uppercase truncate">
+                                   {new Date(item.checkInDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} 
+                                   {item.checkOutDate && ` â€“ ${new Date(item.checkOutDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`}
+                                 </p>
+                               )}
+                               {item.type === 'passagem' && item.outboundSegments?.[0]?.departureDate && (
+                                 <p className="text-[7px] font-bold text-gray-400 uppercase">
+                                   {new Date(item.outboundSegments[0].departureDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}
+                                 </p>
+                               )}
+                            </div>
+                            {item.roomType && (
+                              <p className="text-[7px] font-bold text-gray-400 uppercase mt-1 truncate opacity-70">
+                                {item.roomType}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <button onClick={() => setFormData({...formData, items: formData.items?.filter((i:any)=>i.id !== item.id)})} className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <div className="flex items-center gap-1">
+                          <div className="p-1 px-2 text-[8px] font-black text-cyan-600 bg-cyan-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">EDITAR</div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (editingItemId === item.id) cancelEdit();
+                              setFormData({...formData, items: formData.items?.filter((i:any)=>i.id !== item.id)});
+                            }} 
+                            className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -810,9 +947,9 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
         {editingLead?.id && (
           <div className="px-6 py-4 bg-gray-50/80 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 flex justify-end items-center gap-4">
-            <span className="text-[10px] font-bold text-gray-400 italic">Cotação gerada no dia {new Date().toLocaleDateString('pt-BR')}</span>
+            <span className="text-[10px] font-bold text-gray-400 italic">CotaÃ§Ã£o gerada no dia {new Date().toLocaleDateString('pt-BR')}</span>
             <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/cotacao/${editingLead.id}`); setLinkCopied(true); setTimeout(()=>setLinkCopied(false),3000); }} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2 ${linkCopied ? 'bg-green-500 text-white' : 'bg-[#19727d] text-white hover:bg-[#145d66]'}`}>
-              {linkCopied ? <><CheckCircle className="w-3.5 h-3.5" /> Link Copiado!</> : <><Search className="w-3.5 h-3.5" /> Copiar Link da Cotação</>}
+              {linkCopied ? <><CheckCircle className="w-3.5 h-3.5" /> Link Copiado!</> : <><Search className="w-3.5 h-3.5" /> Copiar Link da CotaÃ§Ã£o</>}
             </button>
           </div>
         )}

@@ -25,6 +25,19 @@ import {
   Trash2,
   ChevronRight,
   ArrowRight,
+  Wifi,
+  Waves,
+  Wind,
+  ParkingCircle,
+  Dumbbell,
+  Spade as Spa,
+  UtensilsCrossed,
+  GlassWater as Wine,
+  Map as MapIcon,
+  ShoppingBag,
+  Ticket,
+  Maximize2,
+  ChevronLeft,
 } from 'lucide-react';
 
 // Cliente Supabase público (sem autenticação)
@@ -257,175 +270,187 @@ function FlightItem({ item }: { item: SaleItem }) {
   );
 }
 
-function HotelItem({ item }: { item: SaleItem }) {
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr || typeof dateStr !== 'string') return '';
-    try {
-      const [year, month, day] = dateStr.split('-');
-      return `${day}/${month}/${year}`;
-    } catch { return dateStr; }
-  };
+function HotelGallery({ images, name }: { images: string[]; name: string }) {
+  const [current, setCurrent] = useState(0);
+
+  if (!images || images.length === 0) return null;
 
   return (
+    <div className="space-y-3">
+      {/* IMAGEM PRINCIPAL (HERO) */}
+      <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] rounded-3xl overflow-hidden group bg-slate-100 shadow-lg border border-slate-100">
+        <Image 
+          src={images[current]} 
+          alt={`${name} - Foto ${current + 1}`} 
+          fill 
+          className="object-cover transition-opacity duration-500" 
+          priority
+          unoptimized={true}
+        />
+        
+        {/* Camada de Gradiente Suave */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
+
+        {/* NAVEGAÇÃO - SETAS (Somente se houver mais de uma foto) */}
+        {images.length > 1 && (
+          <>
+            <button 
+              onClick={() => setCurrent(prev => (prev === 0 ? images.length - 1 : prev - 1))}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100 shadow-xl border border-white/20 active:scale-95 z-20"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={() => setCurrent(prev => (prev === images.length - 1 ? 0 : prev + 1))}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100 shadow-xl border border-white/20 active:scale-95 z-20"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </>
+        )}
+
+        {/* CONTADOR DE FOTOS PREMIUM */}
+        <div className="absolute top-5 right-5 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl text-[11px] font-black text-white/90 uppercase tracking-[0.1em] border border-white/10 flex items-center gap-2.5 z-20 shadow-lg">
+          <Maximize2 className="w-3.5 h-3.5" /> 
+          <span>{current + 1} / {images.length}</span>
+        </div>
+      </div>
+
+      {/* TIRA DE MINIATURAS (THUMBNAILS) */}
+      {images.length > 1 && (
+        <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 scrollbar-hide snap-x">
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrent(idx)}
+              className={`relative flex-shrink-0 w-24 h-16 rounded-xl overflow-hidden border-2 transition-all snap-start ${
+                idx === current ? 'border-[#19727d] rotate-0 scale-100 shadow-md ring-2 ring-[#19727d]/20' : 'border-transparent opacity-60 hover:opacity-100 scale-95 grayscale-[30%]'
+              }`}
+            >
+              <Image 
+                src={img} 
+                alt={`${name} thumb ${idx}`} 
+                fill 
+                className="object-cover" 
+                unoptimized={true}
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HotelItem({ item }: { item: SaleItem }) {
+  return (
     <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
-      {/* Decorative top bar */}
       <div className="h-1.5 w-full bg-[#19727d]" />
       
       <div className="p-6 space-y-5">
-        {/* HEADER: Ícone + Nome do hotel + Datas e Café da Manhã */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#19727d]/10 flex items-center justify-center text-[#19727d] flex-shrink-0">
-              <Hotel className="w-5 h-5" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#19727d] to-[#0d5c66] flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
+              <Hotel className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[9px] font-black text-[#19727d] uppercase tracking-[0.25em] leading-none mb-1">Hospedagem</p>
-              <h3 className="font-black text-xl text-slate-900 tracking-tight leading-tight">{item.hotelName || item.description || 'Nome do Hotel'}</h3>
+              <p className="text-[10px] font-black text-[#19727d] uppercase tracking-[0.2em] leading-none mb-1.5">Hospedagem</p>
+              <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-tight">{item.hotelName || item.description || 'Nome do Hotel'}</h3>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* ALIMENTAÇÃO - Estilo Sincronizado e Moderno */}
-            {(() => {
-              const showBreakfast = item.hasBreakfast || 
-                                   item.description?.toLowerCase().includes('café') || 
-                                   item.hotelDescription?.toLowerCase().includes('café');
-              
-              if (!showBreakfast) return null;
+          <div className="flex items-center gap-3">
+             {item.hasBreakfast && (
+               <div className="flex items-center gap-2.5 px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-2xl shadow-sm">
+                 <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                    <Coffee className="w-4 h-4" />
+                 </div>
+                 <div className="leading-none">
+                    <p className="text-[9px] font-black uppercase text-amber-800 tracking-tight">Café da Manhã</p>
+                    <p className="text-[8px] font-bold text-amber-600 uppercase mt-0.5">Incluso</p>
+                 </div>
+               </div>
+             )}
 
-              return (
-                <div className="flex items-center gap-3 py-2 px-5 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all hover:bg-white/60 h-[80px] justify-center min-w-[110px]">
-                  <div className="flex flex-col items-center text-center">
-                    <span className="text-xl mb-1 leading-none">☕</span>
-                    <p className="text-[9px] font-black uppercase tracking-tight text-slate-800 leading-tight">Café da manhã</p>
-                    <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Incluso</p>
-                  </div>
+             <div className="flex bg-slate-50 border border-slate-100 rounded-2xl p-2.5 gap-4">
+                <div className="text-center px-2">
+                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Check-in</p>
+                   <p className="text-[11px] font-black text-slate-800">{formatDate(item.checkIn || item.checkInDate)}</p>
                 </div>
-              );
-            })()}
-
-            {/* DATAS COMPACTAS (Sistema de Alta Resiliência) */}
-            {(() => {
-              // Procura por data em qualquer campo possível para evitar erros de persistência
-              const rawCheckIn = item.checkIn || item.checkInDate || (item as any).check_in || (item as any).checkin_date;
-              const rawCheckOut = item.checkOut || item.checkOutDate || (item as any).check_out || (item as any).checkout_date;
-              
-              return (
-                <div className="flex items-center gap-5 bg-white/40 backdrop-blur-xl p-4 rounded-2xl border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all hover:bg-white/60 h-[80px]">
-                  <div className="text-center border-r border-slate-200/50 pr-5 h-full flex flex-col justify-center min-w-[90px]">
-                    <p className="text-[7px] font-black text-[#19727d] uppercase tracking-wider mb-1 opacity-80">Check-in</p>
-                    <div className="flex flex-col items-center">
-                      <p className="text-[11px] font-black text-slate-800 leading-none mb-1.5 tracking-tight">
-                        {rawCheckIn ? formatDate(rawCheckIn) : "__/__/____"}
-                      </p>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-3.5 h-3.5 rounded-full bg-[#19727d]/10 flex items-center justify-center">
-                          <Clock className="w-2 h-2 text-[#19727d]" />
-                        </div>
-                        <p className="text-[9px] font-bold text-slate-500">
-                          {item.checkInTime || '14:00'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-center h-full flex flex-col justify-center pl-1 min-w-[90px]">
-                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-wider mb-1 opacity-80">Check-out</p>
-                    <div className="flex flex-col items-center">
-                      <p className="text-[11px] font-black text-slate-800 leading-none mb-1.5 tracking-tight">
-                        {rawCheckOut ? formatDate(rawCheckOut) : "__/__/____"}
-                      </p>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-3.5 h-3.5 rounded-full bg-slate-100 flex items-center justify-center">
-                          <Clock className="w-2 h-2 text-slate-400" />
-                        </div>
-                        <p className="text-[9px] font-bold text-slate-500">
-                          {item.checkOutTime || '12:00'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="w-px bg-slate-200" />
+                <div className="text-center px-2">
+                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Check-out</p>
+                   <p className="text-[11px] font-black text-slate-800">{formatDate(item.checkOut || item.checkOutDate)}</p>
                 </div>
-              );
-            })()}
+             </div>
           </div>
         </div>
 
-        {/* COMODIDADES EM GRID (Máximo 4 Colunas) */}
-        {item.hotelAmenities && item.hotelAmenities.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Comodidades em Destaque</p>
-               <div className="h-px bg-slate-100 flex-1 ml-4" />
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-              {(() => {
-                const AMENITY_ICONS: Record<string, { label: string; icon: string }> = {
-                  'wifi': { label: 'Wi-Fi Grátis', icon: '📶' },
-                  'pool': { label: 'Piscina', icon: '🏊' },
-                  'spa': { label: 'Spa', icon: '💆' },
-                  'gym': { label: 'Academia', icon: '🏋️' },
-                  'parking': { label: 'Estacionamento', icon: '🅿️' },
-                  'ac': { label: 'Ar Condicionado', icon: '❄️' },
-                  'beach': { label: 'Acesso à Praia', icon: '🏖️' },
-                  'breakfast': { label: 'Café da Manhã', icon: '☕' },
-                  'restaurant': { label: 'Restaurante', icon: '🍽️' },
-                  'bar': { label: 'Bar', icon: '🍸' },
-                };
+        {item.hotelImages && item.hotelImages.length > 0 && (
+          <HotelGallery images={item.hotelImages} name={item.hotelName || ''} />
+        )}
 
-                const resolveAmenity = (name: string) => {
-                  const n = name.toLowerCase();
-                  const found = Object.entries(AMENITY_ICONS).find(([k]) => n.includes(k) || n.includes(AMENITY_ICONS[k].label.toLowerCase()));
-                  return found ? found[1] : { label: name, icon: '✓' };
-                };
+        {(() => {
+          const AMENITY_MAP: Record<string, { label: string; icon: any }> = {
+            'wifi': { label: 'Wi-Fi Grátis', icon: Wifi },
+            'internet': { label: 'Wi-Fi Grátis', icon: Wifi },
+            'piscina': { label: 'Piscina', icon: Waves },
+            'pool': { label: 'Piscina', icon: Waves },
+            'beira-mar': { label: 'Pé na Areia', icon: MapIcon },
+            'spa': { label: 'Spa Premium', icon: Spa },
+            'academia': { label: 'Academia', icon: Dumbbell },
+            'gym': { label: 'Academia', icon: Dumbbell },
+            'ar condicionado': { label: 'Climatizado', icon: Wind },
+            'climatização': { label: 'Climatizado', icon: Wind },
+            'ac': { label: 'Ar Condicionado', icon: Wind },
+            'restaurante': { label: 'Restaurante', icon: UtensilsCrossed },
+            'restaurant': { label: 'Restaurante', icon: UtensilsCrossed },
+            'bar': { label: 'Bar', icon: Wine },
+            'estacionamento': { label: 'Park', icon: ParkingCircle },
+            'shopping': { label: 'Shopping', icon: ShoppingBag },
+            'ticket': { label: 'Atrações', icon: Ticket },
+          };
 
-                const priorityOrder = ['pool', 'wifi', 'beach', 'ac', 'parking', 'gym', 'spa', 'breakfast', 'restaurant', 'bar'];
-                
-                // FallbackExtractor: Se não houver comodidades brutas, extrai da descrição
-                let source = item.hotelAmenities || [];
-                if (source.length === 0 && item.hotelDescription) {
-                  const d = item.hotelDescription.toLowerCase();
-                  if (d.includes('piscina') || d.includes('pool')) source.push('Pool');
-                  if (d.includes('wi-fi') || d.includes('internet')) source.push('WiFi');
-                  if (d.includes('ar condicionado') || d.includes('air conditioning')) source.push('AC');
-                  if (d.includes('estacionamento') || d.includes('parking')) source.push('Parking');
-                  if (d.includes('academia') || d.includes('gym')) source.push('Gym');
-                  if (d.includes('spa')) source.push('Spa');
-                }
+          const source = item.hotelAmenities || [];
+          const features = source.map(a => {
+            const normalized = a.toLowerCase();
+            const match = Object.entries(AMENITY_MAP).find(([k]) => normalized.includes(k));
+            return match ? match[1] : { label: a, icon: CheckCircle2 };
+          }).slice(0, 12); // Aumentado para 12 comodidades
 
-                const featured = source
-                  .map(a => ({ raw: a, resolved: resolveAmenity(a) }))
-                  .sort((a, b) => {
-                    const labelA = a.resolved.label.toLowerCase();
-                    const labelB = b.resolved.label.toLowerCase();
-                    const idxA = priorityOrder.findIndex(k => labelA.includes(k) || (k === 'ac' && labelA.includes('ar')));
-                    const idxB = priorityOrder.findIndex(k => labelB.includes(k) || (k === 'ac' && labelB.includes('ar')));
-                    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-                  })
-                  .slice(0, 8);
+          if (features.length === 0) return null;
 
-                if (featured.length === 0) return (
-                  <div className="col-span-full py-4 text-center border border-dashed border-slate-100 rounded-2xl opacity-50">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Confira facilidades na descrição</p>
+          return (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">Destaques da Hospedagem</p>
+                 <div className="h-px bg-slate-100 flex-1" />
+              </div>
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {features.map((f, i) => (
+                  <div key={i} className="flex flex-col items-center justify-center p-4 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-md hover:border-[#19727d]/20 transition-all group/item min-h-[90px] text-center">
+                     <div className="w-10 h-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-[#19727d] mb-2.5 shadow-inner group-hover/item:scale-110 group-hover/item:bg-[#19727d]/5 transition-all outline-none">
+                        <f.icon className="w-5 h-5 stroke-[2.5]" />
+                     </div>
+                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter leading-tight px-1">{f.label}</span>
                   </div>
-                );
-
-                return featured.map((amenity, idx) => (
-                  <div key={idx} className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/40 border border-white/20 shadow-sm backdrop-blur-md transition-all hover:bg-white/60 hover:scale-[1.03] group/item min-h-[60px]">
-                    <span className="text-lg mb-1 group-hover/item:scale-125 transition-transform">{amenity.resolved.icon}</span>
-                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-tight text-center leading-none px-1">
-                      {amenity.resolved.label.split(' ')[0]}
-                    </span>
-                  </div>
-                ));
-              })()}
+                ))}
+              </div>
             </div>
+          );
+        })()}
+
+        {item.hotelDescription && (
+          <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Sobre o Hotel</p>
+             <p className="text-gray-600 text-sm leading-relaxed line-clamp-4 hover:line-clamp-none transition-all cursor-pointer">{item.hotelDescription}</p>
           </div>
         )}
 
         {item.passengerName && (
-          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-3 border-t border-slate-50">
+          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-3 border-t border-slate-100/50">
             <Users className="w-3.5 h-3.5" />
-            Titular: {item.passengerName}
+            Titular da Reserva: {item.passengerName}
           </div>
         )}
       </div>

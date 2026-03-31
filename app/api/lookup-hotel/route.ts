@@ -91,14 +91,15 @@ export async function GET(request: Request) {
       blocks.forEach((b: any) => {
         const roomId = b.room_id;
         if (roomId && !roomsMap.has(roomId)) {
-          // Tentar pegar o nome traduzido se existir no objeto 'rooms', senão usa o room_name do bloco
           const translatedName = roomsInfo[roomId]?.translated_name;
           const name = translatedName || b.room_name || 'Quarto';
           
           roomsMap.set(roomId, {
             id: roomId,
             name: name,
-            beds: b.room_info?.bed_configurations?.[0]?.bed_types?.[0]?.name || ''
+            beds: b.room_info?.bed_configurations?.[0]?.bed_types?.[0]?.name || '',
+            price: b.price_breakdown?.all_inclusive_price || b.min_total_price || 0,
+            maxOccupancy: b.nr_adults || 2
           });
         }
       });

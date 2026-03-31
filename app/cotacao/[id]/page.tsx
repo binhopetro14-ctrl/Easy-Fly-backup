@@ -160,9 +160,10 @@ interface LeadItem {
   hotelName?: string;
   hotelAddress?: string;
   hotelPhotos?: string[];
-  hotelId?: string;
+  hotelImages?: string[];
   hotelDescription?: string;
   hotelAmenities?: string[];
+  hasBreakfast?: boolean;
   checkInDate?: string;
   checkInTime?: string;
   checkOutDate?: string;
@@ -1100,39 +1101,44 @@ function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: {
       <div className="h-1 w-full bg-gradient-to-r from-[#19727d] to-cyan-400" />
       
       {/* CARROSSEL DE FOTOS DO HOTEL */}
-      {item.hotelPhotos && item.hotelPhotos.length > 0 && (
-        <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-gray-100">
-          <Image 
-            src={item.hotelPhotos[activePhoto]} 
-            alt={item.hotelName || 'Hotel'} 
-            fill
-            sizes="100vw"
-            className="object-cover transition-transform duration-700 group-hover/hotel:scale-105"
-          />
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-          
-          {/* Badge de Fotos */}
-          <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
-             <Hotel className="w-3 h-3" />
-             {activePhoto + 1} / {item.hotelPhotos.length}
-          </div>
+      {(() => {
+        const photos = item.hotelPhotos || item.hotelImages || [];
+        if (photos.length === 0) return null;
 
-          {/* Miniaturas Seletoras */}
-          <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 no-print">
-            {item.hotelPhotos.map((photo, idx) => (
-              <button 
-                key={idx}
-                onClick={() => setActivePhoto(idx)}
-                className={`relative w-14 h-10 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
-                  activePhoto === idx ? 'border-[#19727d] scale-110 shadow-lg' : 'border-white/40 hover:border-white opacity-70 hover:opacity-100'
-                }`}
-              >
-                <Image src={photo} fill sizes="56px" className="object-cover" alt="" />
-              </button>
-            ))}
+        return (
+          <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-gray-100">
+            <Image 
+              src={photos[activePhoto]} 
+              alt={item.hotelName || 'Hotel'} 
+              fill
+              sizes="100vw"
+              className="object-cover transition-transform duration-700 group-hotel:scale-105"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+            
+            {/* Badge de Fotos */}
+            <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+               <Hotel className="w-3 h-3" />
+               {activePhoto + 1} / {photos.length}
+            </div>
+
+            {/* Miniaturas Seletoras */}
+            <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 no-print">
+              {photos.map((photo, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setActivePhoto(idx)}
+                  className={`relative w-14 h-10 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
+                    activePhoto === idx ? 'border-[#19727d] scale-110 shadow-lg' : 'border-white/40 hover:border-white opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <Image src={photo} fill sizes="56px" className="object-cover" alt="" />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="p-6 space-y-5">
         {/* HEADER: Ícone + Nome do hotel + Datas Compactas no topo */}
@@ -1148,12 +1154,13 @@ function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* ALIMENTAÇÃO (Detecção Inteligente) */}
+            {/* ALIMENTAÇÃO (Prioridade para campo explícito) */}
             {(() => {
-              const hasBreakfast = (item.boardBasis?.toLowerCase().includes('café') || 
-                                   item.boardBasis?.toLowerCase().includes('pensão') || 
-                                   item.description?.toLowerCase().includes('café') ||
-                                   item.hotelDescription?.toLowerCase().includes('café'));
+              const hasBreakfast = item.hasBreakfast || 
+                                   (item.boardBasis?.toLowerCase().includes('café') || 
+                                    item.boardBasis?.toLowerCase().includes('pensão') || 
+                                    item.description?.toLowerCase().includes('café') ||
+                                    item.hotelDescription?.toLowerCase().includes('café'));
               
               if (!hasBreakfast || item.boardBasis === 'Sem Café da Manhã') return null;
 
@@ -1468,7 +1475,7 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
             </div>
 
             {/* REGIME DE ALIMENTAÇÃO NO MODAL INTEGRADO COM MINI MAPA */}
-            {(item.boardBasis && item.boardBasis.toLowerCase().includes('café')) && (
+            {(item.hasBreakfast || (item.boardBasis && item.boardBasis.toLowerCase().includes('café'))) && (
               <div className="bg-white border border-slate-100 rounded-[32px] p-2.5 pr-6 shadow-sm flex items-center justify-between gap-6 overflow-hidden">
                 <div className="flex items-center gap-4 pl-4 min-w-[220px]">
                   <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm border border-orange-100/50">
@@ -1510,7 +1517,7 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
                   <h3 className="font-black text-xl text-gray-800">Comodidades & Serviços</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {item.hotelAmenities.map((amenity, idx) => (
+                  {item.hotelAmenities.map((amenity: string, idx: number) => (
                     <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm group hover:border-cyan-200 transition-colors">
                       <div className="w-2 h-2 rounded-full bg-cyan-400" />
                       <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{amenity}</span>
@@ -1521,30 +1528,35 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
             )}
 
             {/* GALERIA DE FOTOS INTEGRADA */}
-            {item.hotelPhotos && item.hotelPhotos.length > 0 && (
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-                    <Package className="w-5 h-5" />
+            {(() => {
+              const photos = item.hotelPhotos || item.hotelImages || [];
+              if (photos.length === 0) return null;
+
+              return (
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-black text-xl text-gray-800">Galeria de Fotos ({photos.length})</h3>
                   </div>
-                  <h3 className="font-black text-xl text-gray-800">Galeria de Fotos ({item.hotelPhotos.length})</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {photos.map((photo: string, idx: number) => (
+                      <button 
+                        key={idx}
+                        onClick={() => setSelectedImage(photo)}
+                        className="relative aspect-square rounded-3xl overflow-hidden group hover:ring-4 ring-purple-500/20 transition-all shadow-md"
+                      >
+                        <Image src={photo} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="Foto do hotel" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                          <Package className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {item.hotelPhotos.map((photo, idx) => (
-                    <button 
-                      key={idx}
-                      onClick={() => setSelectedImage(photo)}
-                      className="relative aspect-square rounded-3xl overflow-hidden group hover:ring-4 ring-purple-500/20 transition-all shadow-md"
-                    >
-                      <Image src={photo} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="Foto do hotel" />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                        <Package className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       </motion.div>
