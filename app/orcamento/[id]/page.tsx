@@ -2,267 +2,164 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
-import Image from 'next/image';
-import {
-  Plane,
-  Hotel,
-  Shield,
-  Car,
-  Package,
-  MapPin,
-  Calendar,
-  Users,
-  Baby,
-  Briefcase,
-  Phone,
-  MessageCircle,
-  CheckCircle2,
-  Clock,
-  Coffee,
-  CreditCard,
-  Star,
-  Trash2,
-  ChevronRight,
-  ArrowRight,
-  Wifi,
-  Waves,
-  Wind,
-  ParkingCircle,
-  Dumbbell,
-  Spade as Spa,
-  UtensilsCrossed,
-  GlassWater as Wine,
-  Map as MapIcon,
-  ShoppingBag,
-  Ticket,
+import { 
+  Hotel, 
+  Plane, 
+  MapPin, 
+  Calendar, 
+  Coffee, 
+  Info, 
+  CheckCircle2, 
+  Clock, 
+  CreditCard, 
+  ChevronRight, 
+  Waves, 
+  Dumbbell, 
+  Car, 
+  UtensilsCrossed, 
+  Wine, 
+  Wind, 
+  Briefcase, 
+  Users, 
+  Tv, 
+  Shield, 
+  Baby, 
+  LayoutGrid, 
+  CigaretteOff, 
+  Shirt, 
   Maximize2,
   ChevronLeft,
+  Key,
+  GlassWater,
+  Navigation,
+  Sparkles,
+  Heart,
+  Wifi,
+  Leaf as Spa,
 } from 'lucide-react';
 
 // Cliente Supabase público (sem autenticação)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-const AGENCY = {
-  name: 'Easy Fly Agência de Viagens',
-  legalName: 'EASY FLY AGENCIA DE VIAGENS LTDA',
-  cnpj: '45.480.207/0001-49',
-  phone: '+55 (87) 9.9952-5083',
-  whatsapp: '5587999525083',
-  logoUrl: '/logo2.png',
-};
-
-type ItemType = 'passagem' | 'hospedagem' | 'seguro' | 'aluguel' | 'adicionais';
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface SaleItem {
-  id: string;
-  type: ItemType;
-  flightType?: 'ida' | 'ida_volta';
-  adults?: number;
-  children?: number;
-  babies?: number;
-  bags23kg?: number;
-  valuePaidByCustomer: number;
-  vendor?: string;
-  origin?: string;
-  destination?: string;
-  locator?: string;
-  emissionDate?: string;
-  departureDate?: string;
-  returnDate?: string;
+  type: 'flight' | 'hotel' | 'insurance' | 'car' | 'other';
+  description?: string;
+  hotelName?: string;
+  hotelAddress?: string;
+  hotelAmenities?: string[];
+  hotelImages?: string[];
+  hotelDescription?: string;
   checkIn?: string;
-  checkInTime?: string;
   checkOut?: string;
-  checkOutTime?: string;
   checkInDate?: string;
   checkOutDate?: string;
   hasBreakfast?: boolean;
-  hotelName?: string;
-  description?: string;
   passengerName?: string;
-  hotelAmenities?: string[];
-  hotelDescription?: string;
-  hotelImages?: string[];
+  vendor?: string;
+  price?: number;
+  flightNumber?: string;
+  airline?: string;
+  departure?: string;
+  destination?: string;
+  departureDate?: string;
+  arrivalDate?: string;
+  returnDate?: string;
+  returnFlightNumber?: string;
 }
 
 interface Sale {
   id: string;
-  orderNumber: number;
-  saleDate: string;
-  customerName: string;
-  groupName?: string;
+  client_name: string;
+  total_price: number;
+  status: string;
   items: SaleItem[];
-  totalValue: number;
-  paymentMethod: string;
-  notes?: string;
-  emissor?: string;
-  productName?: string;
+  created_at: string;
+  payment_method?: string;
+  installments?: number;
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-const formatDate = (dateStr?: string) => {
-  if (!dateStr || dateStr.includes('_')) return '—';
+function formatDate(dateString?: string) {
+  if (!dateString) return 'Data não definida';
   try {
-    // Normalizar formatos (ISO YYYY-MM-DD ou DD/MM/YYYY)
-    if (dateStr.includes('-')) {
-      const parts = dateStr.split('T')[0].split('-');
-      if (parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      return `${parts[0]}/${parts[1]}/${parts[2]}`;
-    }
-    if (dateStr.includes('/')) return dateStr;
-    return dateStr;
-  } catch { return dateStr || '—'; }
-};
-
-const INSTALLMENTS = [1, 2, 3, 4, 6, 10, 12];
-
-function TypeIcon({ type, size = 20 }: { type: ItemType; size?: number }) {
-  const cls = `w-${size === 20 ? 5 : 4} h-${size === 20 ? 5 : 4}`;
-  switch (type) {
-    case 'passagem': return <Plane className={cls} />;
-    case 'hospedagem': return <Hotel className={cls} />;
-    case 'seguro': return <Shield className={cls} />;
-    case 'aluguel': return <Car className={cls} />;
-    default: return <Package className={cls} />;
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (e) {
+    return dateString;
   }
 }
 
-function TypeLabel({ type }: { type: ItemType }) {
-  const labels: Record<ItemType, string> = {
-    passagem: 'Passagem Aérea',
-    hospedagem: 'Hospedagem',
-    seguro: 'Seguro Viagem',
-    aluguel: 'Aluguel de Carro',
-    adicionais: 'Adicionais',
-  };
-  return <>{labels[type] || type}</>;
+function TypeIcon({ type }: { type: SaleItem['type'] }) {
+  switch (type) {
+    case 'flight': return <Plane className="w-5 h-5" />;
+    case 'hotel': return <Hotel className="w-5 h-5" />;
+    case 'car': return <Car className="w-5 h-5" />;
+    default: return <Info className="w-5 h-5" />;
+  }
 }
 
-function TypeColor(type: ItemType) {
-  const colors: Record<ItemType, string> = {
-    passagem: 'from-blue-500 to-cyan-500',
-    hospedagem: 'from-purple-500 to-pink-500',
-    seguro: 'from-green-500 to-emerald-500',
-    aluguel: 'from-orange-500 to-amber-500',
-    adicionais: 'from-gray-500 to-slate-500',
-  };
-  return colors[type] || 'from-gray-400 to-gray-500';
+function TypeLabel({ type }: { type: SaleItem['type'] }) {
+  switch (type) {
+    case 'flight': return 'Passagem Aérea';
+    case 'hotel': return 'Hospedagem';
+    case 'insurance': return 'Seguro Viagem';
+    case 'car': return 'Locação de Veículo';
+    default: return 'Outros Serviços';
+  }
 }
 
-function FlightItem({ item }: { item: SaleItem }) {
+function TypeColor(type: SaleItem['type']) {
+  switch (type) {
+    case 'flight': return 'from-blue-500 to-indigo-600';
+    case 'hotel': return 'from-[#19727d] to-[#0d5c66]';
+    case 'car': return 'from-amber-500 to-orange-600';
+    default: return 'from-slate-500 to-slate-600';
+  }
+}
+
+function PriceDetails({ sale }: { sale: Sale }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <div className={`h-1.5 w-full bg-gradient-to-r ${TypeColor(item.type)}`} />
-      <div className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${TypeColor(item.type)} flex items-center justify-center text-white shadow-md`}>
-              <TypeIcon type={item.type} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest"><TypeLabel type={item.type} /></p>
-              {item.flightType && (
-                <p className="text-xs text-blue-500 font-bold">{item.flightType === 'ida' ? '✈ Somente Ida' : '⇄ Ida e Volta'}</p>
-              )}
-            </div>
-          </div>
-          {item.vendor && (
-            <span className="px-3 py-1 bg-gray-50 text-gray-500 rounded-full text-[11px] font-bold border border-gray-100">{item.vendor}</span>
-          )}
+    <div className="bg-[#19727d] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-white/20 transition-all duration-500" />
+      <div className="relative z-10">
+        <p className="text-white/70 text-sm font-bold uppercase tracking-[0.2em] mb-2">Valor do Investimento</p>
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold opacity-60">R$</span>
+          <h2 className="text-5xl font-black tracking-tighter">
+            {sale.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </h2>
         </div>
-
-        {/* Rota */}
-        {(item.origin || item.destination) && (
-          <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4">
-            <div className="text-center">
-              <p className="text-2xl font-black text-gray-800">{item.origin || '—'}</p>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Origem</p>
-            </div>
-            <div className="flex-1 flex flex-col items-center gap-1">
-              <div className="flex items-center w-full gap-1">
-                <div className="h-px flex-1 border-t-2 border-dashed border-blue-300" />
-                <Plane className="w-4 h-4 text-blue-400 rotate-0" />
-                <div className="h-px flex-1 border-t-2 border-dashed border-blue-300" />
+        
+        {sale.payment_method && (
+          <div className="mt-8 pt-8 border-t border-white/10 flex flex-wrap gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md">
+                <CreditCard className="w-5 h-5" />
               </div>
-              <p className="text-[10px] text-blue-400 font-bold">VOO DIRETO</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-black text-gray-800">{item.destination || '—'}</p>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Destino</p>
-            </div>
-          </div>
-        )}
-
-        {/* Datas */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {item.departureDate && (
-            <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
-              <Calendar className="w-4 h-4 text-blue-400 flex-shrink-0" />
               <div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase">Embarque</p>
-                <p className="text-sm font-black text-gray-700">{formatDate(item.departureDate)}</p>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-white/50 mb-0.5">Forma de Pagamento</p>
+                <p className="font-bold text-sm">{sale.payment_method}</p>
               </div>
             </div>
-          )}
-          {item.returnDate && item.flightType === 'ida_volta' && (
-            <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
-              <Calendar className="w-4 h-4 text-purple-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase">Retorno</p>
-                <p className="text-sm font-black text-gray-700">{formatDate(item.returnDate)}</p>
-              </div>
-            </div>
-          )}
-          {item.locator && (
-            <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
-              <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase">Localizador</p>
-                <p className="text-sm font-black text-gray-700 font-mono">{item.locator}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Passageiros */}
-        {(item.adults || item.children || item.babies || item.bags23kg) && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {!!item.adults && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-bold">
-                <Users className="w-3.5 h-3.5" />
-                {item.adults} Adulto{item.adults > 1 ? 's' : ''}
+            
+            {sale.installments && sale.installments > 1 && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-white/50 mb-0.5">Parcelamento</p>
+                  <p className="font-bold text-sm">{sale.installments}x de R$ {(sale.total_price / sale.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                </div>
               </div>
             )}
-            {!!item.children && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-600 rounded-full text-xs font-bold">
-                <Users className="w-3.5 h-3.5" />
-                {item.children} Criança{item.children > 1 ? 's' : ''}
-              </div>
-            )}
-            {!!item.babies && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 text-pink-600 rounded-full text-xs font-bold">
-                <Baby className="w-3.5 h-3.5" />
-                {item.babies} Bebê{item.babies > 1 ? 's' : ''}
-              </div>
-            )}
-            {!!item.bags23kg && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full text-xs font-bold">
-                <Briefcase className="w-3.5 h-3.5" />
-                {item.bags23kg} Mala{item.bags23kg > 1 ? 's' : ''} 23kg
-              </div>
-            )}
-          </div>
-        )}
-
-        {item.passengerName && (
-          <div className="flex items-center gap-2 text-xs text-gray-400 border-t border-gray-50 pt-3">
-            <Users className="w-3.5 h-3.5" />
-            <span className="font-bold">{item.passengerName}</span>
           </div>
         )}
       </div>
@@ -270,28 +167,33 @@ function FlightItem({ item }: { item: SaleItem }) {
   );
 }
 
-function HotelGallery({ images, name }: { images: string[]; name: string }) {
+function HotelGalleryThumbnail({ images, name }: { images: string[]; name: string }) {
   const [current, setCurrent] = useState(0);
 
-  if (!images || images.length === 0) return null;
+  const getUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=1200&h=800&fit=cover`;
+  };
 
   return (
-    <div className="space-y-3">
-      {/* IMAGEM PRINCIPAL (HERO) */}
-      <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] rounded-3xl overflow-hidden group bg-slate-100 shadow-lg border border-slate-100">
-        <Image 
-          src={images[current]} 
-          alt={`${name} - Foto ${current + 1}`} 
-          fill 
-          className="object-cover transition-opacity duration-500" 
-          priority
-          unoptimized={true}
-        />
+    <div className="space-y-4">
+      <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-slate-100 group shadow-lg">
+        {images[current] ? (
+          <img 
+            src={getUrl(images[current])} 
+            alt={`${name} photo ${current + 1}`}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-300">
+            <Hotel className="w-12 h-12" />
+          </div>
+        )}
         
-        {/* Camada de Gradiente Suave */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
-
-        {/* NAVEGAÇÃO - SETAS (Somente se houver mais de uma foto) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+        
         {images.length > 1 && (
           <>
             <button 
@@ -309,37 +211,49 @@ function HotelGallery({ images, name }: { images: string[]; name: string }) {
           </>
         )}
 
-        {/* CONTADOR DE FOTOS PREMIUM */}
         <div className="absolute top-5 right-5 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl text-[11px] font-black text-white/90 uppercase tracking-[0.1em] border border-white/10 flex items-center gap-2.5 z-20 shadow-lg">
           <Maximize2 className="w-3.5 h-3.5" /> 
           <span>{current + 1} / {images.length}</span>
         </div>
       </div>
 
-      {/* TIRA DE MINIATURAS (THUMBNAILS) */}
-      {images.length > 1 && (
-        <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 scrollbar-hide snap-x">
-          {images.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrent(idx)}
-              className={`relative flex-shrink-0 w-24 h-16 rounded-xl overflow-hidden border-2 transition-all snap-start ${
-                idx === current ? 'border-[#19727d] rotate-0 scale-100 shadow-md ring-2 ring-[#19727d]/20' : 'border-transparent opacity-60 hover:opacity-100 scale-95 grayscale-[30%]'
-              }`}
-            >
-              <Image 
-                src={img} 
-                alt={`${name} thumb ${idx}`} 
-                fill 
-                className="object-cover" 
-                unoptimized={true}
-              />
-            </button>
-          ))}
+      {images.length > 0 && (
+        <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide snap-x">
+          {images.map((img, idx) => {
+            const thumbUrl = getUrl(img);
+            return (
+              <button
+                key={idx}
+                onClick={() => setCurrent(idx)}
+                className={`relative flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden border-2 transition-all snap-start ${
+                  idx === current ? 'border-[#19727d] rotate-0 scale-100 shadow-md ring-2 ring-[#19727d]/20' : 'border-transparent opacity-60 hover:opacity-100 scale-95 grayscale-[30%]'
+                }`}
+              >
+                {thumbUrl ? (
+                  <img 
+                    src={thumbUrl} 
+                    alt={`${name} thumb ${idx}`} 
+                    className="absolute inset-0 w-full h-full object-cover"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-slate-200 flex items-center justify-center">
+                    <Hotel className="w-4 h-4 text-slate-400" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
   );
+}
+
+function HotelGallery({ images, name }: { images?: string[]; name: string }) {
+  if (!images || images.length === 0) return null;
+  return <HotelGalleryThumbnail images={images} name={name} />;
 }
 
 function HotelItem({ item }: { item: SaleItem }) {
@@ -347,42 +261,37 @@ function HotelItem({ item }: { item: SaleItem }) {
     <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
       <div className="h-1.5 w-full bg-[#19727d]" />
       
-      <div className="p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 sm:p-5 space-y-4">
+        <div className="flex flex-row items-center justify-between gap-4 flex-nowrap overflow-hidden">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#19727d] to-[#0d5c66] flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
-              <Hotel className="w-6 h-6" />
+            <div className="w-14 h-14 rounded-2xl bg-[#19727d] flex items-center justify-center text-white shadow-xl shadow-[#19727d]/20 shrink-0 transform group-hover:rotate-3 transition-transform duration-500">
+              <Hotel className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-[#19727d] uppercase tracking-[0.2em] leading-none mb-1.5">Hospedagem</p>
-              <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-tight">{item.hotelName || item.description || 'Nome do Hotel'}</h3>
+              <p className="text-[10px] font-black text-[#19727d] uppercase tracking-[0.3em] leading-none mb-1.5">Hospedagem</p>
+              <h3 className="font-black text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">{item.hotelName || item.description || 'Nome do Hotel'}</h3>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-             {item.hasBreakfast && (
-               <div className="flex items-center gap-2.5 px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-2xl shadow-sm">
-                 <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-                    <Coffee className="w-4 h-4" />
-                 </div>
-                 <div className="leading-none">
-                    <p className="text-[9px] font-black uppercase text-amber-800 tracking-tight">Café da Manhã</p>
-                    <p className="text-[8px] font-bold text-amber-600 uppercase mt-0.5">Incluso</p>
-                 </div>
-               </div>
-             )}
-
-             <div className="flex bg-slate-50 border border-slate-100 rounded-2xl p-2.5 gap-4">
-                <div className="text-center px-2">
-                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Check-in</p>
-                   <p className="text-[11px] font-black text-slate-800">{formatDate(item.checkIn || item.checkInDate)}</p>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+             <div className="flex bg-white border border-slate-100 rounded-xl p-2 gap-4 shadow-sm">
+                <div className="text-center px-2.5">
+                   <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-in</p>
+                   <p className="text-[13px] font-black text-[#19727d] leading-none">{formatDate(item.checkIn || item.checkInDate)}</p>
                 </div>
-                <div className="w-px bg-slate-200" />
-                <div className="text-center px-2">
-                   <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Check-out</p>
-                   <p className="text-[11px] font-black text-slate-800">{formatDate(item.checkOut || item.checkOutDate)}</p>
+                <div className="w-px bg-slate-100" />
+                <div className="text-center px-2.5">
+                   <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-out</p>
+                   <p className="text-[13px] font-black text-[#19727d] leading-none">{formatDate(item.checkOut || item.checkOutDate)}</p>
                 </div>
              </div>
+
+             {item.hasBreakfast && (
+               <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-100 rounded-xl shadow-sm h-fit w-full justify-center">
+                  <Coffee className="w-4 h-4 text-orange-500" />
+                  <span className="text-[10px] font-black uppercase text-slate-700 tracking-tight whitespace-nowrap">Café da manhã</span>
+               </div>
+             )}
           </div>
         </div>
 
@@ -393,46 +302,72 @@ function HotelItem({ item }: { item: SaleItem }) {
         {(() => {
           const AMENITY_MAP: Record<string, { label: string; icon: any }> = {
             'wifi': { label: 'Wi-Fi Grátis', icon: Wifi },
-            'internet': { label: 'Wi-Fi Grátis', icon: Wifi },
+            'wi-fi': { label: 'Wi-Fi Grátis', icon: Wifi },
             'piscina': { label: 'Piscina', icon: Waves },
             'pool': { label: 'Piscina', icon: Waves },
-            'beira-mar': { label: 'Pé na Areia', icon: MapIcon },
-            'spa': { label: 'Spa Premium', icon: Spa },
             'academia': { label: 'Academia', icon: Dumbbell },
             'gym': { label: 'Academia', icon: Dumbbell },
-            'ar condicionado': { label: 'Climatizado', icon: Wind },
-            'climatização': { label: 'Climatizado', icon: Wind },
-            'ac': { label: 'Ar Condicionado', icon: Wind },
+            'fitness': { label: 'Academia', icon: Dumbbell },
+            'estacionamento': { label: 'Estacionamento', icon: Car },
+            'parking': { label: 'Estacionamento', icon: Car },
             'restaurante': { label: 'Restaurante', icon: UtensilsCrossed },
             'restaurant': { label: 'Restaurante', icon: UtensilsCrossed },
-            'bar': { label: 'Bar', icon: Wine },
-            'estacionamento': { label: 'Park', icon: ParkingCircle },
-            'shopping': { label: 'Shopping', icon: ShoppingBag },
-            'ticket': { label: 'Atrações', icon: Ticket },
+            'bar': { label: 'Bar & Drinks', icon: Wine },
+            'café': { label: 'Café da Manhã', icon: Coffee },
+            'breakfast': { label: 'Café da Manhã', icon: Coffee },
+            'ar condicionado': { label: 'Ar Condicionado', icon: Wind },
+            'ac': { label: 'Ar Condicionado', icon: Wind },
+            'air conditioning': { label: 'Ar Condicionado', icon: Wind },
+            'spa': { label: 'Spa Premium', icon: Spa },
+            'sauna': { label: 'Sauna', icon: Wind },
+            'praia': { label: 'Beira Mar', icon: MapPin },
+            'serviço de quarto': { label: 'Serviço de Quarto', icon: Briefcase },
+            'recepção': { label: 'Recepção 24h', icon: Key },
+            'tv': { label: 'Smart TV', icon: Tv },
+            'frigobar': { label: 'Frigobar', icon: GlassWater },
+            'cofre': { label: 'Cofre', icon: Shield },
+            'lavanderia': { label: 'Lavanderia', icon: Shirt },
+            'kids': { label: 'Espaço Kids', icon: Baby },
+            'elevador': { label: 'Elevador', icon: Navigation },
+            'não fumante': { label: 'Não Fumante', icon: CigaretteOff },
+            'business': { label: 'Business Center', icon: Briefcase },
+            'reunião': { label: 'Sala de Reuniões', icon: Users },
+            'eventos': { label: 'Eventos', icon: Sparkles },
+            'turismo': { label: 'Balcão de Turismo', icon: MapPin },
+            'serviços': { label: 'Serviços', icon: Sparkles },
+            'instalações': { label: 'Instalações', icon: LayoutGrid },
+            'quartos': { label: 'Acomodações', icon: Users },
+          };
+
+          const resolveAmenity = (amenity: string) => {
+            const search = amenity.toLowerCase();
+            const entry = Object.entries(AMENITY_MAP).find(([key]) => search.includes(key));
+            if (entry) return entry[1];
+            return { label: amenity, icon: CheckCircle2 };
           };
 
           const source = item.hotelAmenities || [];
-          const features = source.map(a => {
-            const normalized = a.toLowerCase();
-            const match = Object.entries(AMENITY_MAP).find(([k]) => normalized.includes(k));
-            return match ? match[1] : { label: a, icon: CheckCircle2 };
-          }).slice(0, 12); // Aumentado para 12 comodidades
+          const features = source.map(resolveAmenity).slice(0, 16);
 
           if (features.length === 0) return null;
 
           return (
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">Destaques da Hospedagem</p>
-                 <div className="h-px bg-slate-100 flex-1" />
+              <div className="flex items-center gap-2">
+                 <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-500 border border-cyan-100/50 shadow-sm">
+                    <Sparkles className="w-4 h-4" />
+                 </div>
+                 <h3 className="text-base font-black text-slate-900 tracking-tight">O que este hotel oferece</h3>
               </div>
-              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {features.map((f, i) => (
-                  <div key={i} className="flex flex-col items-center justify-center p-4 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-md hover:border-[#19727d]/20 transition-all group/item min-h-[90px] text-center">
-                     <div className="w-10 h-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-[#19727d] mb-2.5 shadow-inner group-hover/item:scale-110 group-hover/item:bg-[#19727d]/5 transition-all outline-none">
-                        <f.icon className="w-5 h-5 stroke-[2.5]" />
-                     </div>
-                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter leading-tight px-1">{f.label}</span>
+                  <div key={i} className="flex items-center gap-2.5 bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm hover:border-cyan-100 transition-all group/item cursor-default">
+                    <div className="w-8 h-8 rounded-full bg-cyan-50/50 flex items-center justify-center shrink-0 group-hover/item:bg-cyan-50 transition-colors border border-cyan-100/20">
+                      <f.icon className="w-3.5 h-3.5 text-cyan-600" />
+                    </div>
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight leading-tight group-hover/item:text-slate-900 line-clamp-1">
+                      {f.label}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -441,16 +376,16 @@ function HotelItem({ item }: { item: SaleItem }) {
         })()}
 
         {item.hotelDescription && (
-          <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Sobre o Hotel</p>
-             <p className="text-gray-600 text-sm leading-relaxed line-clamp-4 hover:line-clamp-none transition-all cursor-pointer">{item.hotelDescription}</p>
+          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Sobre o Hotel</p>
+             <p className="text-gray-600 text-[13px] leading-relaxed line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">{item.hotelDescription}</p>
           </div>
         )}
 
         {item.passengerName && (
-          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-3 border-t border-slate-100/50">
+          <div className="flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest pt-3 border-t border-slate-100/50">
             <Users className="w-3.5 h-3.5" />
-            Titular da Reserva: {item.passengerName}
+            Titular: {item.passengerName}
           </div>
         )}
       </div>
@@ -500,322 +435,140 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
   );
 }
 
-export default function OrcamentoPage() {
-  const params = useParams();
-  const id = params?.id as string;
+function Header({ sale }: { sale: Sale }) {
+  return (
+    <header className="mb-12">
+      <div className="flex items-center justify-center mb-8">
+        <h1 className="text-3xl font-black text-[#19727d] tracking-tighter flex items-center gap-2 italic">
+          EASY FLY <span className="text-slate-300 font-light">TURISMO</span>
+        </h1>
+      </div>
+      
+      <div className="text-center space-y-2">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none mb-4">Proposta Especial para</p>
+        <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">{sale.client_name}</h2>
+        <div className="flex items-center justify-center gap-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest pt-4">
+          <Calendar className="w-3 h-3" />
+          Emitido em {formatDate(sale.created_at)}
+        </div>
+      </div>
+    </header>
+  );
+}
 
+export default function BudgetPage() {
+  const { id } = useParams();
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
-    fetchSale();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const fetchSale = async () => {
-    try {
-      setLoading(true);
-
-      const { data: saleData, error: saleError } = await supabase
+    async function fetchSale() {
+      if (!id) return;
+      const { data, error } = await supabase
         .from('sales')
-        .select('*, customer:customers(name), group:groups(name)')
+        .select('*')
         .eq('id', id)
         .single();
-
-      if (saleError || !saleData) {
-        setNotFound(true);
-        return;
-      }
-
-      const { data: itemsData } = await supabase
-        .from('sale_items')
-        .select('*')
-        .eq('sale_id', id);
-
-      const items: SaleItem[] = (itemsData || []).map((i: any) => ({
-        id: i.id,
-        type: i.type as ItemType,
-        flightType: i.flight_type,
-        adults: i.adults,
-        children: i.children,
-        babies: i.babies,
-        bags23kg: i.bags23kg,
-        valuePaidByCustomer: parseFloat(i.value_paid_by_customer || '0'),
-        vendor: i.vendor,
-        origin: i.origin,
-        destination: i.destination,
-        locator: i.locator,
-        emissionDate: i.emission_date,
-        departureDate: i.departure_date,
-        returnDate: i.return_date,
-        checkIn: i.check_in,
-        checkInTime: i.check_in_time,
-        checkOut: i.check_out,
-        checkOutTime: i.check_out_time,
-        hasBreakfast: i.has_breakfast,
-        hotelName: i.hotel_name,
-        description: i.description,
-        passengerName: i.passenger_name,
-        hotelAmenities: Array.isArray(i.hotel_amenities) ? i.hotel_amenities : [],
-        hotelDescription: i.hotel_description,
-        hotelImages: Array.isArray(i.hotel_images) ? i.hotel_images : [],
-      }));
-
-      setSale({
-        id: saleData.id,
-        orderNumber: saleData.order_number,
-        saleDate: saleData.sale_date,
-        customerName: saleData.customer?.name || saleData.customer_name || 'Cliente',
-        groupName: saleData.group?.name || saleData.group_name || '',
-        items,
-        totalValue: parseFloat(saleData.total_value || '0'),
-        paymentMethod: saleData.payment_method || 'A definir',
-        notes: saleData.notes || '',
-        emissor: saleData.emissor || '',
-        productName: saleData.product_name || '',
-      });
-    } catch (err) {
-      console.error(err);
-      setNotFound(true);
-    } finally {
+      
+      if (data) setSale(data);
       setLoading(false);
     }
-  };
+    fetchSale();
+  }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#19727d]/5 to-cyan-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center mx-auto animate-pulse">
-            <Image src={AGENCY.logoUrl} alt="Easy Fly" width={40} height={40} className="w-10 h-10 object-contain" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-black text-[#19727d] text-xl">Easy Fly</p>
-            <p className="text-gray-400 text-sm font-medium">Carregando seu orçamento...</p>
-          </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#19727d]/20 border-t-[#19727d] rounded-full animate-spin" />
+          <p className="text-sm font-black text-[#19727d] uppercase tracking-widest animate-pulse">Carregando Proposta...</p>
         </div>
       </div>
     );
   }
 
-  if (notFound || !sale) {
+  if (!sale) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#19727d]/5 to-cyan-50 flex items-center justify-center p-4">
-        <div className="text-center space-y-5 max-w-sm">
-          <div className="w-20 h-20 rounded-3xl bg-white shadow-xl flex items-center justify-center mx-auto">
-            <Image src={AGENCY.logoUrl} alt="Easy Fly" width={48} height={48} className="w-12 h-12 object-contain" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="bg-white p-12 rounded-3xl shadow-xl text-center max-w-md border border-slate-100">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 mx-auto mb-6 shadow-inner">
+            <Info className="w-10 h-10" />
           </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-black text-gray-800">Orçamento não encontrado</h1>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              Este link pode ter expirado ou ser inválido. Entre em contato com a agência para obter um novo link.
-            </p>
-          </div>
-          <a
-            href={`https://wa.me/${AGENCY.whatsapp}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-2xl font-bold shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Falar no WhatsApp
-          </a>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Proposta não encontrada</h2>
+          <p className="text-slate-500 text-sm mb-8">O link pode ter expirado ou a proposta foi removida do sistema.</p>
+          <button onClick={() => window.location.reload()} className="w-full py-4 bg-[#19727d] text-white rounded-2xl font-bold hover:shadow-lg transition-all active:scale-95">Tentar Novamente</button>
         </div>
       </div>
     );
   }
 
-  const flights = sale.items.filter(i => i.type === 'passagem');
-  const hotels = sale.items.filter(i => i.type === 'hospedagem');
-  const others = sale.items.filter(i => !['passagem', 'hospedagem'].includes(i.type));
-  const whatsappMsg = encodeURIComponent(
-    `Olá! Vim pelo link do orçamento #${sale.orderNumber} referente à viagem de ${sale.customerName}. Gostaria de mais informações.`
-  );
+  const flights = sale.items?.filter(i => i.type === 'flight') || [];
+  const hotels = sale.items?.filter(i => i.type === 'hotel') || [];
+  const others = sale.items?.filter(i => i.type !== 'flight' && i.type !== 'hotel') || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/30 font-sans">
-
-      {/* HERO HEADER */}
-      <header className="bg-gradient-to-br from-[#19727d] via-[#1a8090] to-[#0d5c66] text-white relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
-
-        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-8">
-          {/* Logo + Agency */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg flex-shrink-0 p-1.5">
-              <Image src={AGENCY.logoUrl} alt="Easy Fly" width={48} height={48} className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <p className="font-black text-white text-lg leading-tight tracking-tight">Easy Fly</p>
-              <p className="text-white/60 text-[10px] uppercase tracking-[0.2em] font-bold">Agência de Viagens</p>
-            </div>
-          </div>
-
-          {/* Order badge */}
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-white/90 mb-4 border border-white/20">
-            <CheckCircle2 className="w-4 h-4 text-green-300" />
-            Orçamento #{sale.orderNumber} • {formatDate(sale.saleDate)}
-          </div>
-
-          {/* Client info */}
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-2">
-            {sale.productName || 'Proposta de Viagem'}
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 mt-3">
-            <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full">
-              <Users className="w-4 h-4 text-white/70" />
-              <span className="text-sm font-bold text-white/90">{sale.customerName}</span>
-            </div>
-            {sale.emissor && (
-              <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full">
-                <Star className="w-4 h-4 text-yellow-300" />
-                <span className="text-sm font-bold text-white/90">Consultor: {sale.emissor}</span>
+    <main className="min-h-screen bg-[#f8fafc] py-12 px-4 sm:py-20 no-scrollbar">
+      <div className="max-w-4xl mx-auto">
+        <Header sale={sale} />
+        
+        <div className="space-y-12">
+          {hotels.length > 0 && (
+            <section>
+              <SectionTitle icon={<Hotel className="w-4 h-4" />} title="Hospedagem" />
+              <div className="space-y-6">
+                {hotels.map((hotel, idx) => <HotelItem key={idx} item={hotel} />)}
               </div>
-            )}
-          </div>
-        </div>
-      </header>
+            </section>
+          )}
 
-      {/* MAIN CONTENT */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-10">
-
-        {/* ===== VOOS ===== */}
-        {flights.length > 0 && (
-          <section>
-            <SectionTitle icon={<Plane className="w-4 h-4" />} title="Voos" />
-            <div className="space-y-4">
-              {flights.map(item => <FlightItem key={item.id} item={item} />)}
-            </div>
-          </section>
-        )}
-
-        {/* ===== HOSPEDAGENS ===== */}
-        {hotels.length > 0 && (
-          <section>
-            <SectionTitle icon={<Hotel className="w-4 h-4" />} title="Hospedagem" />
-            <div className="space-y-4">
-              {hotels.map(item => <HotelItem key={item.id} item={item} />)}
-            </div>
-          </section>
-        )}
-
-        {/* ===== OUTROS SERVIÇOS ===== */}
-        {others.length > 0 && (
-          <section>
-            <SectionTitle icon={<Package className="w-4 h-4" />} title="Outros Serviços" />
-            <div className="space-y-4">
-              {others.map(item => <OtherItem key={item.id} item={item} />)}
-            </div>
-          </section>
-        )}
-
-        {/* ===== VALORES ===== */}
-        <section>
-          <SectionTitle icon={<CreditCard className="w-4 h-4" />} title="Valores & Pagamento" />
-          <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] rounded-2xl p-6 text-white shadow-xl shadow-[#19727d]/20">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-white/70 text-sm font-bold uppercase tracking-widest">Total da Viagem</p>
-                <p className="text-4xl font-black tracking-tight mt-1">{formatCurrency(sale.totalValue)}</p>
-              </div>
-              <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center">
-                <CreditCard className="w-7 h-7 text-white" />
-              </div>
-            </div>
-
-            {sale.paymentMethod && sale.paymentMethod !== 'Não definido' && (
-              <div className="bg-white/10 rounded-xl p-3 mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-white/70 flex-shrink-0" />
-                <p className="text-sm font-bold text-white/90">{sale.paymentMethod}</p>
-              </div>
-            )}
-
-            <div className="border-t border-white/20 pt-4">
-              <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-3">Simulação de parcelamento</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {INSTALLMENTS.map(n => (
-                  <div key={n} className="bg-white/10 rounded-xl p-2.5 text-center hover:bg-white/20 transition-colors">
-                    <p className="text-[11px] text-white/60 font-bold">{n}x de</p>
-                    <p className="text-sm font-black text-white">{formatCurrency(sale.totalValue / n)}</p>
+          {flights.length > 0 && (
+            <section>
+              <SectionTitle icon={<Plane className="w-4 h-4" />} title="Passagens Aéreas" />
+              <div className="space-y-4">
+                {flights.map((flight, idx) => (
+                  <div key={idx} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                    <div className="h-1.5 w-full bg-blue-500" />
+                    <div className="p-6">
+                       {/* Simplified Flight Render for Brevity */}
+                       <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                                <Plane className="w-6 h-6" />
+                             </div>
+                             <div>
+                                <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1.5">Voo {flight.flightNumber}</p>
+                                <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-tight">{flight.departure} → {flight.destination}</h3>
+                             </div>
+                          </div>
+                          <div className="text-right">
+                             <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Embarque</p>
+                             <p className="font-black text-lg text-[#19727d]">{formatDate(flight.departureDate)}</p>
+                          </div>
+                       </div>
+                    </div>
                   </div>
                 ))}
               </div>
-              <p className="text-white/40 text-[10px] mt-2 text-center">* Valores sem juros. Consulte condições com a agência.</p>
-            </div>
-          </div>
-        </section>
+            </section>
+          )}
 
-        {/* ===== OBSERVAÇÕES ===== */}
-        {sale.notes && (
-          <section>
-            <SectionTitle icon={<Package className="w-4 h-4" />} title="Observações" />
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
-              <p className="text-gray-700 text-sm leading-relaxed font-medium">{sale.notes}</p>
-            </div>
-          </section>
-        )}
+          {others.length > 0 && (
+            <section>
+              <SectionTitle icon={<CheckCircle2 className="w-4 h-4" />} title="Serviços Adicionais" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {others.map((other, idx) => <OtherItem key={idx} item={other} />)}
+              </div>
+            </section>
+          )}
 
-        {/* ===== CTA WHATSAPP ===== */}
-        <section className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-6 text-center space-y-4">
-          <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-green-500/30">
-            <MessageCircle className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <p className="font-black text-gray-800 text-lg">Gostou? Vamos confirmar sua viagem!</p>
-            <p className="text-gray-500 text-sm mt-1">Fale diretamente com nosso consultor pelo WhatsApp.</p>
-          </div>
-          <a
-            href={`https://wa.me/${AGENCY.whatsapp}?text=${whatsappMsg}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-green-500 text-white rounded-2xl font-black shadow-xl shadow-green-500/30 hover:bg-green-600 active:scale-95 transition-all"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Confirmar no WhatsApp
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        </section>
-      </main>
-
-      {/* FOOTER AGÊNCIA */}
-      <footer className="border-t border-gray-100 bg-white mt-10">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#19727d]/10 flex items-center justify-center p-1">
-                <Image src={AGENCY.logoUrl} alt="Easy Fly" width={40} height={40} className="w-full h-full object-contain" />
-              </div>
-              <div>
-                <p className="font-black text-[#19727d] text-base leading-tight">Easy Fly</p>
-                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Agência de Viagens</p>
-              </div>
-            </div>
-            <div className="space-y-1.5 text-sm">
-              <div className="flex items-center gap-2 text-gray-500">
-                <Phone className="w-3.5 h-3.5 text-[#19727d]" />
-                <span className="font-bold">{AGENCY.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-500">
-                <MessageCircle className="w-3.5 h-3.5 text-green-500" />
-                <a href={`https://wa.me/${AGENCY.whatsapp}`} target="_blank" rel="noopener noreferrer" className="font-bold hover:text-green-600 transition-colors">
-                  WhatsApp
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-50 mt-6 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <p className="text-[11px] text-gray-400 font-bold">{AGENCY.legalName}</p>
-            <p className="text-[11px] text-gray-400">CNPJ {AGENCY.cnpj}</p>
-          </div>
-          <p className="text-center text-[10px] text-gray-300 mt-4 font-medium">
-            Este orçamento é válido por 72 horas a partir da data de emissão. • Easy Fly © {new Date().getFullYear()}
-          </p>
+          <PriceDetails sale={sale} />
+          
+          <footer className="text-center space-y-6 pt-12">
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Easy Fly Turismo - Todos os direitos reservados</p>
+            <div className="w-12 h-1.5 bg-slate-200 mx-auto rounded-full" />
+          </footer>
         </div>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }
