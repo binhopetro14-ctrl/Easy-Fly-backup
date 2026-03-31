@@ -8,7 +8,7 @@ import {
   Plane, Hotel, Shield, Car, Package, Calendar, Users, Briefcase,
   Phone, MessageCircle, CheckCircle, Clock, CreditCard, ArrowRight,
   MapPin, ChevronDown, ChevronUp, Info, Map, TrendingDown, Backpack, Luggage, Instagram, RefreshCw, DollarSign,
-  Printer, ShieldAlert, Download, FileText, Star, X
+  Printer, ShieldAlert, Download, FileText, Star, X, Coffee
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -30,7 +30,22 @@ const AGENCY = {
   logoUrl: '/logo2.png',
 };
 
-const INSTALLMENTS = [1, 2, 3, 4, 6, 10, 12];
+const INSTALLMENTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+const INTEREST_RATES: Record<number, number> = {
+  1: 3.46,
+  2: 4.75,
+  3: 5.65,
+  4: 6.52,
+  5: 7.29,
+  6: 8.76,
+  7: 9.28,
+  8: 10.31,
+  9: 11.39,
+  10: 12.55,
+  11: 13.55,
+  12: 14.75,
+};
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -179,6 +194,8 @@ interface Lead {
   usd_rate: number;
   eur_rate: number;
   gbp_rate: number;
+  fees_type?: 'with_interest' | 'interest_free';
+  fees_installments?: number;
 }
 
 function TypeIcon({ type }: { type: string }) {
@@ -420,6 +437,8 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
   const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLeafletReady, setLeafletReady] = useState(false);
+  // Correção: Verificar se o voo principal sendo exibido é ida e volta
+  const isIdaVolta = flights[0]?.flightType === 'ida_volta';
 
   useEffect(() => {
     if ((window as any).L) {
@@ -445,7 +464,6 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
 
     const firstFlight = flights[0];
     const outbound = firstFlight.outboundSegments || [];
-    const isIdaVolta = firstFlight.flightType === 'ida_volta';
     
     const ori = outbound[0]?.origin || 'REC';
     const des = outbound[outbound.length - 1]?.destination || 'GIG';
@@ -577,7 +595,7 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
                  <div className="w-3 h-1 rounded-full bg-[#0891b2] shadow-[0_0_8px_rgba(8,145,178,0.5)]" />
                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest whitespace-nowrap">Ida</span>
               </div>
-              {flights[0]?.flightType === 'ida_volta' && (
+              {isIdaVolta && (
                 <div className="flex items-center gap-2 border-l border-slate-200/50 pl-3">
                    <div className="w-3 h-1 rounded-full bg-[#9333ea] shadow-[0_0_8px_rgba(147,51,234,0.5)]" />
                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest whitespace-nowrap">Volta</span>
@@ -738,7 +756,7 @@ function FlightLegCard({
               </div>
             </div>
 
-            {/* Middle Block - Timeline */}
+{/* Middle Block - Timeline */}
             <div className="flex-1 flex flex-col items-center relative h-12 group self-center">
                {/* Journey Duration above badge */}
                <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap">
@@ -1208,20 +1226,57 @@ function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: {
 
 
 
-        {/* COMODIDADES */}
+        {/* COMODIDADES EM GRID (Máximo 4 Colunas) */}
         {item.hotelAmenities && item.hotelAmenities.length > 0 && (
-          <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Principais Comodidades</p>
-            <div className="flex flex-wrap gap-2">
-              {item.hotelAmenities.slice(0, 8).map((amenity, idx) => {
-                const resolved = resolveAmenity(amenity);
-                return (
-                  <div key={idx} className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full">
-                    <span className="text-sm">{resolved.icon}</span>
-                    <span className="text-[10px] font-bold text-slate-600">{resolved.label}</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Comodidades em Destaque</p>
+               <div className="h-px bg-slate-100 flex-1 ml-4" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+              {(() => {
+                const priorityOrder = ['pool', 'wifi', 'beach', 'ac', 'parking', 'gym', 'spa', 'breakfast', 'restaurant', 'bar'];
+                
+                // Sistema resiliente: se não houver comodidades explícitas, tenta extrair da descrição
+                let sourceAmenities = item.hotelAmenities || [];
+                if (sourceAmenities.length === 0 && item.hotelDescription) {
+                  const desc = item.hotelDescription.toLowerCase();
+                  if (desc.includes('piscina') || desc.includes('pool')) sourceAmenities.push('Pool');
+                  if (desc.includes('wi-fi') || desc.includes('internet')) sourceAmenities.push('WiFi');
+                  if (desc.includes('ar condicionado') || desc.includes('air conditioning')) sourceAmenities.push('AC');
+                  if (desc.includes('estacionamento') || desc.includes('parking')) sourceAmenities.push('Parking');
+                  if (desc.includes('academia') || desc.includes('gym')) sourceAmenities.push('Gym');
+                  if (desc.includes('spa')) sourceAmenities.push('Spa');
+                  if (desc.includes('restaurante') || desc.includes('dinner')) sourceAmenities.push('Restaurant');
+                  if (desc.includes('bar')) sourceAmenities.push('Bar');
+                }
+
+                const featured = sourceAmenities
+                  .map(a => ({ raw: a, resolved: resolveAmenity(a) }))
+                  .sort((a, b) => {
+                    const labelA = a.resolved.label.toLowerCase();
+                    const labelB = b.resolved.label.toLowerCase();
+                    const idxA = priorityOrder.findIndex(k => labelA.includes(k) || (k === 'ac' && labelA.includes('ar')));
+                    const idxB = priorityOrder.findIndex(k => labelB.includes(k) || (k === 'ac' && labelB.includes('ar')));
+                    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+                  })
+                  .slice(0, 8);
+
+                if (featured.length === 0) return (
+                  <div className="col-span-full py-4 text-center border-2 border-dashed border-slate-100 rounded-3xl opacity-50">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Consulte a descrição para mais detalhes</p>
                   </div>
                 );
-              })}
+
+                return featured.map((f, idx) => (
+                  <div key={idx} className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/40 border border-white/20 shadow-sm backdrop-blur-md transition-all hover:bg-white/60 hover:scale-[1.03] group/item min-h-[60px]">
+                    <span className="text-lg mb-1 group-hover/item:scale-125 transition-transform">{f.resolved.icon}</span>
+                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-tight text-center leading-none px-1">
+                      {f.resolved.label.split(' ')[0]}
+                    </span>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         )}
@@ -1250,8 +1305,91 @@ function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: {
   );
 }
 
+function HotelMiniMap({ address, hotelName }: { address: string; hotelName: string }) {
+  const mapRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!containerRef.current || !address) return;
+
+    const L = (window as any).L;
+    if (!L) return;
+
+    let map: any;
+
+    const initMap = async () => {
+      try {
+        // Geocodificação simples via Nominatim (OpenStreetMap)
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+
+          if (mapRef.current) mapRef.current.remove();
+
+          map = L.map(containerRef.current, {
+            zoomControl: true,
+            attributionControl: false,
+            scrollWheelZoom: false
+          }).setView([lat, lon], 15);
+
+          mapRef.current = map;
+
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+          }).addTo(map);
+
+          const hotelIcon = L.divIcon({
+            className: 'custom-hotel-icon',
+            html: `<div style="background-color: #19727d; width: 12px; height: 12px; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px rgba(25, 114, 125, 0.6);"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+          });
+
+          L.marker([lat, lon], { icon: hotelIcon }).addTo(map);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar mini mapa:", error);
+      }
+    };
+
+    initMap();
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [address]);
+
+  if (!address) return null;
+
+  return (
+    <div className="relative flex-1 h-32 sm:h-40 group/map min-w-[200px]">
+      <div 
+        ref={containerRef} 
+        className="w-full h-full rounded-2xl border border-slate-100 shadow-inner overflow-hidden bg-slate-50"
+      />
+      {loading && (
+        <div className="absolute inset-0 bg-slate-50/80 flex items-center justify-center rounded-2xl">
+          <RefreshCw className="w-5 h-5 text-slate-300 animate-spin" />
+        </div>
+      )}
+      <div className="absolute top-2 left-2 pointer-events-none">
+        <div className="px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-slate-100 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+           Localização
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<'info' | 'galeria'>('info');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   return (
@@ -1299,122 +1437,115 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
           </div>
         </div>
 
-        {/* NAVEGAÇÃO TABS */}
-        <div className="flex border-b border-gray-100 px-8">
-          <button 
-            onClick={() => setActiveTab('info')}
-            className={`px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
-              activeTab === 'info' ? 'border-[#19727d] text-[#19727d]' : 'border-transparent text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            Informações
-          </button>
-          <button 
-            onClick={() => setActiveTab('galeria')}
-            className={`px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
-              activeTab === 'galeria' ? 'border-[#19727d] text-[#19727d]' : 'border-transparent text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            Galeria ({item.hotelPhotos?.length || 0})
-          </button>
-        </div>
-
-        {/* CONTEÚDO */}
-        {/* CONTEÚDO */}
+        {/* CONTEÚDO UNIFICADO */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/30">
-          {activeTab === 'info' ? (
-            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              
-              {/* CHECK-IN / CHECK-OUT NO MODAL */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {item.checkInDate && (
-                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                    <p className="text-[10px] font-black text-[#19727d] uppercase tracking-widest mb-3 flex items-center gap-2">
-                       <ArrowRight className="w-4 h-4" /> Check-in na Propriedade
-                    </p>
-                    <p className="text-xl font-black text-slate-800">{formatDate(item.checkInDate)}</p>
-                    <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
-                      <Clock className="w-4 h-4" /> {item.checkInTime || 'A partir das 14:00'}
-                    </p>
-                  </div>
-                )}
-                {item.checkOutDate && (
-                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                       <ArrowRight className="w-4 h-4 rotate-180" /> Check-out da Propriedade
-                    </p>
-                    <p className="text-xl font-black text-slate-800">{formatDate(item.checkOutDate)}</p>
-                    <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
-                      <Clock className="w-4 h-4" /> {item.checkOutTime || 'Até às 12:00'}
-                    </p>
-                  </div>
-                )}
-              </div>
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* CHECK-IN / CHECK-OUT NO MODAL */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {item.checkInDate && (
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                  <p className="text-[10px] font-black text-[#19727d] uppercase tracking-widest mb-3 flex items-center gap-2">
+                     <ArrowRight className="w-4 h-4" /> Check-in na Propriedade
+                  </p>
+                  <p className="text-xl font-black text-slate-800">{formatDate(item.checkInDate)}</p>
+                  <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" /> {item.checkInTime || 'A partir das 14:00'}
+                  </p>
+                </div>
+              )}
+              {item.checkOutDate && (
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                     <ArrowRight className="w-4 h-4 rotate-180" /> Check-out da Propriedade
+                  </p>
+                  <p className="text-xl font-black text-slate-800">{formatDate(item.checkOutDate)}</p>
+                  <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" /> {item.checkOutTime || 'Até às 12:00'}
+                  </p>
+                </div>
+              )}
+            </div>
 
-              {/* REGIME DE ALIMENTAÇÃO NO MODAL */}
-              {(item.boardBasis && item.boardBasis !== 'Não informado') && (
-                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl">
-                    {item.boardBasis.includes('Café') ? '☕' : 
-                     item.boardBasis.includes('Pensão') ? '🍱' :
-                     item.boardBasis.includes('All') ? '🍹' : '🍽️'}
+            {/* REGIME DE ALIMENTAÇÃO NO MODAL INTEGRADO COM MINI MAPA */}
+            {(item.boardBasis && item.boardBasis.toLowerCase().includes('café')) && (
+              <div className="bg-white border border-slate-100 rounded-[32px] p-2.5 pr-6 shadow-sm flex items-center justify-between gap-6 overflow-hidden">
+                <div className="flex items-center gap-4 pl-4 min-w-[220px]">
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm border border-orange-100/50">
+                    <Coffee className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-900 uppercase tracking-tight">{item.boardBasis}</h4>
-                    <p className="text-xs font-bold text-slate-400">Regime de alimentação incluso nesta reserva</p>
+                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-sm">Café da manhã incluso</h4>
+                    <p className="text-[10px] font-bold text-slate-400 leading-tight">Incluso nesta reserva</p>
                   </div>
                 </div>
-              )}
 
-              {/* DESCRIÇÃO */}
-              {item.hotelDescription && (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-black text-xl text-gray-800">Sobre a Propriedade</h3>
+                {/* MINI MAPA À DIREITA - AGORA EM FLEX-1 */}
+                {item.hotelAddress && (
+                  <HotelMiniMap address={item.hotelAddress} hotelName={item.hotelName || ''} />
+                )}
+              </div>
+            )}
+
+            {/* DESCRIÇÃO */}
+            {item.hotelDescription && (
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
+                    <FileText className="w-5 h-5" />
                   </div>
-                  <p className="text-gray-600 leading-relaxed text-sm font-medium whitespace-pre-wrap">{item.hotelDescription}</p>
+                  <h3 className="font-black text-xl text-gray-800">Sobre a Propriedade</h3>
                 </div>
-              )}
+                <p className="text-gray-600 leading-relaxed text-sm font-medium whitespace-pre-wrap">{item.hotelDescription}</p>
+              </div>
+            )}
 
-              {/* COMODIDADES */}
-              {item.hotelAmenities && item.hotelAmenities.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-50 flex items-center justify-center text-[#19727d]">
-                      <Star className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-black text-xl text-gray-800">Comodidades & Serviços</h3>
+            {/* COMODIDADES */}
+            {item.hotelAmenities && item.hotelAmenities.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-50 flex items-center justify-center text-[#19727d]">
+                    <Star className="w-5 h-5" />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {item.hotelAmenities.map((amenity, idx) => (
-                      <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm group hover:border-cyan-200 transition-colors">
-                        <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{amenity}</span>
+                  <h3 className="font-black text-xl text-gray-800">Comodidades & Serviços</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {item.hotelAmenities.map((amenity, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm group hover:border-cyan-200 transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* GALERIA DE FOTOS INTEGRADA */}
+            {item.hotelPhotos && item.hotelPhotos.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-black text-xl text-gray-800">Galeria de Fotos ({item.hotelPhotos.length})</h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {item.hotelPhotos.map((photo, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={() => setSelectedImage(photo)}
+                      className="relative aspect-square rounded-3xl overflow-hidden group hover:ring-4 ring-purple-500/20 transition-all shadow-md"
+                    >
+                      <Image src={photo} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="Foto do hotel" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                        <Package className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100" />
                       </div>
-                    ))}
-                  </div>
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {item.hotelPhotos?.map((photo, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => setSelectedImage(photo)}
-                  className="relative aspect-square rounded-3xl overflow-hidden group hover:ring-4 ring-purple-500/20 transition-all shadow-md"
-                >
-                  <Image src={photo} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-110" alt="Foto do hotel" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                    <Package className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -1522,6 +1653,8 @@ export default function CotacaoPage() {
         usd_rate: parseFloat(data.usd_rate || '0'),
         eur_rate: parseFloat(data.eur_rate || '0'),
         gbp_rate: parseFloat(data.gbp_rate || '0'),
+        fees_type: data.fees_type,
+        fees_installments: data.fees_installments,
       });
       // Se não tiver câmbio salvo, busca fallback
       if (!data.usd_rate || parseFloat(data.usd_rate) === 0) {
@@ -1814,6 +1947,12 @@ export default function CotacaoPage() {
           </section>
         )}
 
+        {/* CHECKLIST DE REQUISITOS */}
+        <section className="space-y-6">
+          <SectionTitle icon={<ShieldAlert className="w-4 h-4" />} title="Checklist de embarque e segurança" />
+          <TravelChecklist isIntl={isIntl} region={tripRegion} />
+        </section>
+
         {/* VALORES */}
         {lead.value > 0 && (
           <section>
@@ -1887,31 +2026,49 @@ export default function CotacaoPage() {
 
               <div className="border-t border-white/20 pt-4">
                 <div className="flex items-center gap-2 mb-3">
-                   <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Simulação de parcelamento no cartão</p>
+                   <p className="text-white/70 text-sm font-bold uppercase tracking-widest leading-none">Parcelamento no cartão</p>
                    <CreditCard className="w-3.5 h-3.5 text-white/40" />
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {INSTALLMENTS.map((n: number) => (
-                    <div key={n} className="bg-white/10 rounded-xl p-2.5 text-center hover:bg-white/20 transition-colors">
-                      <p className="text-[11px] text-white/60 font-bold">{n}x de</p>
-                      <p className="text-sm font-black text-white">{formatCurrency(lead.value / n)}</p>
-                    </div>
-                  ))}
+                   {(() => {
+                     const maxInstallments = lead.fees_installments || 12;
+                     const type = lead.fees_type || 'interest_free';
+                     
+                     return INSTALLMENTS.filter(n => n <= maxInstallments).map((n: number) => {
+                       let totalValue = lead.value;
+                       let isInterestFree = type === 'interest_free';
+                       
+                       if (type === 'with_interest') {
+                         const rate = INTEREST_RATES[n] || 0;
+                         totalValue = lead.value * (1 + rate / 100);
+                       }
+                       
+                       return (
+                         <div key={n} className="bg-white/10 rounded-xl p-2.5 text-center hover:bg-white/20 transition-colors relative group/inst">
+                           <p className="text-[11px] text-white/60 font-bold">{n}x de</p>
+                           <p className="text-sm font-black text-white">{formatCurrency(totalValue / n)}</p>
+                           {isInterestFree && (
+                             <span className="absolute -top-1 -right-1 bg-emerald-500 text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-lg opacity-0 group-hover/inst:opacity-100 transition-opacity">
+                               SEM JUROS
+                             </span>
+                           )}
+                         </div>
+                       );
+                     });
+                   })()}
                 </div>
-                <p className="text-white/60 text-[10px] mt-4 text-center leading-relaxed">
-                  * Os valores apresentados podem sofrer alterações a qualquer momento, de acordo com as regras das companhias aéreas.<br />
+                <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-6 text-center leading-relaxed max-w-2xl mx-auto border-t border-white/10 pt-6">
+                  {lead.fees_type === 'with_interest' ? 
+                    '* Valores calculados com acréscimo de taxas de parcelamento.' : 
+                    '* Parcelamento sem juros sujeito às regras das operadoras de turismo.'
+                  }<br />
+                  Os valores apresentados podem sofrer alterações a qualquer momento, de acordo com as regras das companhias aéreas.<br />
                   A reserva só é garantida após confirmação de pagamento.
                 </p>
               </div>
             </div>
           </section>
         )}
-
-        {/* CHECKLIST DE REQUISITOS */}
-        <section className="space-y-6">
-          <SectionTitle icon={<ShieldAlert className="w-4 h-4" />} title="Checklist de embarque e segurança" />
-          <TravelChecklist isIntl={isIntl} region={tripRegion} />
-        </section>
 
         {lead.notes && (
           <section>
@@ -1922,11 +2079,10 @@ export default function CotacaoPage() {
           </section>
         )}
 
-        {/* INFORMAÇÕES GERAIS */}
+        {/* MÉTODOS DE PAGAMENTO */}
         <section className="space-y-6">
-          <SectionTitle icon={<Info className="w-4 h-4" />} title="Informações gerais" />
+          <SectionTitle icon={<Info className="w-4 h-4" />} title="Métodos de pagamento" />
           <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm text-center">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Formas de Pagamento:</p>
              <div className="flex flex-col items-center gap-4">
                 <div className="flex items-center gap-3 group">
                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100 group-hover:scale-110 transition-transform">

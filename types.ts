@@ -144,4 +144,6 @@ export interface Lead {
   usd_rate?: number;
   eur_rate?: number;
   gbp_rate?: number;
+  fees_type?: 'with_interest' | 'interest_free';
+  fees_installments?: number;
 }

@@ -350,15 +350,75 @@ function HotelItem({ item }: { item: SaleItem }) {
           </div>
         </div>
 
-        {/* COMODIDADES */}
+        {/* COMODIDADES EM GRID (Máximo 4 Colunas) */}
         {item.hotelAmenities && item.hotelAmenities.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-50 mt-4">
-            {item.hotelAmenities.slice(0, 8).map((amenity, i) => (
-              <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#19727d]/5 text-[#19727d] rounded-xl text-[10px] font-bold uppercase tracking-tight">
-                <div className="w-1 h-1 rounded-full bg-[#19727d]/40" />
-                {amenity}
-              </div>
-            ))}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Comodidades em Destaque</p>
+               <div className="h-px bg-slate-100 flex-1 ml-4" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+              {(() => {
+                const AMENITY_ICONS: Record<string, { label: string; icon: string }> = {
+                  'wifi': { label: 'Wi-Fi Grátis', icon: '📶' },
+                  'pool': { label: 'Piscina', icon: '🏊' },
+                  'spa': { label: 'Spa', icon: '💆' },
+                  'gym': { label: 'Academia', icon: '🏋️' },
+                  'parking': { label: 'Estacionamento', icon: '🅿️' },
+                  'ac': { label: 'Ar Condicionado', icon: '❄️' },
+                  'beach': { label: 'Acesso à Praia', icon: '🏖️' },
+                  'breakfast': { label: 'Café da Manhã', icon: '☕' },
+                  'restaurant': { label: 'Restaurante', icon: '🍽️' },
+                  'bar': { label: 'Bar', icon: '🍸' },
+                };
+
+                const resolveAmenity = (name: string) => {
+                  const n = name.toLowerCase();
+                  const found = Object.entries(AMENITY_ICONS).find(([k]) => n.includes(k) || n.includes(AMENITY_ICONS[k].label.toLowerCase()));
+                  return found ? found[1] : { label: name, icon: '✓' };
+                };
+
+                const priorityOrder = ['pool', 'wifi', 'beach', 'ac', 'parking', 'gym', 'spa', 'breakfast', 'restaurant', 'bar'];
+                
+                // FallbackExtractor: Se não houver comodidades brutas, extrai da descrição
+                let source = item.hotelAmenities || [];
+                if (source.length === 0 && item.hotelDescription) {
+                  const d = item.hotelDescription.toLowerCase();
+                  if (d.includes('piscina') || d.includes('pool')) source.push('Pool');
+                  if (d.includes('wi-fi') || d.includes('internet')) source.push('WiFi');
+                  if (d.includes('ar condicionado') || d.includes('air conditioning')) source.push('AC');
+                  if (d.includes('estacionamento') || d.includes('parking')) source.push('Parking');
+                  if (d.includes('academia') || d.includes('gym')) source.push('Gym');
+                  if (d.includes('spa')) source.push('Spa');
+                }
+
+                const featured = source
+                  .map(a => ({ raw: a, resolved: resolveAmenity(a) }))
+                  .sort((a, b) => {
+                    const labelA = a.resolved.label.toLowerCase();
+                    const labelB = b.resolved.label.toLowerCase();
+                    const idxA = priorityOrder.findIndex(k => labelA.includes(k) || (k === 'ac' && labelA.includes('ar')));
+                    const idxB = priorityOrder.findIndex(k => labelB.includes(k) || (k === 'ac' && labelB.includes('ar')));
+                    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+                  })
+                  .slice(0, 8);
+
+                if (featured.length === 0) return (
+                  <div className="col-span-full py-4 text-center border border-dashed border-slate-100 rounded-2xl opacity-50">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Confira facilidades na descrição</p>
+                  </div>
+                );
+
+                return featured.map((amenity, idx) => (
+                  <div key={idx} className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/40 border border-white/20 shadow-sm backdrop-blur-md transition-all hover:bg-white/60 hover:scale-[1.03] group/item min-h-[60px]">
+                    <span className="text-lg mb-1 group-hover/item:scale-125 transition-transform">{amenity.resolved.icon}</span>
+                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-tight text-center leading-none px-1">
+                      {amenity.resolved.label.split(' ')[0]}
+                    </span>
+                  </div>
+                ));
+              })()}
+            </div>
           </div>
         )}
 

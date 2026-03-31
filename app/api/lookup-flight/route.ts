@@ -43,10 +43,19 @@ function calcDuration(depStr?: string, arrStr?: string): string {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const flight = searchParams.get('flight')?.replace(/\s/g, '').toUpperCase();
-  const date = searchParams.get('date'); // YYYY-MM-DD
+  let date = searchParams.get('date'); // YYYY-MM-DD ou DD/MM/YYYY
 
   if (!flight || !date) {
     return NextResponse.json({ error: 'Parâmetros inválidos' }, { status: 400 });
+  }
+
+  // Normalizar data para YYYY-MM-DD se vier em formato DD/MM/YYYY
+  if (date.includes('/')) {
+    const parts = date.split('/');
+    if (parts.length === 3) {
+      const [d, m, y] = parts;
+      date = `${y}-${m}-${d}`;
+    }
   }
 
   const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
