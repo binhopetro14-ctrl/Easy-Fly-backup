@@ -364,6 +364,25 @@ export default function Page() {
       setIsSaleModalOpen(false);
       setEditingSale(null);
 
+      // Sincronização Automática com o Lead (Sincronismo Financeiro)
+      if (editingLead) {
+        try {
+          await internalSaveLead({
+            ...editingLead,
+            fees_type: saleData.fees_type || editingLead.fees_type,
+            fees_installments: saleData.fees_installments || editingLead.fees_installments,
+            usd_rate: saleData.usd_rate || editingLead.usd_rate,
+            eur_rate: saleData.eur_rate || editingLead.eur_rate,
+            gbp_rate: saleData.gbp_rate || editingLead.gbp_rate,
+            adults: saleData.adults || editingLead.adults,
+            children: saleData.children || editingLead.children,
+            babies: saleData.babies || editingLead.babies
+          });
+        } catch (syncErr) {
+          console.error("Falha ao sincronizar financeiro com o Lead:", syncErr);
+        }
+      }
+
       // ✅ VALIDAÇÃO REAL (REMOVE 404)
       if (savedSale?.id) {
         try {

@@ -46,6 +46,14 @@ export const mapperService = {
       createdAt: data.created_at,
       emissor: data.emissor,
       productName: data.product_name || '',
+      fees_type: data.fees_type,
+      fees_installments: Number(data.fees_installments) || 12,
+      usd_rate: Number(data.usd_rate) || 0,
+      eur_rate: Number(data.eur_rate) || 0,
+      gbp_rate: Number(data.gbp_rate) || 0,
+      adults: Number(data.adults) || 1,
+      children: Number(data.children) || 0,
+      babies: Number(data.babies) || 0,
       items: items.map(item => ({
         id: item.id,
         type: item.type,
@@ -110,6 +118,8 @@ export const mapperService = {
       usd_rate: Number(data.usd_rate) || 0,
       eur_rate: Number(data.eur_rate) || 0,
       gbp_rate: Number(data.gbp_rate) || 0,
+      fees_type: data.fees_type,
+      fees_installments: Number(data.fees_installments) || 12,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     })
@@ -154,6 +164,14 @@ export const mapperService = {
         notes: sale.notes,
         emissor: sale.emissor,
         product_name: sale.productName || null,
+        fees_type: sale.fees_type,
+        fees_installments: sale.fees_installments,
+        usd_rate: sale.usd_rate,
+        eur_rate: sale.eur_rate,
+        gbp_rate: sale.gbp_rate,
+        adults: sale.adults,
+        children: sale.children,
+        babies: sale.babies,
       };
       if (sale.id) data.id = sale.id;
       return data;
@@ -228,6 +246,8 @@ export const mapperService = {
       if (lead.usd_rate !== undefined) data.usd_rate = lead.usd_rate;
       if (lead.eur_rate !== undefined) data.eur_rate = lead.eur_rate;
       if (lead.gbp_rate !== undefined) data.gbp_rate = lead.gbp_rate;
+      if (lead.fees_type !== undefined) data.fees_type = lead.fees_type;
+      if (lead.fees_installments !== undefined) data.fees_installments = lead.fees_installments;
 
       // CRITICAL: Apenas incluir o ID se ele for válido e não for uma string vazia
       if (lead.id && lead.id.trim() !== '') {

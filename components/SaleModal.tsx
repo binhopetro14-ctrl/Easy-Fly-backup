@@ -27,7 +27,8 @@ import {
   ArrowLeft,
   FileText,
   Upload,
-  Loader2
+  Loader2,
+  CreditCard
 } from 'lucide-react';
 import { NumericFormat } from 'react-number-format';
 import { Sale, SaleItem, Customer, Group, ItemType, TransactionStatus, Supplier } from '@/types';
@@ -76,6 +77,8 @@ export function SaleModal({
     costStatus: 'Pendente',
     saleStatus: 'Pendente',
     paymentMethod: 'Não definido',
+    fees_type: 'interest_free',
+    fees_installments: 12,
     notes: '',
   });
 
@@ -1294,6 +1297,40 @@ export function SaleModal({
             </div>
 
             {/* ITENS ADICIONADOS (SIDEBAR) */}
+            {/* Bloco de Parcelamento Adicionado */}
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-slate-800/50 dark:to-slate-900/50 p-5 rounded-2xl border border-amber-100/50 dark:border-amber-500/10 space-y-4 shadow-sm">
+               <div className="flex items-center gap-2 mb-1">
+                 <CreditCard className="w-4 h-4 text-amber-600" />
+                 <label className="font-black text-[10px] uppercase text-amber-600 tracking-widest leading-none">Parcelamento na Cotação</label>
+               </div>
+               <div className="grid grid-cols-2 gap-2">
+                 <button 
+                   type="button"
+                   onClick={() => setFormData(prev => ({...prev, fees_type: 'interest_free'}))} 
+                   className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm active:scale-95 ${formData.fees_type === 'interest_free' ? 'bg-amber-600 text-white shadow-amber-600/20' : 'bg-white dark:bg-slate-800 text-amber-600 border border-amber-200 dark:border-amber-500/20'}`}
+                 >
+                   Sem Juros
+                 </button>
+                 <button 
+                   type="button"
+                   onClick={() => setFormData(prev => ({...prev, fees_type: 'with_interest'}))} 
+                   className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm active:scale-95 ${formData.fees_type === 'with_interest' ? 'bg-amber-600 text-white shadow-amber-600/20' : 'bg-white dark:bg-slate-800 text-amber-600 border border-amber-200 dark:border-amber-500/20'}`}
+                 >
+                   Com Juros
+                 </button>
+               </div>
+               <div className="flex items-center justify-between bg-white/60 dark:bg-slate-900/40 p-2.5 rounded-xl border border-amber-100/20">
+                  <span className="text-[10px] font-black text-amber-700 uppercase">Limite de Parcelas:</span>
+                  <select 
+                    className="bg-transparent border-none outline-none font-black text-xs text-amber-800 dark:text-amber-400 cursor-pointer" 
+                    value={formData.fees_installments} 
+                    onChange={e => setFormData(prev => ({...prev, fees_installments: parseInt(e.target.value)}))}
+                  >
+                    {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}x</option>)}
+                  </select>
+               </div>
+            </div>
+
             {formData.items && formData.items.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest px-1">Produtos na Reserva ({formData.items.length})</h3>

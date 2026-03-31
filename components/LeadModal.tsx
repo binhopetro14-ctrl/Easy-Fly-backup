@@ -304,9 +304,9 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
   useEffect(() => {
     if (isOpen && editingLead) {
-      setFormData({ ...editingLead, items: editingLead.items || [], fees_type: editingLead.fees_type || 'interest_free', fees_installments: editingLead.fees_installments || 10 });
+      setFormData({ ...editingLead, items: editingLead.items || [], fees_type: editingLead.fees_type || 'interest_free', fees_installments: editingLead.fees_installments || 12 });
     } else if (isOpen) {
-      setFormData({ ...formData, title: '', name: '', status: 'novo_contato', tags: [], adults: 1, children: 0, babies: 0, luggage23kg: 0, items: [], value: 0, cost:0, fees_type: 'interest_free', fees_installments: 10 });
+      setFormData({ ...formData, title: '', name: '', status: 'novo_contato', tags: [], adults: 1, children: 0, babies: 0, luggage23kg: 0, items: [], value: 0, cost:0, fees_type: 'interest_free', fees_installments: 12 });
     }
   }, [isOpen, editingLead]);
 

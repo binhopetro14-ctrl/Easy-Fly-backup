@@ -90,6 +90,14 @@ export interface Sale {
   createdAt: string;
   productName?: string;
   emissor?: string;
+  fees_type?: 'with_interest' | 'interest_free';
+  fees_installments?: number;
+  usd_rate?: number;
+  eur_rate?: number;
+  gbp_rate?: number;
+  adults?: number;
+  children?: number;
+  babies?: number;
 }
 
 export interface Supplier {

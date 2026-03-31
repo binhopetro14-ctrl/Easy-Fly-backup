@@ -36,6 +36,10 @@ import {
   Heart,
   Wifi,
   Leaf as Spa,
+  RefreshCw,
+  Globe,
+  ArrowRight,
+  DollarSign
 } from 'lucide-react';
 
 // Cliente Supabase público (sem autenticação)
@@ -80,7 +84,25 @@ interface Sale {
   created_at: string;
   payment_method?: string;
   installments?: number;
+  fees_type?: 'interest_free' | 'with_interest';
+  fees_installments?: number;
+  usd_rate?: number;
+  eur_rate?: number;
+  gbp_rate?: number;
+  adults?: number;
+  children?: number;
+  babies?: number;
 }
+
+const INTEREST_RATES: Record<number, number> = {
+  1: 3.46, 2: 4.75, 3: 5.65, 4: 6.52, 5: 7.29, 6: 8.76,
+  7: 9.28, 8: 10.31, 9: 11.39, 10: 12.55, 11: 13.55, 12: 14.75,
+};
+
+const INSTALLMENTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 function formatDate(dateString?: string) {
   if (!dateString) return 'Data não definida';
@@ -125,43 +147,125 @@ function TypeColor(type: SaleItem['type']) {
 }
 
 function PriceDetails({ sale }: { sale: Sale }) {
+  const [exchangeRates, setExchangeRates] = useState({ USD: 0, EUR: 0, GBP: 0 });
+
+  useEffect(() => {
+    async function fetchRates() {
+      try {
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/BRL');
+        const data = await res.json();
+        setExchangeRates({
+          USD: 1 / data.rates.USD,
+          EUR: 1 / data.rates.EUR,
+          GBP: 1 / data.rates.GBP
+        });
+      } catch (e) {
+        console.error('Falha ao carregar câmbio:', e);
+      }
+    }
+    fetchRates();
+  }, []);
+
+  const rates = (sale.usd_rate && sale.usd_rate > 0) 
+    ? { USD: sale.usd_rate, EUR: sale.eur_rate || 0, GBP: sale.gbp_rate || 0 }
+    : exchangeRates;
+
   return (
-    <div className="bg-[#19727d] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-white/20 transition-all duration-500" />
-      <div className="relative z-10">
-        <p className="text-white/70 text-sm font-bold uppercase tracking-[0.2em] mb-2">Valor do Investimento</p>
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold opacity-60">R$</span>
-          <h2 className="text-5xl font-black tracking-tighter">
-            {sale.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </h2>
-        </div>
-        
-        {sale.payment_method && (
-          <div className="mt-8 pt-8 border-t border-white/10 flex flex-wrap gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold tracking-widest text-white/50 mb-0.5">Forma de Pagamento</p>
-                <p className="font-bold text-sm">{sale.payment_method}</p>
+    <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] rounded-3xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40 blur-3xl group-hover:bg-white/10 transition-all duration-700 pointer-events-none" />
+      
+      <div className="relative z-10 space-y-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div>
+            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em] mb-3 leading-none italic">Investimento Total</p>
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-none drop-shadow-sm">
+                {formatCurrency(sale.total_price)}
+              </h2>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-sm">
+                 <span className="text-[10px] font-black text-white uppercase tracking-wider">À Vista</span>
+                 <div className="flex items-center gap-1.5 border-l border-white/20 pl-2 ml-1">
+                    <Users className="w-3 h-3 text-cyan-300" />
+                    <span className="text-[10px] font-black text-cyan-200 uppercase tracking-tight">
+                       {(sale.adults || 0) > 0 && `${sale.adults} Adt`}
+                       {(sale.children || 0) > 0 && ` • ${sale.children} Chd`}
+                    </span>
+                 </div>
               </div>
             </div>
-            
-            {sale.installments && sale.installments > 1 && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-white/50 mb-0.5">Parcelamento</p>
-                  <p className="font-bold text-sm">{sale.installments}x de R$ {(sale.total_price / sale.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                </div>
-              </div>
-            )}
           </div>
-        )}
+
+          {/* CÂMBIO DINÂMICO */}
+          {rates.USD > 0 && (
+            <div className="flex gap-2.5">
+              {[
+                { code: 'USD', symbol: '$', rate: rates.USD },
+                { code: 'EUR', symbol: '€', rate: rates.EUR },
+                { code: 'GBP', symbol: '£', rate: rates.GBP }
+              ].filter(c => c.rate > 0).map(c => (
+                <div key={c.code} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3.5 py-2.5 flex flex-col items-center min-w-[85px] shadow-sm hover:bg-white/15 transition-all">
+                   <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-[8px] font-black text-cyan-300 tracking-[0.2em]">{c.code}</span>
+                      <RefreshCw className={`w-2.5 h-2.5 text-cyan-300 ${!sale.usd_rate ? 'animate-spin' : 'opacity-40'}`} />
+                   </div>
+                   <p className="text-[14px] font-black text-white leading-none">
+                      {c.symbol} {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(sale.total_price / c.rate)}
+                   </p>
+                   <p className="text-[8px] font-bold text-white/30 mt-1.5 uppercase tracking-tighter">R$ {c.rate.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="pt-8 border-t border-white/10">
+          <div className="flex items-center gap-2.5 mb-5">
+             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-md">
+                <CreditCard className="w-4 h-4 text-cyan-300" />
+             </div>
+             <p className="text-white font-black text-[11px] uppercase tracking-[0.2em]">Parcelamento no Cartão</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+            {INSTALLMENTS.filter(n => n <= (sale.fees_installments || 12)).map((n) => {
+              const type = sale.fees_type || 'interest_free';
+              let totalWithFees = sale.total_price;
+              
+              if (type === 'with_interest') {
+                const rate = INTEREST_RATES[n] || 0;
+                totalWithFees = sale.total_price * (1 + rate / 100);
+              }
+
+              return (
+                <div key={n} className="bg-white/10 backdrop-blur-sm border border-white/5 rounded-2xl p-3 text-center group/inst hover:bg-white/20 hover:border-white/20 transition-all cursor-default relative overflow-hidden">
+                  <p className="text-[10px] text-white/50 font-black uppercase tracking-tighter mb-0.5 leading-none">{n}x de</p>
+                  <p className="text-[15px] font-black text-white tracking-tight leading-none">
+                    {formatCurrency(totalWithFees / n).replace('R$', '').trim()}
+                  </p>
+                  {type === 'interest_free' ? (
+                    <div className="absolute top-0 right-0 p-1 bg-emerald-500/20 rounded-bl-xl border-l border-b border-emerald-400/20">
+                      <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                    </div>
+                  ) : (
+                    <div className="absolute top-0 right-0 px-1.5 py-0.5 bg-amber-500/20 rounded-bl-xl border-l border-b border-amber-400/20">
+                      <span className="text-[7px] font-black text-amber-400 uppercase tracking-tighter">COM JUROS</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-white/5 flex flex-col items-center gap-4">
+             <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest text-center max-w-2xl leading-relaxed mt-6 pt-6 border-t border-white/10">
+               Os valores apresentados podem sofrer alterações a qualquer momento. De acordo com as regras das companhias aéreas. A reserva só é garantida após confirmação de pagamento
+             </p>
+             <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10 group-hover:bg-white/10 transition-all">
+                <Shield className="w-3 h-3 text-cyan-400" />
+                <span className="text-[9px] font-black text-white/60 uppercase tracking-widest leading-none">Pagamento 100% Seguro & Criptografado</span>
+             </div>
+          </div>
+        </div>
       </div>
     </div>
   );

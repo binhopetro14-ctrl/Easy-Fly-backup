@@ -434,19 +434,19 @@ function TravelChecklist({ isIntl, region }: { isIntl: boolean, region: string }
             </p>
         </div>
         
-        {isIntl && (
+        <div className="flex flex-col sm:flex-row items-center gap-3 no-print">
           <a 
-            href={`https://apply.joinsherpa.com/travel-restrictions?language=pt-BR&destination=${region === 'Chile' ? 'CHL' : region === 'Argentina' ? 'ARG' : region === 'Estados Unidos' ? 'USA' : region === 'Europa' ? 'ESP' : region === 'México' ? 'MEX' : region === 'Dubai' ? 'ARE' : ''}`}
+            href="https://apply.joinsherpa.com/travel-restrictions?language=pt-BR"
             target="_blank" 
             rel="noopener noreferrer"
-            className="group relative flex items-center gap-3 bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-xl shadow-slate-200"
+            className="group relative flex items-center gap-3 bg-[#19727d] hover:bg-[#145d66] text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-xl shadow-[#19727d]/20"
           >
-            <div className="bg-cyan-400 p-2 rounded-xl group-hover:rotate-12 transition-transform shadow-lg shadow-cyan-400/20">
-               <Map className="w-4 h-4 text-slate-900" />
+            <div className="bg-white/20 p-2 rounded-xl group-hover:rotate-12 transition-transform">
+               <FileText className="w-4 h-4 text-white" />
             </div>
-            Verificar Exigências em Tempo Real (Sherpa)
+            Documentação Obrigatória
           </a>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -1265,15 +1265,15 @@ function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: {
 
           <button 
             onClick={() => setShowDetails(true)}
-            className="w-full group/btn relative overflow-hidden h-14 rounded-2xl bg-slate-900 text-white transition-all duration-300 hover:shadow-2xl hover:shadow-slate-500/20 active:scale-[0.98] mt-2"
+            className="w-full group/btn relative overflow-hidden h-14 rounded-2xl bg-slate-900 text-white transition-all duration-300 hover:shadow-2xl hover:shadow-[#19727d]/30 active:scale-[0.98] mt-2 shadow-xl"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-[#19727d] to-cyan-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#19727d] to-[#24a1b0] opacity-90 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative flex items-center justify-center gap-3 font-black text-[13px] uppercase tracking-[0.1em]">
               <Images className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-              <span>Ver Galeria & Detalhes</span>
+              <span>VER GALERIA E DETALHES</span>
               <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1.5 transition-transform" />
             </div>
-            <div className="absolute top-0 -left-[100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out" />
+            <div className="absolute top-0 -left-[100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out" />
           </button>
         </div>
       </div>
@@ -2092,12 +2092,7 @@ export default function CotacaoPage() {
                    })()}
                 </div>
                 <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-6 text-center leading-relaxed max-w-2xl mx-auto border-t border-white/10 pt-6">
-                  {lead.fees_type === 'with_interest' ? 
-                    '* Valores calculados com acréscimo de taxas de parcelamento.' : 
-                    '* Parcelamento sem juros sujeito às regras das operadoras de turismo.'
-                  }<br />
-                  Os valores apresentados podem sofrer alterações a qualquer momento, de acordo com as regras das companhias aéreas.<br />
-                  A reserva só é garantida após confirmação de pagamento.
+                  Os valores apresentados podem sofrer alterações a qualquer momento. De acordo com as regras das companhias aéreas. A reserva só é garantida após confirmação de pagamento
                 </p>
               </div>
             </div>
