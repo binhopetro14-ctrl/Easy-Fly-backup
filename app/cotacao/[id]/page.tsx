@@ -1896,16 +1896,11 @@ export default function CotacaoPage() {
               animate={{ opacity: 1, y: 0 }}
               className="flex justify-center mb-4"
             >
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-2 rounded-full shadow-2xl flex items-center gap-3">
-                 <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
-                 <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Proposta de Viagem Premium</span>
+              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-xl px-10 py-4 rounded-full text-xl font-black text-white border-2 border-white/20 shadow-2xl shadow-black/20 transform hover:scale-105 transition-all duration-500">
+                 <Sparkles className="w-7 h-7 text-cyan-300 animate-pulse" />
+                 <span className="tracking-tight uppercase">Proposta de Viagem</span>
               </div>
             </motion.div>
-
-            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 backdrop-blur-xl px-10 py-4 rounded-full text-xl font-black text-white border-2 border-white/20 shadow-2xl shadow-black/20 transform hover:scale-105 transition-all duration-500">
-              <CheckCircle className="w-7 h-7 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-              <span className="tracking-tight">Orçamento Oficial</span>
-            </div>
 
             <h1 className="text-5xl sm:text-6xl font-black text-white tracking-tighter leading-[1.05] max-w-3xl mx-auto drop-shadow-sm">
               {lead.title || 'Sua Próxima Aventura'}
