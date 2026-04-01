@@ -188,12 +188,12 @@ export default function Page() {
     fetchCustomers();
     fetchGroups();
 
-    // Calcula o primeiro e último dia do mês atual para o carregamento inicial
+    // Busca dados desde o início do ano atual para o Dashboard inicial
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const firstDayOfYear = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-    fetchSales({ startDate: firstDay, endDate: lastDay });
+    fetchSales({ startDate: firstDayOfYear, endDate: lastDayOfMonth });
     fetchSuppliers();
     fetchLeads();
   };
@@ -207,9 +207,10 @@ export default function Page() {
 
     if (view === 'dashboard') {
       const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      fetchSales({ startDate: firstDay, endDate: lastDay });
+      // Busca dados desde o início do ano atual para o gráfico
+      const firstDayOfYear = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      fetchSales({ startDate: firstDayOfYear, endDate: lastDayOfMonth });
     }
   };
 
