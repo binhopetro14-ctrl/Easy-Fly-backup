@@ -38,15 +38,20 @@ export const customerService = {
     const { data, error } = await supabase
       .from('customers')
       .upsert(payload)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       const errorDetails = extractError(error);
       console.error('Supabase Error (save customer):', errorDetails);
-      throw new Error(`Falha no banco de dados. Veja o console F12. Detalhe: ${error.message || 'Erro vazio'}`);
+      throw new Error(`Falha no banco de dados ao salvar cliente: ${error.message}`);
     }
-    return mapperService.fromSupabase.customer(data);
+
+    if (!data || data.length === 0) {
+      console.error('Supabase Error: Nenhum dado retornado no salvamento do cliente.');
+      throw new Error('Erro ao salvar cliente: O banco de dados não retornou o registro criado.');
+    }
+
+    return mapperService.fromSupabase.customer(data[0]);
   },
 
   delete: async (id: string): Promise<void> => {
@@ -88,14 +93,18 @@ export const groupService = {
     const { data, error } = await supabase
       .from('groups')
       .upsert(payload)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Supabase Error (save group):', extractError(error));
       throw new Error(error.message || 'Erro ao salvar grupo');
     }
-    return mapperService.fromSupabase.group(data);
+
+    if (!data || data.length === 0) {
+      throw new Error('Erro ao salvar grupo: Registro não retornado.');
+    }
+
+    return mapperService.fromSupabase.group(data[0]);
   },
 
   delete: async (id: string): Promise<void> => {
@@ -137,14 +146,18 @@ export const supplierService = {
     const { data, error } = await supabase
       .from('suppliers')
       .upsert(payload)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Supabase Error (save supplier):', extractError(error));
       throw new Error(error.message || 'Erro ao salvar fornecedor');
     }
-    return mapperService.fromSupabase.supplier(data);
+
+    if (!data || data.length === 0) {
+      throw new Error('Erro ao salvar fornecedor: Registro não retornado.');
+    }
+
+    return mapperService.fromSupabase.supplier(data[0]);
   },
 
   delete: async (id: string): Promise<void> => {
@@ -207,16 +220,21 @@ export const saleService = {
 
     console.log('Tentando salvar Venda com Payload:', JSON.stringify(payload, null, 2));
 
-    const { data: savedSale, error: saleError } = await supabase
+    const { data: savedSales, error: saleError } = await supabase
       .from('sales')
       .upsert(payload)
-      .select()
-      .single();
+      .select();
 
     if (saleError) {
       console.error('Supabase Error (save sale):', extractError(saleError));
       throw new Error(saleError.message || 'Erro ao salvar venda');
     }
+
+    if (!savedSales || savedSales.length === 0) {
+      throw new Error('Erro ao salvar venda: Registro não retornado.');
+    }
+
+    const savedSale = savedSales[0];
 
     if (sale.id) {
       const { error: deleteError } = await supabase.from('sale_items').delete().eq('sale_id', sale.id);
@@ -292,31 +310,43 @@ export const crmService = {
   save: async (lead: Partial<Lead>): Promise<Lead> => {
     const dataToSave = mapperService.toSupabase.lead(lead);
     
+    console.log('Tentando salvar Lead com Payload:', JSON.stringify(dataToSave, null, 2));
+
     if (lead.id) {
       const { data, error } = await supabase
         .from('leads')
         .update({ ...dataToSave, updated_at: new Date().toISOString() })
         .eq('id', lead.id)
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('Supabase Error (update lead):', extractError(error));
         throw new Error(error.message || 'Erro ao atualizar lead');
       }
-      return mapperService.fromSupabase.lead(data);
+
+      if (!data || data.length === 0) {
+        console.warn('Lead não encontrado para atualização ou RLS ativo:', lead.id);
+        throw new Error('Erro ao salvar: Lead não encontrado ou sem permissão de acesso.');
+      }
+
+      return mapperService.fromSupabase.lead(data[0]);
     } else {
       const { data, error } = await supabase
         .from('leads')
         .insert([dataToSave])
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('Supabase Error (insert lead):', extractError(error));
         throw new Error(error.message || 'Erro ao inserir lead');
       }
-      return mapperService.fromSupabase.lead(data);
+
+      if (!data || data.length === 0) {
+        console.error('Erro de inserção: Nenhum dado retornado no insert do Lead.');
+        throw new Error('Erro ao criar lead: O banco de dados não retornou o registro. Verifique as políticas de RLS.');
+      }
+
+      return mapperService.fromSupabase.lead(data[0]);
     }
   },
 

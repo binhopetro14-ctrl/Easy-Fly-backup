@@ -549,9 +549,24 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
       setFormData({ ...editingLead, items: editingLead.items || [], fees_type: editingLead.fees_type || 'interest_free', fees_installments: editingLead.fees_installments || 12 });
 
     } else if (isOpen) {
-
-      setFormData({ ...formData, title: '', name: '', status: 'novo_contato', tags: [], adults: 1, children: 0, babies: 0, luggage23kg: 0, items: [], value: 0, cost:0, fees_type: 'interest_free', fees_installments: 12 });
-
+      setFormData({ 
+        ...formData, 
+        id: '', 
+        title: '', 
+        name: '', 
+        phone: '', 
+        status: 'novo_contato', 
+        tags: [], 
+        adults: 1, 
+        children: 0, 
+        babies: 0, 
+        luggage23kg: 0, 
+        items: [], 
+        value: 0, 
+        cost: 0, 
+        fees_type: 'interest_free', 
+        fees_installments: 12 
+      });
     }
 
   }, [isOpen, editingLead]);
@@ -1549,7 +1564,18 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
             <div className="mt-auto pt-2">
 
-               <button onClick={() => onSave(formData)} className="w-full py-4 bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-cyan-500/20 active:scale-95 transition-all">Salvar Projeto de Viagem</button>
+               <button 
+                 onClick={() => {
+                   if (!formData.name?.trim()) {
+                     alert('Por favor, informe o nome do cliente antes de salvar.');
+                     return;
+                   }
+                   onSave(formData);
+                 }} 
+                 className="w-full py-4 bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-cyan-500/20 active:scale-95 transition-all"
+               >
+                 Salvar Projeto de Viagem
+               </button>
 
             </div>
 

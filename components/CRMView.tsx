@@ -183,8 +183,21 @@ export function CRMView({
   // Helper para extrair origem/destino do primeiro item de voo
   const getRouteInfo = (lead: Lead) => {
     const flight = lead.items?.find(item => item.type === 'passagem');
-    if (flight && flight.origin && flight.destination) {
+    if (!flight) return null;
+
+    // Prioridade 1: Campos diretos (fallback)
+    if (flight.origin && flight.destination) {
       return { origin: flight.origin, destination: flight.destination };
+    }
+
+    // Prioridade 2: Segmentos de ida
+    const segs = flight.outboundSegments;
+    if (segs && segs.length > 0) {
+      const origin = segs[0].origin;
+      const destination = segs[segs.length - 1].destination;
+      if (origin && destination) {
+        return { origin, destination };
+      }
     }
     return null;
   };
@@ -368,9 +381,9 @@ export function CRMView({
                                 <>
                                   <div className="w-0.5 h-0.5 bg-gray-300 rounded-full shrink-0" />
                                   <div className="flex items-center gap-0.5 text-purple-500 font-black shrink-0">
-                                    <span>{route.origin}</span>
+                                    <span>{route.origin.toUpperCase()}</span>
                                     <ArrowRight className="w-2.5 h-2.5" />
-                                    <span>{route.destination}</span>
+                                    <span>{route.destination.toUpperCase()}</span>
                                   </div>
                                 </>
                               )}

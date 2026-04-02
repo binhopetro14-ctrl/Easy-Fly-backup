@@ -230,27 +230,29 @@ export const mapperService = {
       if (lead.phone !== undefined) data.phone = lead.phone;
       if (lead.status !== undefined) data.status = lead.status;
       if (lead.source !== undefined) data.source = lead.source;
-      if (lead.value !== undefined) data.value = lead.value;
+      if (lead.value !== undefined) data.value = Number(lead.value) || 0;
       if (lead.notes !== undefined) data.notes = lead.notes;
       if (lead.emissor !== undefined) data.emissor = lead.emissor;
       if (lead.items !== undefined) data.items = lead.items;
       if (lead.tags !== undefined) data.tags = lead.tags;
-      if (lead.duration !== undefined) data.duration = lead.duration;
-      if (lead.adults !== undefined) data.adults = lead.adults;
-      if (lead.children !== undefined) data.children = lead.children;
-      if (lead.babies !== undefined) data.babies = lead.babies;
-      if (lead.luggage23kg !== undefined) data.luggage23kg = lead.luggage23kg;
+      if (lead.duration !== undefined) data.duration = String(lead.duration || '');
+      if (lead.adults !== undefined) data.adults = Number(lead.adults) || 0;
+      if (lead.children !== undefined) data.children = Number(lead.children) || 0;
+      if (lead.babies !== undefined) data.babies = Number(lead.babies) || 0;
+      if (lead.luggage23kg !== undefined) data.luggage23kg = Number(lead.luggage23kg) || 0;
       if (lead.title !== undefined) data.title = lead.title;
       if (lead.responded !== undefined) data.responded = lead.responded;
       if (lead.slaStartAt !== undefined) data.sla_start_at = lead.slaStartAt;
-      if (lead.usd_rate !== undefined) data.usd_rate = lead.usd_rate;
-      if (lead.eur_rate !== undefined) data.eur_rate = lead.eur_rate;
-      if (lead.gbp_rate !== undefined) data.gbp_rate = lead.gbp_rate;
+      if (lead.usd_rate !== undefined) data.usd_rate = Number(lead.usd_rate) || 0;
+      if (lead.eur_rate !== undefined) data.eur_rate = Number(lead.eur_rate) || 0;
+      if (lead.gbp_rate !== undefined) data.gbp_rate = Number(lead.gbp_rate) || 0;
       if (lead.fees_type !== undefined) data.fees_type = lead.fees_type;
-      if (lead.fees_installments !== undefined) data.fees_installments = lead.fees_installments;
+      if (lead.fees_installments !== undefined) data.fees_installments = Number(lead.fees_installments) || 12;
 
-      // CRITICAL: Apenas incluir o ID se ele for válido e não for uma string vazia
-      if (lead.id && lead.id.trim() !== '') {
+      // Se o ID for novo (gerado pelo frontend como string aleatória não-UUID), não enviamos para o Supabase gerar um UUID real
+      const isUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      
+      if (lead.id && isUuid(lead.id)) {
         data.id = lead.id;
       }
       
