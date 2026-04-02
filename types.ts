@@ -159,3 +159,24 @@ export interface Lead {
   fees_type?: 'with_interest' | 'interest_free';
   fees_installments?: number;
 }
+export interface FinancialAccount {
+  id: string;
+  name: string;
+  type: 'Ativo' | 'Passivo';
+  category: 'Banco' | 'Caixa' | 'Cartão de Crédito' | 'Milhas' | string;
+  balance: number;
+  createdAt: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  type: 'Receita' | 'Despesa';
+  category: string;
+  accountId?: string;
+  status: 'Pago' | 'Pendente' | 'Atrasado';
+  dueDate?: string;
+  saleId?: string;
+  createdAt: string;
+}

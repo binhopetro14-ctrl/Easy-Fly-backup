@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
-import { Customer, Group, Sale, Supplier, SaleItem, Lead } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction } from '../types';
+
 import { mapperService } from './mapperService';
 
 // Função auxiliar para forçar a extração de qualquer erro escondido
@@ -360,5 +361,40 @@ export const crmService = {
       console.error('Supabase Error (delete lead):', extractError(error));
       throw new Error(error.message || 'Erro ao excluir lead');
     }
+  }
+};
+
+export const financeService = {
+  getAccounts: async (): Promise<FinancialAccount[]> => {
+    const { data, error } = await supabase
+      .from('financial_accounts')
+      .select('*')
+      .order('name');
+    if (error) throw new Error(error.message);
+    return (data || []).map(mapperService.fromSupabase.financialAccount);
+  },
+  getTransactions: async (filters?: { startDate?: string; endDate?: string }): Promise<FinancialTransaction[]> => {
+    let query = supabase.from('financial_transactions').select('*').order('due_date', { ascending: false });
+    if (filters?.startDate) query = query.gte('due_date', filters.startDate);
+    if (filters?.endDate) query = query.lte('due_date', filters.endDate);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return (data || []).map(mapperService.fromSupabase.financialTransaction);
+  },
+  saveAccount: async (account: Partial<FinancialAccount>): Promise<FinancialAccount> => {
+    const payload = mapperService.toSupabase.financialAccount(account);
+    const { data, error } = await supabase.from('financial_accounts').upsert(payload).select();
+    if (error) throw new Error(error.message);
+    return mapperService.fromSupabase.financialAccount(data[0]);
+  },
+  saveTransaction: async (transaction: Partial<FinancialTransaction>): Promise<FinancialTransaction> => {
+    const payload = mapperService.toSupabase.financialTransaction(transaction);
+    const { data, error } = await supabase.from('financial_transactions').upsert(payload).select();
+    if (error) throw new Error(error.message);
+    return mapperService.fromSupabase.financialTransaction(data[0]);
+  },
+  deleteTransaction: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   }
 };

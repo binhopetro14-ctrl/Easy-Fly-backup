@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Sale, SaleItem } from '@/types';
-import { saleService } from '@/services/supabaseService';
+import { saleService, financeService } from '@/services/supabaseService';
 
 export function useSales() {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -25,6 +25,40 @@ export function useSales() {
     setError(null);
     try {
       const saved = await saleService.save(sale, items);
+      
+      // LOGICA FINANCEIRA AUTOMÁTICA:
+      // Criar Receita e Despesa baseadas na venda
+      try {
+        const desc = `Venda #${saved.orderNumber || saved.id.slice(0, 8)} - ${saved.customerName || 'Cliente'}`;
+        
+        // 1. Lançamento de Receita
+        await financeService.saveTransaction({
+          description: desc,
+          amount: saved.totalValue,
+          type: 'Receita',
+          category: 'Venda de Serviços',
+          status: saved.saleStatus === 'Recebido' ? 'Pago' : 'Pendente',
+          dueDate: saved.saleDate,
+          saleId: saved.id
+        });
+
+        // 2. Lançamento de Despesa (Custo)
+        if (saved.totalCost > 0) {
+          await financeService.saveTransaction({
+            description: `Custo: ${desc}`,
+            amount: saved.totalCost,
+            type: 'Despesa',
+            category: 'Fornecedores',
+            status: saved.costStatus === 'Pago' ? 'Pago' : 'Pendente',
+            dueDate: saved.saleDate,
+            saleId: saved.id
+          });
+        }
+      } catch (finErr) {
+        console.error('Erro ao gerar lançamentos financeiros automáticos:', finErr);
+        // Não bloqueamos a venda se o financeiro falhar, mas avisamos no console
+      }
+
       setSales(prev => {
         const index = prev.findIndex(s => s.id === saved.id);
         if (index >= 0) {
@@ -42,6 +76,7 @@ export function useSales() {
       setLoading(false);
     }
   };
+
 
   const deleteSale = async (id: string) => {
     setLoading(true);

@@ -1,4 +1,5 @@
-import { Customer, Group, Sale, Supplier, SaleItem, Lead } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction } from '../types';
+
 
 export const mapperService = {
   // Converte dados do formato Supabase para o formato do Sistema
@@ -122,8 +123,29 @@ export const mapperService = {
       fees_installments: Number(data.fees_installments) || 12,
       createdAt: data.created_at,
       updatedAt: data.updated_at
+    }),
+    financialAccount: (data: any): FinancialAccount => ({
+      id: data.id,
+      name: data.name,
+      type: data.type,
+      category: data.category,
+      balance: Number(data.balance) || 0,
+      createdAt: data.created_at
+    }),
+    financialTransaction: (data: any): FinancialTransaction => ({
+      id: data.id,
+      description: data.description,
+      amount: Number(data.amount) || 0,
+      type: data.type,
+      category: data.category,
+      accountId: data.account_id,
+      status: data.status,
+      dueDate: data.due_date,
+      saleId: data.sale_id,
+      createdAt: data.created_at
     })
   },
+
 
   // Converte dados do formato do Sistema para o formato Supabase
   toSupabase: {
@@ -256,6 +278,30 @@ export const mapperService = {
         data.id = lead.id;
       }
       
+      return data;
+    },
+    financialAccount: (account: Partial<FinancialAccount>) => {
+      const data: any = {
+        name: account.name,
+        type: account.type,
+        category: account.category,
+        balance: account.balance
+      };
+      if (account.id) data.id = account.id;
+      return data;
+    },
+    financialTransaction: (transaction: Partial<FinancialTransaction>) => {
+      const data: any = {
+        description: transaction.description,
+        amount: transaction.amount,
+        type: transaction.type,
+        category: transaction.category,
+        account_id: transaction.accountId,
+        status: transaction.status,
+        due_date: transaction.dueDate,
+        sale_id: transaction.saleId
+      };
+      if (transaction.id) data.id = transaction.id;
       return data;
     }
   }
