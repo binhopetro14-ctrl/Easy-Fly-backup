@@ -165,6 +165,9 @@ export interface FinancialAccount {
   type: 'Ativo' | 'Passivo';
   category: 'Banco' | 'Caixa' | 'Cartão de Crédito' | 'Milhas' | string;
   balance: number;
+  status: 'Ativo' | 'Inativo';
+  color?: string;
+  icon?: string;
   createdAt: string;
 }
 
@@ -172,11 +175,35 @@ export interface FinancialTransaction {
   id: string;
   description: string;
   amount: number;
-  type: 'Receita' | 'Despesa';
+  type: 'Receita' | 'Despesa' | 'Transferência';
   category: string;
   accountId?: string;
   status: 'Pago' | 'Pendente' | 'Atrasado';
   dueDate?: string;
   saleId?: string;
+  supplierId?: string;
+  competenceDate?: string;
+  paymentDate?: string;
+  recurrence?: string;
+  reminder?: boolean;
+  observations?: string;
+  attachments?: any[];
   createdAt: string;
+}
+
+export interface FinancialCategory {
+  id: string;
+  name: string;
+  type: 'Receita' | 'Despesa';
+  parentId?: string;
+  status: 'Ativo' | 'Inativo';
+  color?: string;
+  count?: number; // Representar o contador visual (e.g., 68 despesas)
+  sortOrder?: number;
+}
+
+export interface FinancialSettings {
+  defaultIncomeAccountId?: string;
+  defaultExpenseAccountId?: string;
+  defaultBoardingTaxCardId?: string;
 }

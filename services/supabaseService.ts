@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings } from '../types';
 
 import { mapperService } from './mapperService';
 
@@ -387,6 +387,10 @@ export const financeService = {
     if (error) throw new Error(error.message);
     return mapperService.fromSupabase.financialAccount(data[0]);
   },
+  deleteAccount: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('financial_accounts').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
   saveTransaction: async (transaction: Partial<FinancialTransaction>): Promise<FinancialTransaction> => {
     const payload = mapperService.toSupabase.financialTransaction(transaction);
     const { data, error } = await supabase.from('financial_transactions').upsert(payload).select();
@@ -396,5 +400,55 @@ export const financeService = {
   deleteTransaction: async (id: string): Promise<void> => {
     const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
     if (error) throw new Error(error.message);
+  },
+  getCategories: async (): Promise<FinancialCategory[]> => {
+    const { data, error } = await supabase.from('financial_categories').select('*').order('sort_order');
+    if (error) throw new Error(error.message);
+    return (data || []).map(mapperService.fromSupabase.financialCategory);
+  },
+  saveCategory: async (category: Partial<FinancialCategory>): Promise<FinancialCategory> => {
+    const payload = mapperService.toSupabase.financialCategory(category);
+    const { data, error } = await supabase.from('financial_categories').upsert(payload).select();
+    if (error) throw new Error(error.message);
+    return mapperService.fromSupabase.financialCategory(data[0]);
+  },
+  deleteCategory: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('financial_categories').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+  getSettings: async (): Promise<FinancialSettings> => {
+    const { data, error } = await supabase.from('financial_settings').select('*');
+    if (error) throw new Error(error.message);
+    return mapperService.fromSupabase.financialSettings(data || []);
+  },
+  saveSettings: async (settings: FinancialSettings): Promise<void> => {
+    const payloads = [
+      { key: 'default_income_account', value: settings.defaultIncomeAccountId },
+      { key: 'default_expense_account', value: settings.defaultExpenseAccountId },
+      { key: 'default_boarding_tax_card', value: settings.defaultBoardingTaxCardId }
+    ].filter(p => p.value);
+    const { error } = await supabase.from('financial_settings').upsert(payloads);
+    if (error) throw new Error(error.message);
+  },
+  recalculateBalances: async (): Promise<void> => {
+    const { data: accounts, error: accError } = await supabase.from('financial_accounts').select('*');
+    if (accError) throw new Error(accError.message);
+    
+    for (const acc of (accounts || [])) {
+      const { data: transactions, error: transError } = await supabase
+        .from('financial_transactions')
+        .select('amount, type')
+        .eq('account_id', acc.id);
+      
+      if (transError) continue;
+
+      const newBalance = transactions.reduce((sum, t) => {
+        if (t.type === 'Receita') return sum + Number(t.amount);
+        if (t.type === 'Despesa') return sum - Number(t.amount);
+        return sum;
+      }, 0);
+
+      await supabase.from('financial_accounts').update({ balance: newBalance }).eq('id', acc.id);
+    }
   }
 };

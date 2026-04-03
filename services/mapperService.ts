@@ -1,4 +1,4 @@
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings } from '../types';
 
 
 export const mapperService = {
@@ -130,6 +130,9 @@ export const mapperService = {
       type: data.type,
       category: data.category,
       balance: Number(data.balance) || 0,
+      status: data.status || 'Ativo',
+      color: data.color || '#3b82f6',
+      icon: data.icon || 'Wallet',
       createdAt: data.created_at
     }),
     financialTransaction: (data: any): FinancialTransaction => ({
@@ -142,7 +145,32 @@ export const mapperService = {
       status: data.status,
       dueDate: data.due_date,
       saleId: data.sale_id,
+      supplierId: data.supplier_id,
+      competenceDate: data.competence_date,
+      paymentDate: data.payment_date,
+      recurrence: data.recurrence || 'Única',
+      reminder: data.reminder || false,
+      observations: data.observations,
+      attachments: data.attachments || [],
       createdAt: data.created_at
+    }),
+    financialSettings: (data: any[]): FinancialSettings => {
+      const settings: FinancialSettings = {};
+      data.forEach(item => {
+        if (item.key === 'default_income_account') settings.defaultIncomeAccountId = item.value;
+        if (item.key === 'default_expense_account') settings.defaultExpenseAccountId = item.value;
+        if (item.key === 'default_boarding_tax_card') settings.defaultBoardingTaxCardId = item.value;
+      });
+      return settings;
+    },
+    financialCategory: (data: any): FinancialCategory => ({
+      id: data.id,
+      name: data.name,
+      type: data.type,
+      parentId: data.parent_id,
+      status: data.status || 'Ativo',
+      color: data.color,
+      sortOrder: data.sort_order
     })
   },
 
@@ -285,7 +313,10 @@ export const mapperService = {
         name: account.name,
         type: account.type,
         category: account.category,
-        balance: account.balance
+        balance: account.balance,
+        status: account.status,
+        color: account.color,
+        icon: account.icon
       };
       if (account.id) data.id = account.id;
       return data;
@@ -299,9 +330,28 @@ export const mapperService = {
         account_id: transaction.accountId,
         status: transaction.status,
         due_date: transaction.dueDate,
-        sale_id: transaction.saleId
+        sale_id: transaction.saleId,
+        supplier_id: transaction.supplierId,
+        competence_date: transaction.competenceDate,
+        payment_date: transaction.paymentDate,
+        recurrence: transaction.recurrence,
+        reminder: transaction.reminder,
+        observations: transaction.observations,
+        attachments: transaction.attachments
       };
       if (transaction.id) data.id = transaction.id;
+      return data;
+    },
+    financialCategory: (category: Partial<FinancialCategory>) => {
+      const data: any = {
+        name: category.name,
+        type: category.type,
+        parent_id: category.parentId,
+        status: category.status,
+        color: category.color,
+        sort_order: category.sortOrder
+      };
+      if (category.id) data.id = category.id;
       return data;
     }
   }
