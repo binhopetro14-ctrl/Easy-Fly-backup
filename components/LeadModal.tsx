@@ -999,7 +999,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
               {['passagem', 'hospedagem', 'seguro', 'carro'].map(t => (
 
-                <button key={t} onClick={() => { setActiveItemType(t); if (!editingItemId) { setCurrentItem(prev => ({ ...prev, type: t })); } }} className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeItemType === t ? 'bg-white dark:bg-slate-700 shadow-sm text-cyan-600 dark:text-cyan-400' : 'text-gray-500 hover:text-gray-600'}`}>{t}</button>
+                <button key={t} onClick={() => { setActiveItemType(t); if (!editingItemId) { setCurrentItem((prev: any) => ({ ...prev, type: t })); } }} className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeItemType === t ? 'bg-white dark:bg-slate-800/80 shadow-sm text-cyan-600 dark:text-cyan-400' : 'text-gray-500 hover:text-gray-600'}`}>{t}</button>
 
               ))}
 

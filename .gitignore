@@ -5,3 +5,17 @@ coverage/
 *.log
 .env*
 !.env.example
+tmp/
+*.py
+*.js
+!next.config.js
+!postcss.config.js
+!tailwind.config.js
+!lib/supabase.ts
+!services/*.ts
+!components/*.tsx
+!app/**/*.tsx
+!types/*.ts
+!.eslintrc.json
+!package.json
+!tsconfig.json
