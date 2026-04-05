@@ -11,6 +11,12 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
+import { 
+  format, 
+  parseISO, 
+  subDays 
+} from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   Calendar,
   DollarSign,
@@ -24,10 +30,12 @@ import {
   EyeOff,
   Luggage,
   Bell,
-  Plus
+  Plus,
+  Clock,
+  ArrowRight
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Sale, TeamMember } from '@/types';
+import { Sale, TeamMember, CalendarEvent } from '@/types';
 import { HeaderButton, StatCard } from './UI';
 import Image from 'next/image';
 
@@ -41,6 +49,7 @@ interface DashboardViewProps {
   onAddLead: () => void;
   currentUser: any;
   teamMembers: TeamMember[];
+  calendarEvents: CalendarEvent[];
   showValues: boolean;
   onToggleValues: () => void;
 }
@@ -54,6 +63,7 @@ export function DashboardView({
   onAddLead,
   currentUser,
   teamMembers,
+  calendarEvents,
   showValues,
   onToggleValues
 }: DashboardViewProps) {
@@ -67,31 +77,101 @@ export function DashboardView({
     return dateB - dateA;
   }).slice(0, 5);
 
-  const currentMonthSales = React.useMemo(() => {
+  const currentMonthSalesData = React.useMemo(() => {
     const now = new Date();
     const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
     const currentUserName = `${currentUser?.name} ${currentUser?.lastName || ''}`.trim();
 
-    return sales.filter(sale => {
-      const saleDate = new Date(sale.saleDate || sale.createdAt);
-      const isThisMonth = saleDate.getMonth() === now.getMonth() &&
-        saleDate.getFullYear() === now.getFullYear();
+    let totalFaturamento = 0;
+    let totalComissao = 0;
+    let count = 0;
 
-      if (!isThisMonth) return false;
-      if (isAdminOrManager) return true;
+    sales.forEach(sale => {
+      // Se não for admin/gerente, filtra apenas vendas do emissor logado
+      if (!isAdminOrManager && sale.emissor !== currentUserName) return;
 
-      // Se for vendedor, para os CARDS mostramos apenas as dele
-      return sale.emissor === currentUserName;
+      sale.items?.forEach(item => {
+        if (!item.emissionDate) return;
+        const emissionDate = parseISO(item.emissionDate);
+        
+        if (emissionDate.getMonth() === now.getMonth() && emissionDate.getFullYear() === now.getFullYear()) {
+          totalFaturamento += (item.valuePaidByCustomer || 0);
+          
+          const itemCost = item.emissionValue || 0;
+          const itemCommission = item.additionalCosts || 0;
+          const itemProfit = itemCommission > 0 ? itemCommission : ((item.valuePaidByCustomer || 0) - itemCost);
+          
+          totalComissao += itemProfit;
+          count++;
+        }
+      });
     });
+
+    return { totalFaturamento, totalComissao, count };
   }, [sales, currentUser]);
+
+  const previousMonthSalesData = React.useMemo(() => {
+    const now = new Date();
+    const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const todayDay = now.getDate();
+    const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
+    const currentUserName = `${currentUser?.name} ${currentUser?.lastName || ''}`.trim();
+
+    let totalFaturamento = 0;
+    let totalComissao = 0;
+    let count = 0;
+
+    sales.forEach(sale => {
+      if (!isAdminOrManager && sale.emissor !== currentUserName) return;
+
+      sale.items?.forEach(item => {
+        if (!item.emissionDate) return;
+        const emissionDate = parseISO(item.emissionDate);
+
+        const isPrevMonth = emissionDate.getMonth() === prevMonth && emissionDate.getFullYear() === prevYear;
+        if (isPrevMonth && emissionDate.getDate() <= todayDay) {
+          totalFaturamento += (item.valuePaidByCustomer || 0);
+          
+          const itemCost = item.emissionValue || 0;
+          const itemCommission = item.additionalCosts || 0;
+          const itemProfit = itemCommission > 0 ? itemCommission : ((item.valuePaidByCustomer || 0) - itemCost);
+          
+          totalComissao += itemProfit;
+          count++;
+        }
+      });
+    });
+
+    return { totalFaturamento, totalComissao, count };
+  }, [sales, currentUser]);
+
+  const renderTrend = (current: number, previous: number) => {
+    if (previous === 0) return <span className="text-[12px] text-gray-400 font-medium italic">novo período</span>;
+    const percent = ((current - previous) / previous) * 100;
+    const isNegative = percent < 0;
+    const formattedPercent = Math.abs(percent).toFixed(1);
+    
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className={`px-1.5 py-0.5 rounded-lg font-black text-[11px] ${
+          isNegative ? 'text-red-500 bg-red-50 dark:bg-red-500/10' : 'text-[#19727d] bg-[#19727d]/10'
+        }`}>
+          {isNegative ? '-' : '+'}{formattedPercent}%
+        </span>
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 font-bold lowercase tracking-tight">vs mês passado</span>
+      </div>
+    );
+  };
 
   const chartData = React.useMemo(() => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const data = months.map(month => ({
       name: month,
       Faturamento: 0,
-      Lucro: 0,
-      Comissão: 0
+      Comissão: 0,
+      FaturamentoMensal: 0,
+      ComissaoMensal: 0
     }));
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -104,9 +184,25 @@ export function DashboardView({
         const profit = commissions > 0 ? commissions : (sale.totalValue - sale.totalCost);
 
         data[monthIndex].Faturamento += (sale.totalValue || 0);
-        data[monthIndex].Lucro += profit;
-        data[monthIndex].Comissão += commissions;
+        data[monthIndex].Comissão += profit;
       }
+    });
+
+    // Acumular valores para visão geral acumulativa (Running Total)
+    let accumFaturamento = 0;
+    let accumComissao = 0;
+    
+    data.forEach(d => {
+      // Preservar valores mensais individuais para o Tooltip
+      d.FaturamentoMensal = d.Faturamento;
+      d.ComissaoMensal = d.Comissão;
+
+      accumFaturamento += d.Faturamento;
+      accumComissao += d.Comissão;
+      
+      // Valores acumulados para a linha do gráfico
+      d.Faturamento = accumFaturamento;
+      d.Comissão = accumComissao;
     });
 
     return data;
@@ -145,6 +241,79 @@ export function DashboardView({
       .slice(0, 5);
   }, [sales, teamMembers]);
 
+  const allEvents = React.useMemo(() => {
+    const events: any[] = [...(calendarEvents || [])];
+    
+    // GERAÇÃO DE EVENTOS AUTOMÁTICOS (Réplica simplificada da lógica do CalendarView)
+    sales.forEach(sale => {
+      sale.items?.forEach((item, idx) => {
+        const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
+        
+          // Vôos
+        if (item.type === 'passagem' && item.departureDate) {
+          try {
+            const depDate = parseISO(item.departureDate);
+            
+            // Embarque
+            events.push({
+              id: `sale-dep-${sale.id}-${idx}`,
+              title: `Embarque: ${item.origin} ✈️ ${item.destination}${passengerLabel}`,
+              type: 'Embarque',
+              startDate: item.departureDate,
+              isAuto: true
+            });
+            
+            // Check-in (24h antes)
+            const checkInDate = subDays(depDate, 1);
+            events.push({
+              id: `sale-checkin-${sale.id}-${idx}`,
+              title: `Realizar Check-in: ${item.origin} ➔ ${item.destination}${passengerLabel}`,
+              type: 'Check-in',
+              startDate: format(checkInDate, "yyyy-MM-dd'T'HH:mm:ss"),
+              isAuto: true
+            });
+          } catch (e) { /* ignore error */ }
+        }
+        
+        // Hotel
+        if (item.type === 'hospedagem' && item.checkIn) {
+          events.push({
+            id: `sale-hotel-${sale.id}-${idx}`,
+            title: `Check-in Hotel: ${item.hotelName || 'Hospedagem'}${passengerLabel}`,
+            type: 'Hospedagem',
+            startDate: item.checkIn,
+            isAuto: true
+          });
+        }
+      });
+    });
+
+    return events;
+  }, [sales, calendarEvents]);
+
+  const upcomingEvents = React.useMemo(() => {
+    const now = new Date();
+    const futureEvents = allEvents
+      .filter(event => parseISO(event.startDate) >= now)
+      .sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime());
+    return futureEvents.slice(0, 5);
+  }, [allEvents]);
+
+  const formatEventDate = (dateStr: string) => {
+    try {
+      const date = parseISO(dateStr);
+      if (isNaN(date.getTime())) return { day: '--', month: '---', time: '--:--' };
+
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+      const hour = date.getHours().toString().padStart(2, '0');
+      const minute = date.getMinutes().toString().padStart(2, '0');
+      return { day, month, time: `${hour}:${minute}` };
+    } catch {
+      return { day: '--', month: '---', time: '--:--' };
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Recebido': return 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400';
@@ -152,14 +321,20 @@ export function DashboardView({
       case 'Pendente': return 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
       case 'Atrasado': return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400';
       case 'Cancelado': return 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400';
+      case 'Pago': return 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400';
       default: return 'bg-gray-100 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300';
     }
   };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
-    const dateObj = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T00:00:00');
-    return dateObj.toLocaleDateString('pt-BR');
+    try {
+      const dateObj = parseISO(dateString);
+      if (isNaN(dateObj.getTime())) return '-';
+      return dateObj.toLocaleDateString('pt-BR');
+    } catch {
+      return '-';
+    }
   };
 
   const StatusSelect = ({
@@ -182,11 +357,11 @@ export function DashboardView({
       <option value="Pendente">Pendente</option>
       <option value="Atrasado">Atrasado</option>
       <option value="Cancelado">Cancelado</option>
+      <option value="Pago">Pago</option>
     </select>
   );
 
   return (
-    // Removido max-w-[1600px] e adicionado w-full, espaçamento reduzido
     <div className="space-y-4 md:space-y-6 w-full pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
@@ -212,7 +387,7 @@ export function DashboardView({
           {/* Widget de Meta do Mês Integrado */}
           {(() => {
             const goalValue = 50000;
-            const currentFaturamento = currentMonthSales.reduce((sum, s) => sum + s.totalValue, 0);
+            const currentFaturamento = currentMonthSalesData.totalFaturamento;
             const progressPercent = Math.round(Math.min(100, (currentFaturamento / goalValue) * 100));
             const remainingValue = Math.max(0, goalValue - currentFaturamento);
 
@@ -272,27 +447,23 @@ export function DashboardView({
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard
               label="Reservas do Mês"
-              value={currentMonthSales.length.toString()}
-              description="Vendas confirmadas"
+              value={currentMonthSalesData.count.toString()}
+              description={renderTrend(currentMonthSalesData.count, previousMonthSalesData.count)}
               icon={<Calendar className="w-5 h-5 text-cyan-500" />}
               iconBg="bg-cyan-50"
             />
             <StatCard
               label="Faturamento do Mês"
-              value={fmt(currentMonthSales.reduce((sum, s) => sum + s.totalValue, 0))}
-              description="Vendas confirmadas"
+              value={fmt(currentMonthSalesData.totalFaturamento)}
+              description={renderTrend(currentMonthSalesData.totalFaturamento, previousMonthSalesData.totalFaturamento)}
               icon={<DollarSign className="w-5 h-5 text-cyan-500" />}
               iconBg="bg-cyan-50"
             />
             <StatCard
-              label="Lucro do Mês"
-              value={fmt(currentMonthSales.reduce((sum, s) => {
-                const commissions = s.items?.reduce((itemSum, item) => itemSum + (item.additionalCosts || 0), 0) || 0;
-                const saleProfit = commissions > 0 ? commissions : (s.totalValue - s.totalCost);
-                return sum + saleProfit;
-              }, 0))}
-              description="Lucro líquido real"
-              icon={<AlertCircle className="w-5 h-5 text-cyan-500" />}
+              label="Comissão do Mês"
+              value={fmt(currentMonthSalesData.totalComissao)}
+              description={renderTrend(currentMonthSalesData.totalComissao, previousMonthSalesData.totalComissao)}
+              icon={<TrendingUp className="w-5 h-5 text-cyan-500" />}
               iconBg="bg-cyan-50"
             />
           </div>
@@ -300,8 +471,7 @@ export function DashboardView({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Reduzido o padding e bordas ajustadas para rounded-2xl */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 text-gray-950 dark:text-white">
           <h2 className="text-lg font-black tracking-tight mb-6 dark:text-white uppercase leading-none">Evolução de Fluxo</h2>
           <div className="h-[300px] w-full relative">
             {!showValues && (
@@ -316,7 +486,7 @@ export function DashboardView({
                     <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.15} />
                     <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.01} />
                   </linearGradient>
-                  <linearGradient id="colorLucro" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorComissão" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#64748B" stopOpacity={0.15} />
                     <stop offset="95%" stopColor="#64748B" stopOpacity={0.01} />
                   </linearGradient>
@@ -344,13 +514,28 @@ export function DashboardView({
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 dark:border-slate-700/50 pb-1 mb-1">
                             {payload[0].payload.name}
                           </p>
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-[10px] font-bold text-cyan-500 uppercase">Faturamento</span>
-                            <span className="text-[10px] font-black text-gray-900 dark:text-gray-100">{fmt(payload.find(p => p.dataKey === 'Faturamento')?.value as number)}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-4">
-                            <span className="text-[10px] font-bold text-[#64748B] uppercase">Lucro</span>
-                            <span className="text-[10px] font-black text-gray-900 dark:text-gray-100">{fmt(payload.find(p => p.dataKey === 'Lucro')?.value as number)}</span>
+                          <div className="space-y-2">
+                            <div className="border-b border-gray-50 dark:border-slate-700/50 pb-1">
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase">Faturamento (Mês)</span>
+                                <span className="text-[10px] font-black text-gray-950 dark:text-gray-100">{fmt(payload[0].payload.FaturamentoMensal)}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-[9px] font-bold text-cyan-500 uppercase">Faturamento (Acum.)</span>
+                                <span className="text-[10px] font-black text-cyan-600 dark:text-cyan-400">{fmt(payload[0].payload.Faturamento)}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="pt-0.5">
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase">Comissão (Mês)</span>
+                                <span className="text-[10px] font-black text-gray-950 dark:text-gray-100">{fmt(payload[0].payload.ComissaoMensal)}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-[9px] font-bold text-slate-500 uppercase">Comissão (Acum.)</span>
+                                <span className="text-[10px] font-black text-slate-600 dark:text-slate-400">{fmt(payload[0].payload.Comissão)}</span>
+                              </div>
+                            </div>
                           </div>
                           {/* Triangle indicator */}
                           <div className="absolute -bottom-1.5 left-1/2 -ms-1.5 w-3 h-3 bg-white dark:bg-slate-800 border-r border-b border-gray-100 dark:border-slate-700 rotate-45" />
@@ -368,11 +553,11 @@ export function DashboardView({
                 />
                 <Area
                   type="monotone"
-                  dataKey="Lucro"
+                  dataKey="Comissão"
                   stroke="#64748B"
                   strokeWidth={2}
                   fillOpacity={1}
-                  fill="url(#colorLucro)"
+                  fill="url(#colorComissão)"
                   activeDot={{ r: 4, fill: '#FFFFFF', stroke: '#64748B', strokeWidth: 2 }}
                 />
                 <Area
@@ -384,13 +569,11 @@ export function DashboardView({
                   fill="url(#colorFaturamento)"
                   activeDot={{ r: 6, fill: '#FFFFFF', stroke: '#06B6D4', strokeWidth: 2 }}
                 />
-                <Area type="monotone" dataKey="Comissão" stroke="transparent" fill="transparent" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Reduzido o padding e bordas ajustadas */}
         <div className="bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50">
           <div className="flex items-center gap-2 mb-6">
             <Trophy className="w-5 h-5 text-orange-400" />
@@ -449,7 +632,7 @@ export function DashboardView({
                         <p className="text-sm font-black text-gray-900 dark:text-gray-100 tracking-tight">
                           {fmt(seller.totalValue)}
                         </p>
-                        <p className="text-[9px] font-bold text-[#19727d] dark:text-cyan-400 uppercase mt-0.5">
+                        <p className="text-[9px] font-bold text-[#06B6D4] dark:text-cyan-400 uppercase mt-0.5">
                           {progress}% de R$ 50.000
                         </p>
                       </div>
@@ -460,7 +643,7 @@ export function DashboardView({
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 1, ease: "easeOut", delay: index * 0.1 }}
-                        style={{ backgroundColor: '#19727d' }}
+                        style={{ backgroundColor: '#06B6D4' }}
                         className="h-full shadow-sm"
                       />
                     </div>
@@ -476,150 +659,161 @@ export function DashboardView({
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 min-h-[200px] w-full">
-        <h2 className="text-lg font-bold mb-4 dark:text-white">Reservas Recentes</h2>
-        {recentSales.length > 0 ? (
-          <>
-            <div className="hidden md:block overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-bottom border-gray-100 dark:border-slate-700/50">
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Pedido</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Data</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Cliente</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Produto</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center">Emissor</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Custo</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Venda</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status Custo</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status Venda</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
-                  {recentSales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-                      <td className="px-4 py-3">
-                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">#{sale.orderNumber || sale.id.slice(0, 4).toUpperCase()}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{formatDate(sale.saleDate || sale.createdAt)}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm text-gray-900 dark:text-gray-100 font-bold">{sale.customerName}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {(() => {
-                            const types = Array.from(new Set(sale.items?.map(i => i.type).filter(Boolean) || []));
-                            return types.length > 0 ? types.map(t => (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 min-h-[200px]">
+          <h2 className="text-lg font-bold mb-4 dark:text-white uppercase tracking-tight leading-none">Reservas Recentes</h2>
+          {recentSales.length > 0 ? (
+            <>
+              <div className="hidden md:block overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-bottom border-gray-100 dark:border-slate-700/50">
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Pedido</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Data</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Cliente</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Produto</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Emissor</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Custo</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Venda</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
+                    {recentSales.map((sale) => (
+                      <tr key={sale.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                        <td className="px-4 py-3">
+                          <span className="font-bold text-sm text-gray-900 dark:text-gray-100">#{sale.orderNumber || sale.id.slice(0, 4).toUpperCase()}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{formatDate(sale.saleDate || sale.createdAt)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-gray-900 dark:text-gray-100 font-bold truncate max-w-[150px] block" title={sale.customerName}>{sale.customerName}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {Array.from(new Set(sale.items?.map(i => i.type).filter(Boolean) || [])).map(t => (
                               <span key={t} className="px-2 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[10px] font-bold rounded-lg uppercase tracking-tight whitespace-nowrap">
-                                {t === 'passagem' ? '✈️ Passagem' :
-                                  t === 'hospedagem' ? '🏨 Hotel' :
-                                    t === 'seguro' ? '🛡️ Seguro' :
-                                      t === 'aluguel' ? '🚗 Aluguel' :
-                                        t === 'adicionais' ? '➕ Adic.' : t}
+                                {t === 'passagem' ? '✈️' : t === 'hospedagem' ? '🏨' : t === 'seguro' ? '🛡️' : t === 'aluguel' ? '🚗' : '➕'} {t}
                               </span>
-                            )) : <span className="text-gray-400 italic text-[10px]">N/A</span>;
-                          })()}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-center">
-                          <span className="px-2 py-0.5 bg-gray-50 dark:bg-slate-800/50 text-[#3b82f6] dark:text-blue-400 font-black text-[9px] uppercase tracking-wider rounded-md border border-gray-100 dark:border-slate-700/50 shadow-sm whitespace-nowrap" title={sale.emissor || '-'}>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 bg-gray-50 dark:bg-slate-800/50 text-[#19727d] dark:text-blue-400 font-black text-[9px] uppercase tracking-wider rounded-md border border-gray-100 dark:border-slate-700/50">
                             {sale.emissor || '-'}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-sm dark:text-gray-100 font-black ${(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
-                          ? 'text-gray-900' : 'text-gray-300 dark:text-gray-600 italic'
-                          }`}>
-                          {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
-                            ? fmt(sale.totalCost) : 'Restrito'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-sm dark:text-gray-100 font-black ${(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
-                          ? 'text-gray-900' : 'text-gray-300 dark:text-gray-600 italic'
-                          }`}>
-                          {(currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente' || sale.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())
-                            ? fmt(sale.totalValue) : 'Restrito'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusSelect
-                          value={sale.costStatus || 'Pendente'}
-                          onChange={(status) => onUpdateSaleStatus(sale.id, 'costStatus', status)}
-                          disabled={(currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gerente' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusSelect
-                          value={sale.saleStatus || 'Pendente'}
-                          onChange={(status) => onUpdateSaleStatus(sale.id, 'saleStatus', status)}
-                          disabled={(currentUser?.role !== 'Administrador' && currentUser?.role !== 'Gerente' && sale.emissor !== `${currentUser?.name} ${currentUser?.lastName || ''}`.trim())}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm font-black text-gray-900 dark:text-gray-100">{fmt(sale.totalCost)}</td>
+                        <td className="px-4 py-3 text-sm font-black text-gray-900 dark:text-gray-100">{fmt(sale.totalValue)}</td>
+                        <td className="px-4 py-3">
+                          <StatusSelect
+                            value={sale.saleStatus || 'Pendente'}
+                            onChange={(status) => onUpdateSaleStatus(sale.id, 'saleStatus', status)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="md:hidden space-y-3">
-              {recentSales.map((sale) => (
-                <div key={sale.id} className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700/50 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-bold text-gray-900 dark:text-gray-100">#{sale.orderNumber || sale.id.slice(0, 4).toUpperCase()}</p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatDate(sale.saleDate || sale.createdAt)}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5">
+              <div className="md:hidden space-y-3">
+                {recentSales.map((sale) => (
+                  <div key={sale.id} className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700/50 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-gray-900 dark:text-gray-100">#{sale.orderNumber}</p>
                       <StatusSelect
                         value={sale.saleStatus || 'Pendente'}
                         onChange={(status) => onUpdateSaleStatus(sale.id, 'saleStatus', status)}
                       />
                     </div>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{sale.customerName}</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      <span className="px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800/50 text-[#3b82f6] dark:text-blue-400 font-black text-[8px] uppercase tracking-wider rounded-md border border-gray-100 dark:border-slate-700/50 shadow-sm mr-1">
-                        {sale.emissor || '-'}
-                      </span>
-                      {Array.from(new Set(sale.items?.map(i => i.type).filter(Boolean) || [])).map(t => (
-                        <span key={t} className="px-1.5 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[9px] font-bold rounded-md uppercase tracking-tight shadow-sm border border-cyan-100/50 dark:border-cyan-500/20">
-                          {t === 'passagem' ? 'Passagem' :
-                            t === 'hospedagem' ? 'Hotel' :
-                              t === 'seguro' ? 'Seguro' :
-                                t === 'aluguel' ? 'Aluguel' : t}
-                        </span>
-                      ))}
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{sale.customerName}</p>
+                    <div className="flex justify-between items-center text-[10px] font-black">
+                      <span className="text-gray-500">{formatDate(sale.saleDate)}</span>
+                      <span className="text-gray-900 dark:text-white">{fmt(sale.totalValue)}</span>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-slate-700/50">
-                    <div>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black">Venda</p>
-                      <p className="text-sm font-black text-gray-900 dark:text-gray-100">
-                        {fmt(sale.totalValue)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black">Custo</p>
-                      <p className="text-sm font-black text-gray-900 dark:text-gray-100">
-                        {fmt(sale.totalCost)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500 text-xs italic">
+              <p>Nenhuma venda registrada.</p>
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-400 text-sm">
-            <p>Nenhuma reserva encontrada</p>
+          )}
+        </div>
+
+        {/* Card do Calendário - Posicionado à direita (conforme "AQUI" na imagem) */}
+        <div className="bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 h-fit">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[#19727d]" />
+              <h2 className="text-lg font-bold dark:text-white">Próximos Eventos</h2>
+            </div>
+            <button 
+              onClick={() => setActiveView('calendario')}
+              className="text-[10px] font-black text-[#19727d] uppercase tracking-widest hover:underline"
+            >
+              Ver Agenda
+            </button>
           </div>
-        )}
+ 
+          {upcomingEvents.length > 0 ? (
+            <div className="space-y-4">
+              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
+                {upcomingEvents.map((event, idx) => (
+                  <div key={event.id || idx} className="flex gap-3 group/item">
+                    {/* Bloco de Data Minimalista e Compacto */}
+                    <div className="flex flex-col items-center justify-center w-10 h-10 bg-[#19727d]/5 dark:bg-[#19727d]/10 rounded-lg border border-[#19727d]/10 dark:border-[#19727d]/20 shadow-sm flex-shrink-0">
+                      <span className="text-[10px] font-black text-[#19727d] dark:text-cyan-400 leading-none">
+                        {formatEventDate(event.startDate).day}
+                      </span>
+                      <span className="text-[8px] font-bold text-[#19727d] dark:text-cyan-300 uppercase leading-none opacity-80 mt-0.5">
+                        {formatEventDate(event.startDate).month}
+                      </span>
+                    </div>
+ 
+                    <div className="flex-1 min-w-0 py-0.5">
+                      <h3 className="text-[12px] font-bold text-gray-900 dark:text-gray-100 uppercase tracking-tight truncate leading-tight mb-0.5 group-hover/item:text-[#19727d] transition-colors" title={event.title}>
+                        {event.title}
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-gray-400" />
+                          <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                            {formatEventDate(event.startDate).time}
+                          </span>
+                        </div>
+                        <span className="px-1.5 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[8px] font-black rounded uppercase border border-cyan-100 dark:border-cyan-900/20 tracking-wider">
+                          {event.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+ 
+              <div className="pt-4 border-t border-gray-100 dark:border-slate-700 mt-2">
+                <button 
+                  onClick={() => setActiveView('calendario')}
+                  className="flex items-center justify-between w-full group"
+                >
+                  <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-[#19727d] transition-colors">Acessar agenda completa</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#19727d] transition-all transform group-hover:translate-x-1" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-gray-50 dark:border-slate-800 rounded-2xl">
+              <div className="w-10 h-10 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3 border border-gray-100 dark:border-slate-700">
+                <Clock className="w-4 h-4 text-gray-400" />
+              </div>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400">Nenhum evento agendado</p>
+              <p className="text-[10px] text-gray-400 mt-1 italic">Sua agenda está livre!</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

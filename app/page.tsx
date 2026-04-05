@@ -56,7 +56,8 @@ import { UsersView } from '@/components/UsersView';
 import { useLeads } from '@/hooks/useLeads';
 import { CRMView } from '@/components/CRMView';
 import { LeadModal } from '@/components/LeadModal';
-import { FinanceiroView, MetricasView } from '@/components/OtherViews';
+import { FinanceiroView } from '@/components/OtherViews';
+import { MetricasView } from '@/components/MetricasView';
 import { CustomerModal } from '@/components/CustomerModal';
 import { GroupModal } from '@/components/GroupModal';
 import { SaleModal } from '@/components/SaleModal';
@@ -781,6 +782,7 @@ export default function Page() {
                   onAddLead={openAddLead} 
                   currentUser={currentUser} 
                   teamMembers={teamMembers}
+                  calendarEvents={calendarEvents}
                   showValues={showValues} 
                   onToggleValues={() => setShowValues(v => !v)} 
                 />
@@ -830,7 +832,11 @@ export default function Page() {
                   currentUser={currentUser}
                 />
               ) : activeView === 'metricas' ? (
-                <MetricasView />
+                <MetricasView 
+                  sales={sales} 
+                  fetchSales={fetchSales} 
+                  onViewChange={setActiveView}
+                />
               ) : activeView === 'fornecedores' && currentUser?.role === 'Administrador' ? (
                 <SuppliersView suppliers={suppliers} onAddSupplier={openAddSupplier} onEditSupplier={openEditSupplier} onDeleteSupplier={handleDeleteSupplier} currentUser={currentUser} />
               ) : activeView === 'usuarios' ? (

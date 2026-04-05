@@ -45,7 +45,7 @@ import { motion, AnimatePresence } from 'motion/react';
 export function SidebarSection({ label, collapsed }: { label: string, collapsed?: boolean }) {
   if (collapsed) return <div className="h-6 border-t border-white/5 my-2" />;
   return (
-    <div className="px-4 pt-6 pb-2">
+    <div className="px-4 pt-2 pb-2">
       <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{label}</p>
     </div>
   );
@@ -149,22 +149,24 @@ export function HeaderButton({ icon, label, primary, onClick }: { icon: React.Re
   );
 }
 
-export function StatCard({ label, value, description, icon, iconBg }: { label: string, value: string, description: string, icon: React.ReactNode, iconBg: string }) {
+export function StatCard({ label, value, description, icon, iconBg }: { label: string, value: string, description: React.ReactNode, icon: React.ReactNode, iconBg: string }) {
   return (
-    <div className="bg-white dark:bg-[#1e293b] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex flex-col relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
-      <div className="flex justify-between items-center h-full">
-        <div className="flex flex-col justify-between h-full">
-          <div>
-            <p className="text-[10px] md:text-[11px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider mb-1">{label}</p>
-            <p className="text-xl md:text-2xl font-black text-[#111827] dark:text-white tracking-tighter">{value}</p>
-          </div>
-          <p className="text-[10px] md:text-[11px] text-gray-400 dark:text-gray-500 font-medium mt-2">{description}</p>
+    <div className="bg-white dark:bg-[#1e293b] p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer min-h-[140px]">
+      <div className="relative z-10 flex flex-col h-full justify-between">
+        <div>
+          <p className="text-[10px] md:text-[11px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider mb-4">{label}</p>
+          <p className="text-xl md:text-2xl font-black text-[#111827] dark:text-white tracking-tighter leading-tight">{value}</p>
         </div>
-        <div className={`w-10 h-10 md:w-12 md:h-12 ${iconBg} dark:bg-cyan-950/20 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-white/50 dark:border-white/5`}>
-          {icon}
-        </div>
+        <div className="mt-4">{description}</div>
       </div>
-      <div className="absolute -right-4 -bottom-4 w-16 md:w-20 h-16 md:h-20 bg-cyan-50/50 dark:bg-cyan-500/5 rounded-full opacity-40 group-hover:scale-110 transition-transform"></div>
+      
+      {/* Ícone no canto superior direito */}
+      <div className={`absolute top-5 right-5 w-10 h-10 md:w-12 md:h-12 ${iconBg} dark:bg-cyan-950/20 rounded-xl flex items-center justify-center shadow-sm border border-white/50 dark:border-white/5 z-0 group-hover:scale-110 transition-transform`}>
+        {icon}
+      </div>
+      
+      {/* Círculo decorativo ao fundo */}
+      <div className="absolute -right-4 -bottom-4 w-16 md:w-20 h-16 md:h-20 bg-cyan-50/50 dark:bg-cyan-500/5 rounded-full opacity-40 group-hover:scale-110 transition-transform z-0"></div>
     </div>
   );
 }

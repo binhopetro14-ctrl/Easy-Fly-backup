@@ -520,26 +520,20 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
 
-  const [formData, setFormData] = useState<Lead>({
-
+  const INITIAL_LEAD_STATE: Lead = {
     id: '', 
-
     title: '', name: '', phone: '', status: 'novo_contato', tags: [], adults: 1, children: 0, babies: 0, luggage23kg: 0,
+    items: [], fees_type: 'interest_free', fees_installments: 12, value: 0, markup: 10, taxes: 0, cost: 0, notes: '',
+    markup_type: 'percentage', usd_rate: 0, eur_rate: 0, gbp_rate: 0, createdAt: '', updatedAt: '', emissor: '',
+    slaStartAt: undefined
+  };
 
-    items: [], fees_type: 'interest_free', fees_installments: 10, value: 0, markup: 10, taxes: 0, cost: 0, notes: '',
-
-    markup_type: 'percentage', usd_rate: 0, eur_rate: 0, gbp_rate: 0, createdAt: '', updatedAt: '', emissor: ''
-
-  });
+  const [formData, setFormData] = useState<Lead>(INITIAL_LEAD_STATE);
 
   const [currentItem, setCurrentItem] = useState<any>({
-
     type: 'passagem', flightType: 'ida', outboundSegments: [{}], inboundSegments: [], 
-
     value: 0, cost: 0, vendor: '', hotelName: '', address: '', checkInDate: '', checkOutDate: '', roomType: '', stars: '',
-
     hasBreakfast: false
-
   });
 
   useEffect(() => {
@@ -549,24 +543,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
       setFormData({ ...editingLead, items: editingLead.items || [], fees_type: editingLead.fees_type || 'interest_free', fees_installments: editingLead.fees_installments || 12 });
 
     } else if (isOpen) {
-      setFormData({ 
-        ...formData, 
-        id: '', 
-        title: '', 
-        name: '', 
-        phone: '', 
-        status: 'novo_contato', 
-        tags: [], 
-        adults: 1, 
-        children: 0, 
-        babies: 0, 
-        luggage23kg: 0, 
-        items: [], 
-        value: 0, 
-        cost: 0, 
-        fees_type: 'interest_free', 
-        fees_installments: 12 
-      });
+      setFormData(INITIAL_LEAD_STATE);
     }
 
   }, [isOpen, editingLead]);

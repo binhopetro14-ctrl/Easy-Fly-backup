@@ -195,15 +195,15 @@ export const saleService = {
         *,
         customer:customers(name),
         group:groups(name),
-        sale_items(*)
+        sale_items!inner(*)
       `)
       .order('sale_date', { ascending: false });
 
     if (filters?.startDate) {
-      query = query.gte('sale_date', filters.startDate);
+      query = query.filter('sale_items.emission_date', 'gte', filters.startDate);
     }
     if (filters?.endDate) {
-      query = query.lte('sale_date', filters.endDate);
+      query = query.filter('sale_items.emission_date', 'lte', filters.endDate);
     }
 
     const { data: sales, error: salesError } = await query;
