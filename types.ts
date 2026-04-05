@@ -188,6 +188,8 @@ export interface FinancialTransaction {
   reminder?: boolean;
   observations?: string;
   attachments?: any[];
+  customerName?: string;
+  supplierName?: string;
   createdAt: string;
 }
 
@@ -206,4 +208,18 @@ export interface FinancialSettings {
   defaultIncomeAccountId?: string;
   defaultExpenseAccountId?: string;
   defaultBoardingTaxCardId?: string;
+}
+
+export type CalendarEventType = 'Check-in' | 'Embarque' | 'Hospedagem' | 'Follow-up' | 'Tarefa' | 'Reunião' | 'Lembrete' | 'Aniversariante';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  type: CalendarEventType;
+  startDate: string;
+  endDate?: string;
+  description?: string;
+  userId?: string;
+  isAllDay?: boolean;
+  createdAt: string;
 }

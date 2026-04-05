@@ -1,4 +1,4 @@
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember } from '../types';
 
 
 export const mapperService = {
@@ -171,6 +171,31 @@ export const mapperService = {
       status: data.status || 'Ativo',
       color: data.color,
       sortOrder: data.sort_order
+    }),
+    calendarEvent: (data: any): CalendarEvent => ({
+      id: data.id,
+      title: data.title,
+      type: data.type,
+      startDate: data.start_date,
+      endDate: data.end_date,
+      description: data.description,
+      userId: data.user_id,
+      isAllDay: data.is_all_day,
+      createdAt: data.created_at
+    }),
+    teamMember: (data: any): TeamMember => ({
+      id: data.id,
+      name: data.name,
+      lastName: data.last_name,
+      email: data.email,
+      role: data.role,
+      status: data.status,
+      salary: Number(data.salary) || 0,
+      commissionPercent: Number(data.commission_percent) || 0,
+      permissionsCount: Number(data.permissions_count) || 0,
+      birthDate: data.birth_date,
+      address: data.address,
+      avatarUrl: data.avatar_url
     })
   },
 
@@ -352,6 +377,36 @@ export const mapperService = {
         sort_order: category.sortOrder
       };
       if (category.id) data.id = category.id;
+      return data;
+    },
+    calendarEvent: (event: Partial<CalendarEvent>) => {
+      const data: any = {
+        title: event.title,
+        type: event.type,
+        start_date: event.startDate,
+        end_date: event.endDate,
+        description: event.description,
+        is_all_day: event.isAllDay,
+        user_id: event.userId
+      };
+      if (event.id) data.id = event.id;
+      return data;
+    },
+    teamMember: (member: Partial<TeamMember>) => {
+      const data: any = {
+        name: member.name,
+        last_name: member.lastName,
+        email: member.email,
+        role: member.role,
+        status: member.status,
+        salary: member.salary,
+        commission_percent: member.commissionPercent,
+        permissions_count: member.permissionsCount,
+        birth_date: member.birthDate,
+        address: member.address,
+        avatar_url: member.avatarUrl
+      };
+      if (member.id) data.id = member.id;
       return data;
     }
   }

@@ -1,9 +1,22 @@
 import { supabase } from '../lib/supabase';
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember } from '../types';
 
 import { mapperService } from './mapperService';
 
-// Função auxiliar para forçar a extração de qualquer erro escondido
+export const teamMemberService = {
+  getAll: async (): Promise<TeamMember[]> => {
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Supabase Error (getAll team_members):', extractError(error));
+      throw new Error(error.message || 'Erro ao buscar membros da equipe');
+    }
+    return data ? data.map(mapperService.fromSupabase.teamMember) : [];
+  }
+};
 const extractError = (error: any) => {
   try {
     return JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
@@ -416,6 +429,11 @@ export const financeService = {
     const { error } = await supabase.from('financial_categories').delete().eq('id', id);
     if (error) throw new Error(error.message);
   },
+  updateCategoriesOrder: async (categories: FinancialCategory[]): Promise<void> => {
+    const payloads = categories.map(c => mapperService.toSupabase.financialCategory(c));
+    const { error } = await supabase.from('financial_categories').upsert(payloads);
+    if (error) throw new Error(error.message);
+  },
   getSettings: async (): Promise<FinancialSettings> => {
     const { data, error } = await supabase.from('financial_settings').select('*');
     if (error) throw new Error(error.message);
@@ -449,6 +467,57 @@ export const financeService = {
       }, 0);
 
       await supabase.from('financial_accounts').update({ balance: newBalance }).eq('id', acc.id);
+    }
+  }
+};
+
+export const calendarService = {
+  getAll: async (): Promise<CalendarEvent[]> => {
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .order('start_date', { ascending: true });
+
+    if (error) {
+      console.error('Supabase Error (getAll calendar_events):', extractError(error));
+      throw new Error(error.message || 'Erro ao buscar eventos do calendário');
+    }
+    return data ? data.map(mapperService.fromSupabase.calendarEvent) : [];
+  },
+
+  save: async (event: Partial<CalendarEvent>): Promise<CalendarEvent> => {
+    const payload = mapperService.toSupabase.calendarEvent(event);
+
+    if (!payload.id) {
+      delete payload.id;
+    }
+
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .upsert(payload)
+      .select();
+
+    if (error) {
+      console.error('Supabase Error (save calendar_event):', extractError(error));
+      throw new Error(error.message || 'Erro ao salvar evento do calendário');
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('Erro ao salvar evento: Registro não retornado.');
+    }
+
+    return mapperService.fromSupabase.calendarEvent(data[0]);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('calendar_events')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Supabase Error (delete calendar_event):', extractError(error));
+      throw new Error(error.message || 'Erro ao deletar evento do calendário');
     }
   }
 };

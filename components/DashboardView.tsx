@@ -27,8 +27,9 @@ import {
   Plus
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Sale } from '@/types';
+import { Sale, TeamMember } from '@/types';
 import { HeaderButton, StatCard } from './UI';
+import Image from 'next/image';
 
 
 interface DashboardViewProps {
@@ -39,6 +40,7 @@ interface DashboardViewProps {
   onUpdateSaleStatus: (saleId: string, field: 'costStatus' | 'saleStatus', status: any) => void;
   onAddLead: () => void;
   currentUser: any;
+  teamMembers: TeamMember[];
   showValues: boolean;
   onToggleValues: () => void;
 }
@@ -51,6 +53,7 @@ export function DashboardView({
   onUpdateSaleStatus,
   onAddLead,
   currentUser,
+  teamMembers,
   showValues,
   onToggleValues
 }: DashboardViewProps) {
@@ -110,7 +113,7 @@ export function DashboardView({
   }, [sales]);
 
   const sellerRanking = React.useMemo(() => {
-    const rankingMap: Record<string, { name: string, totalValue: number, count: number }> = {};
+    const rankingMap: Record<string, { name: string, totalValue: number, count: number, avatarUrl?: string }> = {};
     const now = new Date();
 
     sales.filter(sale => {
@@ -120,7 +123,18 @@ export function DashboardView({
     }).forEach(sale => {
       const emissor = sale.emissor || 'Não Informado';
       if (!rankingMap[emissor]) {
-        rankingMap[emissor] = { name: emissor, totalValue: 0, count: 0 };
+        // Busca o avatar do membro da equipe pelo nome
+        const member = teamMembers.find(m => {
+          const fullName = `${m.name} ${m.lastName || ''}`.trim();
+          return fullName.toLowerCase() === emissor.toLowerCase() || m.name.toLowerCase() === emissor.toLowerCase();
+        });
+        
+        rankingMap[emissor] = { 
+          name: emissor, 
+          totalValue: 0, 
+          count: 0,
+          avatarUrl: member?.avatarUrl 
+        };
       }
       rankingMap[emissor].totalValue += (sale.totalValue || 0);
       rankingMap[emissor].count += 1;
@@ -129,7 +143,7 @@ export function DashboardView({
     return Object.values(rankingMap)
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
-  }, [sales]);
+  }, [sales, teamMembers]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -382,33 +396,77 @@ export function DashboardView({
             <Trophy className="w-5 h-5 text-orange-400" />
             <h2 className="text-lg font-bold dark:text-white">Ranking de Vendedores</h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {sellerRanking.length > 0 ? (
-              sellerRanking.map((seller, index) => (
-                <div key={seller.name} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm
-                      ${index < 3 ? 'bg-green-100 text-green-700 border border-green-200 ring-2 ring-green-50' :
-                        'bg-gray-50 text-gray-400 dark:bg-slate-800 dark:text-gray-500'}
-                    `}>
-                      {index + 1}º
+              sellerRanking.map((seller, index) => {
+                const goal = 50000;
+                const progress = Math.round(Math.min(100, (seller.totalValue / goal) * 100));
+
+                return (
+                  <div key={seller.name} className="flex flex-col gap-3 group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          {seller.avatarUrl ? (
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-cyan-100 dark:border-slate-700 shadow-sm">
+                              <Image 
+                                src={seller.avatarUrl} 
+                                alt={seller.name} 
+                                width={48} 
+                                height={48} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shadow-sm border-2
+                              ${index === 0 ? 'bg-orange-50 text-orange-500 border-orange-100' : 
+                                index === 1 ? 'bg-gray-50 text-gray-500 border-gray-100' :
+                                index === 2 ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                'bg-slate-50 text-slate-400 border-slate-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'}
+                            `}>
+                              {seller.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-sm border border-white
+                            ${index === 0 ? 'bg-orange-400 text-white' : 
+                              index === 1 ? 'bg-gray-400 text-white' :
+                              index === 2 ? 'bg-amber-600 text-white' :
+                              'bg-slate-400 text-white'}
+                          `}>
+                            {index + 1}
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-black text-gray-950 dark:text-gray-100 uppercase tracking-tight leading-none" title={seller.name}>
+                            {seller.name}
+                          </h3>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-1 italic">
+                            {seller.count} {seller.count === 1 ? 'venda' : 'vendas'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-gray-900 dark:text-gray-100 tracking-tight">
+                          {fmt(seller.totalValue)}
+                        </p>
+                        <p className="text-[9px] font-bold text-[#19727d] dark:text-cyan-400 uppercase mt-0.5">
+                          {progress}% de R$ 50.000
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black text-gray-950 dark:text-gray-100 uppercase tracking-tighter leading-none" title={seller.name}>
-                        {seller.name}
-                      </h3>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.15em] mt-1 italic">
-                        {seller.count} {seller.count === 1 ? 'venda' : 'vendas'}
-                      </p>
+                    {/* Barra de Progresso Individual */}
+                    <div className="w-full h-1.5 bg-gray-50 dark:bg-slate-800 rounded-full overflow-hidden border border-gray-100 dark:border-slate-700">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 1, ease: "easeOut", delay: index * 0.1 }}
+                        style={{ backgroundColor: '#19727d' }}
+                        className="h-full shadow-sm"
+                      />
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-base font-black text-gray-900 dark:text-gray-100">
-                      {fmt(seller.totalValue)}
-                    </p>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="flex flex-col items-center justify-center h-[200px] text-gray-400 dark:text-gray-500 text-xs italic">
                 <p>Nenhuma venda registrada.</p>

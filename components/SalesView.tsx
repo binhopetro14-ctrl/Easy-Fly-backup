@@ -56,18 +56,23 @@ export function SalesView({
   const [isModelHelpOpen, setIsModelHelpOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // --- ESTADO DA DATA (Março 2026 como base) ---
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 25));
+  // --- ESTADO DA DATA (Dinâmico para o mês vigente) ---
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   // --- ATALHOS DO CALENDÁRIO ---
   const handleShortcut = (type: string) => {
-    const today = new Date(2026, 2, 25);
+    const today = new Date();
     switch (type) {
       case 'Hoje': setCurrentDate(today); break;
-      case 'Ontem': setCurrentDate(new Date(2026, 2, 24)); break;
-      case 'Este mês': setCurrentDate(new Date(2026, 2, 1)); break;
-      case 'Mês passado': setCurrentDate(new Date(2026, 1, 1)); break;
-      case 'Este ano': setCurrentDate(new Date(2026, 0, 1)); break;
+      case 'Ontem': {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        setCurrentDate(yesterday);
+        break;
+      }
+      case 'Este mês': setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1)); break;
+      case 'Mês passado': setCurrentDate(new Date(today.getFullYear(), today.getMonth() - 1, 1)); break;
+      case 'Este ano': setCurrentDate(new Date(today.getFullYear(), 0, 1)); break;
     }
     setIsCalendarOpen(false);
   };
@@ -160,7 +165,7 @@ export function SalesView({
   };
 
   return (
-    <div className="w-full space-y-6 relative">
+    <div className="w-full min-h-[calc(100vh-140px)] flex flex-col space-y-6 relative">
 
       {/* 1. INDICADORES (Cards Superiores) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -238,7 +243,7 @@ export function SalesView({
                 <div className="flex items-center justify-between mb-4 px-2">
                   <div className="flex gap-2">
                     <div className="text-xs font-bold bg-gray-50 dark:bg-slate-800 rounded-md px-2 py-1 capitalize dark:text-gray-200">{currentDate.toLocaleDateString('pt-BR', { month: 'long' })}</div>
-                    <div className="text-xs font-bold bg-gray-50 dark:bg-slate-800 rounded-md px-2 py-1 dark:text-gray-200">2026</div>
+                    <div className="text-xs font-bold bg-gray-50 dark:bg-slate-800 rounded-md px-2 py-1 dark:text-gray-200">{currentDate.getFullYear()}</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-center">
@@ -249,7 +254,7 @@ export function SalesView({
                     <button
                       key={i}
                       onClick={() => {
-                        setCurrentDate(new Date(2026, currentDate.getMonth(), i + 1));
+                        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1));
                         setIsCalendarOpen(false);
                       }}
                       className={`w-8 h-8 text-xs font-bold rounded-lg flex items-center justify-center transition-all cursor-pointer
@@ -289,8 +294,8 @@ export function SalesView({
       </div>
 
       {/* 3. TABELA DE VENDAS */}
-      <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="flex-1 bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 overflow-hidden flex flex-col">
+        <div className="overflow-x-auto flex-1">
           <table className="w-full text-left whitespace-nowrap">
             <thead>
               <tr className="border-b border-gray-50 dark:border-slate-700/50 bg-white dark:bg-[#1e293b]/50">
@@ -563,7 +568,7 @@ export function SalesView({
             </tbody>
           </table>
           {filteredSales.length === 0 && (
-            <div className="p-20 text-center text-gray-400 text-sm italic">
+            <div className="flex-1 flex items-center justify-center p-20 text-center text-gray-400 text-sm italic">
               Nenhuma venda encontrada para {monthYearLabel}.
             </div>
           )}

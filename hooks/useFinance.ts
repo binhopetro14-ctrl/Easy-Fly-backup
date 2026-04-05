@@ -135,6 +135,33 @@ export function useFinance() {
         throw new Error(err.message || 'Erro ao deletar categoria');
       }
     },
+    updateCategoriesOrder: async (newOrder: FinancialCategory[]) => {
+      // 1. Preparamos o conteúdo completo de cada categoria com sua nova ordem
+      const fullUpdatedCategories = newOrder.map((cat, idx) => ({
+        ...cat,
+        sortOrder: idx
+      }));
+
+      // 2. Atualiza o estado local IMEDIATAMENTE (Síncrono)
+      setCategories(prev => {
+        const updatedDocs = [...prev];
+        fullUpdatedCategories.forEach(updated => {
+          const index = updatedDocs.findIndex(c => c.id === updated.id);
+          if (index >= 0) {
+            updatedDocs[index] = updated;
+          }
+        });
+        return updatedDocs.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      });
+
+      // 3. Persiste no banco de dados com os objetos COMPLETOS
+      try {
+        await financeService.updateCategoriesOrder(fullUpdatedCategories);
+      } catch (err: any) {
+        console.error('Erro ao persistir ordem no banco:', err);
+      }
+    },
+    setCategories,
     saveSettings: async (newSettings: FinancialSettings) => {
       try {
         await financeService.saveSettings(newSettings);

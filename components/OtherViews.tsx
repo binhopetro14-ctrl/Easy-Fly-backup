@@ -29,23 +29,9 @@ export function CRMView() {
   );
 }
 
-export function ReservasView() {
-  return (
-    <div className="space-y-4 md:space-y-6 w-full">
-      <div>
-        <h1 className="text-2xl font-bold text-[#111827] dark:text-white">Reservas</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Acompanhe todas as reservas e vouchers</p>
-      </div>
-      <div className="bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex flex-col items-center justify-center min-h-[400px] text-gray-400 dark:text-gray-500 italic">
-        <Calendar className="w-16 h-16 mb-4 opacity-20" />
-        <p className="text-sm">Calendário de Reservas em desenvolvimento...</p>
-      </div>
-    </div>
-  );
-}
 
-export function FinanceiroView() {
-  return <FinancialView />;
+export function FinanceiroView({ subView }: { subView?: 'controle' | 'contas' }) {
+  return <FinancialView subView={subView} />;
 }
 
 export function MetricasView() {

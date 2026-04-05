@@ -44,9 +44,9 @@ import {
   Shield // Ícone extra para a sidebar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Customer, Group, Sale, Supplier, TeamMember, Lead } from '@/types';
-import { customerService, groupService, supplierService, saleService } from '@/services/supabaseService';
-import { SidebarItem } from '@/components/UI';
+import { Customer, Group, Sale, Supplier, TeamMember, Lead, CalendarEvent } from '@/types';
+import { customerService, groupService, supplierService, saleService, teamMemberService } from '@/services/supabaseService';
+import { SidebarItem, SidebarSection } from '@/components/UI';
 import { DashboardView } from '@/components/DashboardView';
 import { CustomersView } from '@/components/CustomersView';
 import { CustomerDetailsView } from '@/components/CustomerDetailsView';
@@ -56,16 +56,18 @@ import { UsersView } from '@/components/UsersView';
 import { useLeads } from '@/hooks/useLeads';
 import { CRMView } from '@/components/CRMView';
 import { LeadModal } from '@/components/LeadModal';
-import { ReservasView, FinanceiroView, MetricasView } from '@/components/OtherViews';
+import { FinanceiroView, MetricasView } from '@/components/OtherViews';
 import { CustomerModal } from '@/components/CustomerModal';
 import { GroupModal } from '@/components/GroupModal';
 import { SaleModal } from '@/components/SaleModal';
 import { SupplierModal } from '@/components/SupplierModal';
 import { MyProfileModal } from '@/components/MyProfileModal';
+import { CalendarView } from '@/components/CalendarView';
 import { DeleteConfirmationModal } from '@/components/Modals';
 import { SupabaseSyncHandler } from '@/components/SupabaseSyncHandler';
 import { LoginView } from '@/components/LoginView';
 import { supabase } from '@/lib/supabase';
+import { calendarService } from '@/services/supabaseService';
 import { useInactivityTimeout } from '@/hooks/useInactivityTimeout';
 import { useTheme } from '@/hooks/useTheme';
 import { useCustomers } from '@/hooks/useCustomers';
@@ -74,7 +76,7 @@ import { useSales } from '@/hooks/useSales';
 import { useSuppliers } from '@/hooks/useSuppliers';
 
 // <--- 'usuarios' adicionado ao tipo View
-type View = 'dashboard' | 'crm' | 'vendas' | 'clientes' | 'reservas' | 'financeiro' | 'fornecedores' | 'metricas' | 'usuarios';
+type View = 'dashboard' | 'crm' | 'vendas' | 'clientes' | 'financeiro-controle' | 'financeiro-contas' | 'fornecedores' | 'metricas' | 'usuarios' | 'calendario';
 
 export default function Page() {
   const { theme, toggleTheme, mounted } = useTheme();
@@ -83,6 +85,7 @@ export default function Page() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<TeamMember | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   // --- HOOKS DE DADOS ---
   const {
@@ -115,6 +118,7 @@ export default function Page() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isFinanceiroExpanded, setIsFinanceiroExpanded] = useState(false);
   const [showValues, setShowValues] = useState(true);
 
   // --- ESTADOS DE MODAIS ---
@@ -127,6 +131,10 @@ export default function Page() {
   const [isDeleteSaleConfirmOpen, setIsDeleteSaleConfirmOpen] = useState(false);
   const [isDeleteSupplierConfirmOpen, setIsDeleteSupplierConfirmOpen] = useState(false);
   const [isDeleteLeadConfirmOpen, setIsDeleteLeadConfirmOpen] = useState(false);
+
+  // --- ESTADOS DO CALENDÁRIO ---
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
 
 
   // --- ESTADOS DE EDIÇÃO/DELEÇÃO ---
@@ -186,6 +194,7 @@ export default function Page() {
   const fetchData = async () => {
     fetchCustomers();
     fetchGroups();
+    fetchCalendarEvents();
 
     // Busca dados desde o início do ano atual para o Dashboard inicial
     const now = new Date();
@@ -195,9 +204,31 @@ export default function Page() {
     fetchSales({ startDate: firstDayOfYear, endDate: lastDayOfMonth });
     fetchSuppliers();
     fetchLeads();
+    fetchTeamMembers();
+  };
+
+  const fetchTeamMembers = async () => {
+    try {
+      const data = await teamMemberService.getAll();
+      setTeamMembers(data);
+    } catch (err) {
+      console.error("Error fetching team members:", err);
+    }
   };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const fetchCalendarEvents = async () => {
+    setLoadingCalendar(true);
+    try {
+      const data = await calendarService.getAll();
+      setCalendarEvents(data);
+    } catch (err) {
+      console.error("Error fetching calendar events:", err);
+    } finally {
+      setLoadingCalendar(false);
+    }
+  };
 
   const handleViewChange = (view: View) => {
     setActiveView(view);
@@ -652,50 +683,64 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      <aside className={`fixed inset-y-0 left-0 z-50 lg:relative lg:flex ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64 bg-[#19727d] text-white flex flex-col transition-all duration-300 ease-in-out`}>
-        <div className="p-6 flex items-center justify-between lg:justify-start gap-3 bg-[#19727d]">
-          <div className="flex items-center gap-3 w-full">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#145d66]/50 p-2">
-              <Image src="/logo2.png" alt="Easy Fly" width={48} height={48} className="w-full h-full object-contain" />
+      <aside className={`fixed inset-y-0 left-0 z-50 lg:relative lg:flex ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${isSidebarCollapsed ? 'lg:w-16' : 'lg:w-56'} w-56 bg-[#19727d] text-white flex flex-col transition-all duration-300 ease-in-out`}>
+        <div className="p-4 flex items-center justify-between lg:justify-start gap-3 bg-[#19727d] flex-shrink-0">
+          <div className="flex items-center gap-2.5 w-full">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#145d66]/50 p-1.5">
+              <Image src="/logo2.png" alt="Easy Fly" width={40} height={40} className="w-full h-full object-contain" />
             </div>
             {(!isSidebarCollapsed || isMobileMenuOpen) && (
               <div className="overflow-hidden whitespace-nowrap animate-in slide-in-from-left duration-300">
-                <h1 className="text-white font-black text-2xl tracking-tighter leading-none">Easy Fly</h1>
-                <p className="text-white/70 font-bold text-[9px] uppercase tracking-[0.25em] mt-1 italic">Agência de Viagens</p>
+                <h1 className="text-white font-black text-xl tracking-tighter leading-none">Easy Fly</h1>
+                <p className="text-white/70 font-bold text-[8px] uppercase tracking-[0.25em] mt-1 italic">Agência de Viagens</p>
               </div>
             )}
           </div>
           <button onClick={closeMobileMenu} className="lg:hidden p-2 hover:bg-white/10 rounded-lg"><X className="w-6 h-6" /></button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 bg-[#19727d] overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 bg-[#19727d] overflow-y-auto custom-scrollbar">
+          <SidebarSection label="Dashboards" collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
           <SidebarItem icon={<LayoutDashboard className="w-5 h-5" />} label="Visão Geral" active={activeView === 'dashboard'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('dashboard')} />
+          <SidebarItem icon={<Calendar className="w-5 h-5" />} label="Calendário" active={activeView === 'calendario'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('calendario')} />
+          <SidebarItem icon={<BarChart3 className="w-5 h-5" />} label="Métricas" active={activeView === 'metricas'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('metricas')} />
+
+          <SidebarSection label="Gestão" collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
           <SidebarItem icon={<Target className="w-5 h-5" />} label="CRM" active={activeView === 'crm'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('crm')} />
           <SidebarItem icon={<ShoppingCart className="w-5 h-5" />} label="Vendas" active={activeView === 'vendas'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('vendas')} />
           <SidebarItem icon={<Users className="w-5 h-5" />} label="Clientes" active={activeView === 'clientes'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('clientes')} />
-          <SidebarItem icon={<Calendar className="w-5 h-5" />} label="Reservas" active={activeView === 'reservas'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('reservas')} />
-          <SidebarItem icon={<DollarSign className="w-5 h-5" />} label="Financeiro" active={activeView === 'financeiro'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('financeiro')} />
+          <SidebarItem 
+            icon={<DollarSign className="w-5 h-5" />} 
+            label="Financeiro" 
+            active={activeView.startsWith('financeiro-')} 
+            collapsed={isSidebarCollapsed && !isMobileMenuOpen} 
+            isExpanded={isFinanceiroExpanded}
+            onExpand={() => setIsFinanceiroExpanded(!isFinanceiroExpanded)}
+            subItems={[
+              { label: 'Controle de Caixa', active: activeView === 'financeiro-controle', onClick: () => handleViewChange('financeiro-controle') },
+              { label: 'Contas Bancárias', active: activeView === 'financeiro-contas', onClick: () => handleViewChange('financeiro-contas') }
+            ]}
+          />
           {currentUser?.role === 'Administrador' && (
             <SidebarItem icon={<Truck className="w-5 h-5" />} label="Fornecedores" active={activeView === 'fornecedores'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('fornecedores')} />
           )}
 
-          {/* <--- Item "Usuários" Adicionado na Sidebar */}
+          <SidebarSection label="Configurações" collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
           <SidebarItem icon={<Shield className="w-5 h-5" />} label="Usuários" active={activeView === 'usuarios'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('usuarios')} />
-
-          <SidebarItem icon={<BarChart3 className="w-5 h-5" />} label="Métricas" active={activeView === 'metricas'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('metricas')} />
         </nav>
 
-        <div className="px-3 py-4 border-t border-[#145d66] space-y-1 bg-[#19727d]">
+        <div className="px-3 py-2 border-t border-[#145d66] space-y-0.5 bg-[#19727d]">
           {mounted && (
             <SidebarItem
               icon={theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               label={theme === 'dark' ? "Modo Claro" : "Modo Escuro"}
               collapsed={isSidebarCollapsed && !isMobileMenuOpen}
               onClick={toggleTheme}
+              compact
             />
           )}
-          <SidebarItem icon={<ChevronLeft className={`w-5 h-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />} label="Recolher" collapsed={isSidebarCollapsed && !isMobileMenuOpen} className="hidden lg:flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
-          <SidebarItem icon={<LogOut className="w-5 h-5" />} label="Sair" collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={handleLogout} />
+          <SidebarItem icon={<ChevronLeft className={`w-5 h-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />} label="Recolher" collapsed={isSidebarCollapsed && !isMobileMenuOpen} className="hidden lg:flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} compact />
+          <SidebarItem icon={<LogOut className="w-5 h-5" />} label="Sair" collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={handleLogout} compact />
         </div>
         <SupabaseSyncHandler onRefresh={fetchData} collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
       </aside>
@@ -714,7 +759,7 @@ export default function Page() {
           <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"><Menu className="w-6 h-6 text-gray-600" /></button>
         </header>
 
-        <div className={`flex-1 ${(activeView === 'crm' || activeView === 'financeiro') ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-6 lg:p-8'}`}>
+        <div className={`flex-1 ${(activeView === 'crm' || activeView.startsWith('financeiro-')) ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-6 lg:p-8'}`}>
           <AnimatePresence mode="wait">
             <motion.div key={activeView + (selectedCustomer ? '-details' : '')} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
 
@@ -727,7 +772,18 @@ export default function Page() {
                   currentUser={currentUser}
                 />
               ) : activeView === 'dashboard' ? (
-                <DashboardView sales={sales} onAddCustomer={openAddCustomer} onAddSale={openAddSale} setActiveView={setActiveView} onUpdateSaleStatus={handleUpdateSaleStatus} onAddLead={openAddLead} currentUser={currentUser} showValues={showValues} onToggleValues={() => setShowValues(v => !v)} />
+                <DashboardView 
+                  sales={sales} 
+                  onAddCustomer={openAddCustomer} 
+                  onAddSale={openAddSale} 
+                  setActiveView={setActiveView} 
+                  onUpdateSaleStatus={handleUpdateSaleStatus} 
+                  onAddLead={openAddLead} 
+                  currentUser={currentUser} 
+                  teamMembers={teamMembers}
+                  showValues={showValues} 
+                  onToggleValues={() => setShowValues(v => !v)} 
+                />
               ) : activeView === 'clientes' ? (
                 <CustomersView
                   customers={customers}
@@ -764,10 +820,15 @@ export default function Page() {
                   onEditLead={openEditLead}
                   onDeleteLead={handleDeleteLead}
                 />
-              ) : activeView === 'reservas' ? (
-                <ReservasView />
-              ) : activeView === 'financeiro' ? (
-                <FinanceiroView />
+              ) : activeView === 'financeiro-controle' || activeView === 'financeiro-contas' ? (
+                <FinanceiroView subView={activeView === 'financeiro-controle' ? 'controle' : 'contas'} />
+              ) : activeView === 'calendario' ? (
+                <CalendarView 
+                  sales={sales} 
+                  manualEvents={calendarEvents} 
+                  onRefresh={fetchCalendarEvents} 
+                  currentUser={currentUser}
+                />
               ) : activeView === 'metricas' ? (
                 <MetricasView />
               ) : activeView === 'fornecedores' && currentUser?.role === 'Administrador' ? (

@@ -40,7 +40,16 @@ import {
   CheckCircle2,
   Clock
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+
+export function SidebarSection({ label, collapsed }: { label: string, collapsed?: boolean }) {
+  if (collapsed) return <div className="h-6 border-t border-white/5 my-2" />;
+  return (
+    <div className="px-4 pt-6 pb-2">
+      <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{label}</p>
+    </div>
+  );
+}
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -49,21 +58,79 @@ interface SidebarItemProps {
   collapsed?: boolean;
   onClick?: () => void;
   className?: string;
+  subItems?: { label: string; active: boolean; onClick: () => void }[];
+  isExpanded?: boolean;
+  onExpand?: () => void;
+  compact?: boolean;
 }
 
-export function SidebarItem({ icon, label, active, collapsed, onClick, className = "" }: SidebarItemProps) {
+export function SidebarItem({ 
+  icon, 
+  label, 
+  active, 
+  collapsed, 
+  onClick, 
+  className = "",
+  subItems = [],
+  isExpanded,
+  onExpand,
+  compact = false
+}: SidebarItemProps) {
+  const hasSubItems = subItems.length > 0;
+
   return (
-    <button 
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
-        active 
-          ? 'bg-white text-[#19727d] shadow-lg shadow-black/5' 
-          : 'text-white/70 hover:bg-white/10 hover:text-white'
-      } ${collapsed ? 'justify-center px-0' : ''} ${className}`}
-    >
-      <div className="flex-shrink-0">{icon}</div>
-      {!collapsed && <span className="whitespace-nowrap">{label}</span>}
-    </button>
+    <div className="w-full space-y-1">
+      <button 
+        onClick={(e) => {
+          if (hasSubItems && onExpand) {
+            e.stopPropagation();
+            onExpand();
+          } else if (onClick) {
+            onClick();
+          }
+        }}
+        className={`w-full flex items-center justify-between px-4 ${compact ? 'py-1.5' : 'py-2.5'} rounded-xl ${compact ? 'text-[11px]' : 'text-[12px]'} font-bold transition-all duration-200 cursor-pointer ${
+          active && !hasSubItems
+            ? 'bg-white text-[#19727d] shadow-lg shadow-black/5' 
+            : 'text-white/70 hover:bg-white/10 hover:text-white'
+        } ${collapsed ? 'justify-center px-0' : ''} ${className}`}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className={`flex-shrink-0 ${compact ? 'scale-90' : ''}`}>{icon}</div>
+          {!collapsed && <span className="whitespace-nowrap">{label}</span>}
+        </div>
+        
+        {!collapsed && hasSubItems && (
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+        )}
+      </button>
+
+      {/* Sub-itens */}
+      <AnimatePresence>
+        {!collapsed && hasSubItems && isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden pl-9 space-y-1"
+          >
+            {subItems.map((item, index) => (
+              <button
+                key={index}
+                onClick={item.onClick}
+                className={`w-full text-left py-1.5 px-3 rounded-lg text-[11px] font-bold transition-all ${
+                  item.active 
+                    ? 'text-white bg-white/10' 
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
