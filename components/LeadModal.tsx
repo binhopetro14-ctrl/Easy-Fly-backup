@@ -535,7 +535,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
   const [currentItem, setCurrentItem] = useState<any>({
     type: 'passagem', flightType: 'ida', outboundSegments: [{}], inboundSegments: [], 
     value: 0, cost: 0, vendor: '', hotelName: '', address: '', checkInDate: '', checkOutDate: '', roomType: '', stars: '',
-    hasBreakfast: false
+    hasBreakfast: false, transfer_in: false, transfer_out: false
   });
 
   useEffect(() => {
@@ -676,7 +676,12 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
     const desc = currentItem.type === 'passagem' 
       ? (currentItem.outboundSegments?.[0]?.origin + ' → ' + currentItem.outboundSegments?.[currentItem.outboundSegments.length-1]?.destination) 
-      : (currentItem.type === 'hospedagem' ? (currentItem.hotelName || 'Hospedagem') : (currentItem.type === 'seguro' ? 'Seguro Viagem' : 'Carro'));
+      : (currentItem.type === 'hospedagem' ? (currentItem.hotelName || 'Hospedagem') : 
+        (currentItem.type === 'translado' ? (
+          (currentItem.transfer_in && currentItem.transfer_out) ? 'Translado (In/Out)' :
+          currentItem.transfer_in ? 'Translado (In)' :
+          currentItem.transfer_out ? 'Translado (Out)' : 'Translado'
+        ) : (currentItem.type === 'seguro' ? 'Seguro Viagem' : 'Carro')));
 
     const hotelMetaData = currentItem.type === 'hospedagem' ? {
 
@@ -999,9 +1004,9 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
             <div className="flex gap-2 p-1 bg-gray-200 dark:bg-slate-800/80 rounded-xl w-fit">
 
-              {['passagem', 'hospedagem', 'seguro', 'carro'].map(t => (
+              {['passagem', 'hospedagem', 'seguro', 'carro', 'translado'].map(t => (
 
-                <button key={t} onClick={() => { setActiveItemType(t); if (!editingItemId) { setCurrentItem((prev: any) => ({ ...prev, type: t })); } }} className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeItemType === t ? 'bg-white dark:bg-slate-800/80 shadow-sm text-cyan-600 dark:text-cyan-400' : 'text-gray-500 hover:text-gray-600'}`}>{t}</button>
+                <button key={t} onClick={() => { setActiveItemType(t); if (!editingItemId) { setCurrentItem((prev: any) => ({ ...prev, type: t })); } }} className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeItemType === t ? 'bg-white dark:bg-slate-800/80 shadow-sm text-cyan-600 dark:text-cyan-400' : 'text-gray-500 hover:text-gray-600'}`}>{t === 'translado' ? 'Translado' : t}</button>
 
               ))}
 
@@ -1409,6 +1414,66 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                   </div>
 
+              )}
+
+              {activeItemType === 'translado' && (
+                <div className="space-y-6 animate-in fade-in duration-500 pb-2">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <div className="flex flex-col items-center text-center gap-2 mb-8">
+                       <div className="w-12 h-12 rounded-2xl bg-cyan-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                          <Car className="w-6 h-6" />
+                       </div>
+                       <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest mt-2">Configurar Translado</h4>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Selecione os trechos inclusos no serviço</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <button 
+                         type="button"
+                         onClick={() => setCurrentItem({...currentItem, transfer_in: !currentItem.transfer_in})}
+                         className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 group ${currentItem.transfer_in ? 'bg-cyan-500 border-cyan-400 text-white shadow-xl shadow-cyan-500/20 scale-[1.02]' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 hover:border-cyan-200'}`}
+                       >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${currentItem.transfer_in ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-900 group-hover:bg-cyan-50'}`}>
+                             <Plane className={`w-5 h-5 ${currentItem.transfer_in ? 'text-white' : 'text-slate-400 group-hover:text-cyan-500'}`} />
+                          </div>
+                          <div className="text-center">
+                             <p className={`text-[11px] font-black uppercase tracking-widest leading-none mb-1 ${currentItem.transfer_in ? 'text-white' : 'text-slate-800 dark:text-white'}`}>Aeroporto → Hotel</p>
+                             <p className={`text-[9px] font-bold uppercase tracking-tight ${currentItem.transfer_in ? 'text-cyan-100' : 'text-slate-400'}`}>Translado "In" (Chegada)</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${currentItem.transfer_in ? 'bg-white border-white' : 'border-slate-200'}`}>
+                             {currentItem.transfer_in && <CheckCircle className="w-3.5 h-3.5 text-cyan-500" />}
+                          </div>
+                       </button>
+
+                       <button 
+                         type="button"
+                         onClick={() => setCurrentItem({...currentItem, transfer_out: !currentItem.transfer_out})}
+                         className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 group ${currentItem.transfer_out ? 'bg-purple-500 border-purple-400 text-white shadow-xl shadow-purple-500/20 scale-[1.02]' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 hover:border-purple-200'}`}
+                       >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${currentItem.transfer_out ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-900 group-hover:bg-purple-50'}`}>
+                             <Hotel className={`w-5 h-5 ${currentItem.transfer_out ? 'text-white' : 'text-slate-400 group-hover:text-purple-500'}`} />
+                          </div>
+                          <div className="text-center">
+                             <p className={`text-[11px] font-black uppercase tracking-widest leading-none mb-1 ${currentItem.transfer_out ? 'text-white' : 'text-slate-800 dark:text-white'}`}>Hotel → Aeroporto</p>
+                             <p className={`text-[9px] font-bold uppercase tracking-tight ${currentItem.transfer_out ? 'text-purple-100' : 'text-slate-400'}`}>Translado "Out" (Partida)</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${currentItem.transfer_out ? 'bg-white border-white' : 'border-slate-200'}`}>
+                             {currentItem.transfer_out && <CheckCircle className="w-3.5 h-3.5 text-purple-500" />}
+                          </div>
+                       </button>
+                    </div>
+
+                    <div className="mt-6 space-y-1.5">
+                       <label className="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-widest">Observações do Translado</label>
+                       <textarea 
+                         placeholder="Ex: Motorista privativo bilíngue aguardando no desembarque com placa." 
+                         className="w-full px-5 py-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-700/50 rounded-2xl font-bold text-xs text-gray-800 dark:text-white outline-none focus:border-cyan-400 transition-all shadow-sm min-h-[100px]" 
+                         value={currentItem.notes || ''} 
+                         onChange={e => setCurrentItem({...currentItem, notes: e.target.value})}
+                       />
+                    </div>
+                  </div>
+                </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-gray-100 dark:border-slate-700 pt-6 mt-2 items-end">

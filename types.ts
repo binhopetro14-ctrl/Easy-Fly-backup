@@ -1,4 +1,4 @@
-export type ItemType = 'passagem' | 'hospedagem' | 'seguro' | 'aluguel' | 'adicionais';
+export type ItemType = 'passagem' | 'hospedagem' | 'translado' | 'seguro' | 'aluguel' | 'adicionais';
 export type TransactionStatus = 'Pendente' | 'Recebido' | 'Parcial' | 'Atrasado' | 'Cancelado' | 'Pago';
 
 export interface Address {

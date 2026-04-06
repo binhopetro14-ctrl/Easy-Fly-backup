@@ -1657,6 +1657,61 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
   );
 }
 
+function TransferItemCard({ item }: { item: any }) {
+  return (
+    <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xl shadow-slate-100/50 group hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-500">
+      <div className="h-2 w-full bg-gradient-to-r from-cyan-500 to-blue-600" />
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+           <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-50 flex items-center justify-center text-cyan-600 border border-cyan-100 shadow-sm transition-transform group-hover:scale-110">
+                 <Car className="w-7 h-7" />
+              </div>
+              <div>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-2">Serviço de Translado</p>
+                 <h3 className="text-xl font-black text-slate-800 tracking-tight">{item.description}</h3>
+              </div>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+           {item.transfer_in && (
+              <div className="flex items-center gap-4 p-4 bg-cyan-50/50 rounded-2xl border border-cyan-100/50">
+                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <Plane className="w-5 h-5 text-cyan-600" />
+                 </div>
+                 <div>
+                    <p className="text-[9px] font-black text-cyan-700 uppercase tracking-widest leading-none mb-1">Chegada</p>
+                    <p className="text-xs font-black text-slate-700 uppercase">Aeroporto → Hotel</p>
+                 </div>
+              </div>
+           )}
+           {item.transfer_out && (
+              <div className="flex items-center gap-4 p-4 bg-purple-50/50 rounded-2xl border border-purple-100/50">
+                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <Hotel className="w-5 h-5 text-purple-600" />
+                 </div>
+                 <div>
+                    <p className="text-[9px] font-black text-purple-700 uppercase tracking-widest leading-none mb-1">Partida</p>
+                    <p className="text-xs font-black text-slate-700 uppercase">Hotel → Aeroporto</p>
+                 </div>
+              </div>
+           )}
+        </div>
+
+        {item.notes && (
+           <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                 <FileText className="w-3 h-3" /> Observações importante
+              </p>
+              <p className="text-xs font-bold text-slate-600 leading-relaxed italic">"{item.notes}"</p>
+           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function OtherItemCard({ item }: { item: LeadItem }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
@@ -1786,7 +1841,8 @@ export default function CotacaoPage() {
 
   const flights = (lead.items || []).filter(i => i.type === 'passagem');
   const hotels = (lead.items || []).filter(i => i.type === 'hospedagem');
-  const others = (lead.items || []).filter(i => !['passagem', 'hospedagem'].includes(i.type));
+  const transfers = (lead.items || []).filter(i => i.type === 'translado');
+  const others = (lead.items || []).filter(i => !['passagem', 'hospedagem', 'translado'].includes(i.type));
   const whatsappMsg = encodeURIComponent(`Olá! Vi a cotação "${lead.title || lead.name}" enviada pela Easy Fly e gostaria de mais informações.`);
 
   const calculateDuration = () => {
@@ -2041,6 +2097,15 @@ export default function CotacaoPage() {
                   fallbackCheckOut={fOut}
                 />
               ))}
+            </div>
+          </section>
+        )}
+
+        {transfers.length > 0 && (
+          <section>
+            <SectionTitle icon={<Car className="w-4 h-4" />} title="Translado" />
+            <div className="space-y-4">
+              {transfers.map(item => <TransferItemCard key={item.id} item={item} />)}
             </div>
           </section>
         )}
