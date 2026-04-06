@@ -383,8 +383,8 @@ export const mapperService = {
       const data: any = {
         title: event.title,
         type: event.type,
-        start_date: event.startDate,
-        end_date: event.endDate,
+        start_date: event.startDate ? new Date(event.startDate).toISOString() : undefined,
+        end_date: event.endDate ? new Date(event.endDate).toISOString() : undefined,
         description: event.description,
         is_all_day: event.isAllDay,
         user_id: event.userId

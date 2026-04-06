@@ -155,7 +155,7 @@ const checkInternational = (lead?: Lead) => {
     { name: 'Colombia', keys: ['COLOMBIA', 'BOGOTA', 'CARTAGENA', 'MEDELLIN'] }
   ];
 
-  const EUROPA = ['PORTUGAL', 'ESPANHA', 'FRANÇA', 'ITALIA', 'ALEMANHA', 'REINO UNIDO', 'INGLATERRA', 'LISBOA', 'MADRID', 'PARIS', 'ROMA', 'LONDRES', 'BERLIM', 'AMSTERDAM', 'SUIÇA', 'EUROPA', 'LIS', 'MAD', 'CDG', 'ORY', 'LHR', 'LGW', 'LCY', 'CIA', 'FCO', 'BCN'];
+  const EUROPA = ['PORTUGAL', 'ESPANHA', 'FRANÇA', 'ITALIA', 'ALEMANHA', 'REINO UNIDO', 'INGLATERRA', 'LISBOA', 'MADRID', 'PARIS', 'ROMA', 'LONDRES', 'BERLIM', 'AMSTERDAM', 'SUIÇA', 'EUROPA', 'LIS', 'MAD', 'CDG', 'ORY', 'LHR', 'LGW', 'LCY', 'CIA', 'FCO', 'BCN', 'STN'];
   const EUA = ['EUA', 'USA', 'ESTADOS UNIDOS', 'UNITED STATES', 'MIAMI', 'ORLANDO', 'NY', 'NEW YORK', 'LAS VEGAS', 'CHICAGO', 'LOS ANGELES', 'MIA', 'MCO', 'JFK', 'EWR', 'LAX', 'SFO', 'LAS'];
   const MEXICO = ['MEXICO', 'CANCUN', 'RIVIERA MAYA', 'TULUM', 'CIDADE DO MEXICO', 'MEX', 'CUN'];
   const DUBAI = ['DUBAI', 'UAE', 'EMIRADOS ARABES', 'ABU DHABI'];
@@ -501,7 +501,16 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'BRC': { coords: [-41.1511, -71.1394], name: 'Teniente L. Candelaria - Bariloche' },
   'MDZ': { coords: [-32.8317, -68.7928], name: 'El Plumerillo - Mendoza' },
   'IGR': { coords: [-25.7372, -54.4733], name: 'Cataratas del Iguazú - Argentina' },
-  'VVI': { coords: [-17.6447, -63.1353], name: 'Viru Viru - Santa Cruz' }
+  'VVI': { coords: [-17.6447, -63.1353], name: 'Viru Viru - Santa Cruz' },
+  'STN': { coords: [51.8860, 0.2389], name: 'London Stansted' },
+  'BCN': { coords: [41.2974, 2.0833], name: 'Barcelona-El Prat' },
+  'LGW': { coords: [51.1481, -0.1903], name: 'London Gatwick' },
+  'FCO': { coords: [41.8003, 12.2389], name: 'Fiumicino - Rome' },
+  'AEP': { coords: [-34.5592, -58.4156], name: 'Aeroparque Jorge Newbery - Buenos Aires' },
+  'AMS': { coords: [52.3105, 4.7683], name: 'Schiphol - Amsterdam' },
+  'FRA': { coords: [50.0379, 8.5622], name: 'Frankfurt Airport' },
+  'MXP': { coords: [45.6301, 8.7231], name: 'Malpensa - Milan' },
+  'OPO': { coords: [41.2421, -8.6786], name: 'Francisco Sá Carneiro - Porto' }
 };
 
 function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {

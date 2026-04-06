@@ -47,7 +47,9 @@ import {
   isToday,
   parseISO,
   setHours,
-  setMinutes
+  setMinutes,
+  addHours,
+  differenceInMinutes
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
@@ -61,6 +63,13 @@ interface CalendarViewProps {
   currentUser?: TeamMember | null;
 }
 
+// --- Helper Func ---
+const parseSafeDate = (dateStr: string | undefined): Date => {
+  if (!dateStr) return new Date();
+  const normalized = dateStr.includes(' ') ? dateStr.replace(' ', 'T') : dateStr;
+  return new Date(normalized);
+};
+
 export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents, onRefresh, currentUser }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('month');
@@ -69,8 +78,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
   const [searchQuery, setSearchQuery] = useState('');
   const [zoom, setZoom] = useState(100);
   const [activeFilters, setActiveFilters] = useState<CalendarEventType[]>([
-    'Check-in', 'Embarque', 'Hospedagem', 'Follow-up', 'Tarefa', 'Aniversariante', 'Lembrete'
+    'Check-in', 'Embarque', 'Hospedagem', 'Follow-up', 'Tarefa', 'Reunião', 'Aniversariante', 'Lembrete'
   ]);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
 
   // --- GERAÇÃO DE EVENTOS AUTOMÁTICOS ---
   const autoEvents = useMemo(() => {
@@ -79,7 +89,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
       sale.items?.forEach((item, idx) => {
         const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
         if (item.type === 'passagem' && item.departureDate) {
-          const depDate = parseISO(item.departureDate);
+          const depDate = parseSafeDate(item.departureDate);
           events.push({
             id: `sale-dep-${sale.id}-${idx}`,
             title: `Embarque: ${item.origin} ✈️ ${item.destination}${passengerLabel}`,
@@ -147,6 +157,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
       case 'Hospedagem': return 'bg-green-500';
       case 'Follow-up': return 'bg-purple-600';
       case 'Tarefa': return 'bg-blue-600';
+      case 'Reunião': return 'bg-indigo-600';
       case 'Aniversariante': return 'bg-pink-600';
       case 'Lembrete': return 'bg-orange-400';
       default: return 'bg-gray-300';
@@ -161,6 +172,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
       case 'Aniversariante': return 'bg-pink-50 text-pink-700 border-pink-400';
       case 'Tarefa': return 'bg-gray-100 text-gray-700 border-gray-400';
       case 'Follow-up': return 'bg-teal-50 text-teal-700 border-teal-400';
+      case 'Reunião': return 'bg-indigo-50 text-indigo-700 border-indigo-400';
       case 'Lembrete': return 'bg-yellow-50 text-yellow-700 border-yellow-400';
       default: return 'bg-gray-50 text-gray-600 border-gray-300';
     }
@@ -174,6 +186,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
       case 'Aniversariante': return <User size={16} className="text-pink-500" />;
       case 'Tarefa': return <Clock size={16} className="text-gray-500" />;
       case 'Follow-up': return <Flag size={16} className="text-teal-500" />;
+      case 'Reunião': return <Briefcase size={16} className="text-indigo-500" />;
       case 'Lembrete': return <Bell size={16} className="text-yellow-500" />;
       default: return <CalendarIcon size={16} />;
     }
@@ -264,7 +277,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
         </div>
         <div className="flex-1 grid grid-cols-7 grid-rows-6 auto-rows-fr">
           {days.map((day, i) => {
-            const dayEvents = allEvents.filter(event => isSameDay(parseISO(event.startDate), day));
+            const dayEvents = allEvents.filter(event => isSameDay(parseSafeDate(event.startDate), day));
             const isCurrentMonth = isSameMonth(day, monthStart);
             const isTodayDay = isToday(day);
             return (
@@ -288,10 +301,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
 
   const renderDayView = () => {
     const hours = Array.from({ length: 24 }).map((_, i) => i);
-    const dayEvents = allEvents.filter(event => isSameDay(parseISO(event.startDate), currentDate));
+    const dayEvents = allEvents.filter(event => isSameDay(parseSafeDate(event.startDate), currentDate));
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-slate-800 relative group">
-        <div className="p-6 border-b border-gray-100 dark:border-slate-800 pl-[85px]">
+        <div className="p-6 border-b border-gray-100 dark:border-slate-800 pl-[85px] sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-30">
           <div className="flex flex-col items-center w-fit">
             <span className="text-[10px] font-black text-[#1a5b65] dark:text-cyan-400 uppercase tracking-widest mb-1">{format(currentDate, 'EEE.', { locale: ptBR })}</span>
             <div className="w-12 h-12 rounded-full bg-[#1a5b65] text-white flex items-center justify-center text-xl font-bold shadow-lg shadow-teal-900/20">{format(currentDate, 'd')}</div>
@@ -302,8 +315,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
             <div className="absolute left-4 top-2 text-[10px] font-bold text-gray-400 dark:text-gray-600">GMT-03</div>
             {hours.map(hour => (
               <div key={hour} className="h-[60px] border-b border-gray-50 dark:border-slate-800 flex group/row">
-                <div className="w-[85px] pr-4 flex justify-end items-center -mt-7 shrink-0">
-                  <span className="text-[10px] font-bold text-gray-300 dark:text-gray-700 group-hover/row:text-gray-500 dark:group-hover/row:text-gray-500 transition-colors uppercase whitespace-nowrap">{hour !== 0 ? (hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`) : ''}</span>
+                <div className="w-[85px] pr-4 flex justify-end shrink-0">
+                  <div className="-mt-3">
+                    <span className="text-[10px] font-bold text-gray-300 dark:text-gray-700 group-hover/row:text-gray-500 dark:group-hover/row:text-gray-500 transition-colors uppercase whitespace-nowrap bg-white dark:bg-slate-900 px-1">{hour !== 0 ? `${hour.toString().padStart(2, '0')}:00` : ''}</span>
+                  </div>
                 </div>
                 <div className="flex-1 group-hover/row:bg-gray-50/30 dark:group-hover/row:bg-slate-800/20 transition-colors" />
               </div>
@@ -315,11 +330,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
               </div>
             )}
             <div className="absolute top-0 left-[85px] right-4 bottom-0 pointer-events-none">
-              {dayEvents.map(event => {
-                const date = parseISO(event.startDate);
-                const top = (date.getHours() * 60) + date.getMinutes();
-                return (
-                  <motion.div key={event.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} onClick={() => setSelectedEvent(event)} className={`absolute left-0 right-0 p-3 rounded-xl border-l-[6px] shadow-lg cursor-pointer pointer-events-auto transition-all hover:scale-[1.01] hover:z-20 ${getEventStyle(event.type)}`} style={{ top: `${top}px`, height: 'auto', minHeight: '50px', maxWidth: '95%' }}>
+               {dayEvents.map(event => {
+                 const date = parseSafeDate(event.startDate);
+                 const end = event.endDate ? parseSafeDate(event.endDate) : addHours(date, 1);
+                 const top = (date.getHours() * 60) + date.getMinutes();
+                 const duration = Math.max(differenceInMinutes(end, date), 30);
+                 
+                 return (
+                   <motion.div 
+                     key={event.id} 
+                     initial={{ opacity: 0, x: -10 }} 
+                     animate={{ opacity: 1, x: 0 }} 
+                     onClick={() => setSelectedEvent(event)} 
+                     className={`absolute left-0 right-0 p-3 rounded-xl border-l-[6px] shadow-lg cursor-pointer pointer-events-auto transition-all hover:scale-[1.01] hover:z-20 ${getEventStyle(event.type)}`} 
+                     style={{ top: `${top}px`, height: `${duration}px`, maxWidth: '95%' }}
+                   >
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-black truncate">{event.title}</h4>
@@ -343,7 +368,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
     const weekDays = eachDayOfInterval({ start, end: endOfWeek(currentDate, { weekStartsOn: 0 }) });
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-slate-800 relative group">
-        <div className="grid grid-cols-[85px_repeat(7,1fr)] border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="grid grid-cols-[85px_repeat(7,1fr)] border-b border-gray-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30">
           <div className="border-r border-gray-50 dark:border-slate-800 flex items-end justify-center pb-2"><span className="text-[10px] font-bold text-gray-400 dark:text-gray-600">GMT-03</span></div>
           {weekDays.map(day => (
             <div key={day.toISOString()} className="py-4 border-r border-gray-50 dark:border-slate-800 flex flex-col items-center">
@@ -354,27 +379,31 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar relative" id="week-timeline-scroll">
            <div className="relative min-h-[1440px] grid grid-cols-[85px_repeat(7,1fr)]">
-             <div className="bg-white dark:bg-slate-900 border-r border-gray-50 dark:border-slate-800">
+             <div className="bg-white dark:bg-slate-900 border-r border-gray-50 dark:border-slate-800 sticky left-0 z-20 shadow-[2px_0_10px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_10px_rgba(0,0,0,0.3)]">
                {hours.map(hour => (
-                 <div key={hour} className="h-[60px] border-b border-gray-50 dark:border-slate-800 flex justify-end items-center pr-4 -mt-7">
-                    <span className="text-[10px] font-bold text-gray-300 dark:text-gray-700 uppercase whitespace-nowrap">{hour !== 0 ? (hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`) : ''}</span>
+                 <div key={hour} className="h-[60px] border-b border-gray-50 dark:border-slate-800 flex justify-end">
+                    <div className="pr-4 -mt-3">
+                      <span className="text-[10px] font-bold text-gray-300 dark:text-gray-700 uppercase whitespace-nowrap bg-white dark:bg-slate-900 px-1">{hour !== 0 ? `${hour.toString().padStart(2, '0')}:00` : ''}</span>
+                    </div>
                  </div>
                ))}
              </div>
              {weekDays.map(day => {
-               const dayEvents = allEvents.filter(event => isSameDay(parseISO(event.startDate), day));
+               const dayEvents = allEvents.filter(event => isSameDay(parseSafeDate(event.startDate), day));
                return (
                  <div key={day.toISOString()} className="relative border-r border-gray-50 dark:border-slate-800 group/col hover:bg-gray-50/30 dark:hover:bg-slate-800/20 transition-colors">
                     {hours.map(h => <div key={h} className="h-[60px] border-b border-gray-50 dark:border-slate-800" />)}
                     <div className="absolute inset-0 pointer-events-none py-1">
                       {dayEvents.map(event => {
-                        const date = parseISO(event.startDate);
+                        const date = parseSafeDate(event.startDate);
+                        const end = event.endDate ? parseSafeDate(event.endDate) : addHours(date, 1);
                         const top = (date.getHours() * 60) + date.getMinutes();
+                        const duration = Math.max(differenceInMinutes(end, date), 30);
                         return (
-                          <motion.div key={event.id} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={(e) => { e.stopPropagation(); setSelectedEvent(event); }} className={`absolute left-1 right-1 p-1 rounded-lg border-l-4 shadow-sm cursor-pointer pointer-events-auto transition-all hover:scale-[1.02] hover:z-20 overflow-hidden ${getEventStyle(event.type)}`} style={{ top: `${top}px`, minHeight: '30px' }}>
+                          <div key={event.id} onClick={() => setSelectedEvent(event)} className={`absolute left-0 right-0 m-2 p-3 rounded-2xl border-l-[8px] shadow-md cursor-pointer pointer-events-auto transition-all hover:scale-[1.01] hover:shadow-xl z-10 flex flex-col group overflow-hidden ${getEventStyle(event.type)}`} style={{ top: `${top}px`, height: `${duration}px` }}>
                             <p className="text-[9px] font-black truncate leading-tight">{event.title}</p>
                             <p className="text-[8px] opacity-70 font-bold">{format(date, 'HH:mm')}h</p>
-                          </motion.div>
+                          </div>
                         );
                       })}
                     </div>
@@ -412,7 +441,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
                    {getYearGridDays(currYear, m).map((day, ix) => {
                      const isCurrMonth = day.getMonth() === m;
                      const isTodayDate = isToday(day);
-                     const hasEvents = allEvents.some(e => isSameDay(parseISO(e.startDate), day));
+                     const hasEvents = allEvents.some(e => isSameDay(parseSafeDate(e.startDate), day));
                      return (
                        <div key={ix} className="flex flex-col items-center gap-0.5">
                           <div className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold transition-all ${!isCurrMonth ? 'text-gray-200 dark:text-gray-800' : isTodayDate ? 'bg-[#1a5b65] text-white shadow-md scale-110' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer text-gray-600 dark:text-gray-300'}`}>{day.getDate()}</div>
@@ -463,7 +492,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
         <div className="flex flex-col gap-5">
           <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Tipos de Evento</h3>
           <div className="space-y-3 pl-1">
-            {(['Check-in', 'Embarque', 'Hospedagem', 'Follow-up', 'Tarefa', 'Aniversariante', 'Lembrete'] as CalendarEventType[]).map(type => (
+            {(['Check-in', 'Embarque', 'Hospedagem', 'Follow-up', 'Tarefa', 'Reunião', 'Aniversariante', 'Lembrete'] as CalendarEventType[]).map(type => (
               <label key={type} className={`flex items-center justify-between cursor-pointer group transition-all ${activeFilters.includes(type) ? 'opacity-100' : 'opacity-40 italic'}`}>
                 <div className="flex items-center gap-3">
                    <div className="w-5 h-5 flex items-center justify-center">{activeFilters.includes(type) ? <Eye size={14} className="text-gray-400 dark:text-gray-500" /> : <EyeOff size={14} className="text-gray-400 dark:text-gray-500" />}</div>
@@ -507,7 +536,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
       <AnimatePresence>
         {isEventModalOpen && (
           <EventModal 
-            onClose={() => setIsEventModalOpen(false)} 
+            onClose={() => {
+              setIsEventModalOpen(false);
+              setEditingEvent(null);
+            }}
+            initialData={editingEvent}
             onSave={async (event) => {
               const eventWithUser = {
                 ...event,
@@ -517,6 +550,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
               await calendarService.save(eventWithUser);
               onRefresh();
               setIsEventModalOpen(false);
+              setEditingEvent(null);
             }} 
           />
         )}
@@ -527,6 +561,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
             event={selectedEvent} 
             onClose={() => setSelectedEvent(null)}
             currentUser={currentUser}
+            onEdit={(event) => {
+              setEditingEvent(event);
+              setSelectedEvent(null);
+              setIsEventModalOpen(true);
+            }}
             onDelete={async (id) => {
               if (confirm('Deseja realmente excluir este evento?')) {
                 await calendarService.delete(id);
@@ -552,13 +591,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
 
 // --- COMPONENTES AUXILIARES ---
 
-const EventModal = ({ onClose, onSave }: { onClose: () => void, onSave: (event: any) => Promise<void> }) => {
+const EventModal = ({ onClose, onSave, initialData }: { 
+  onClose: () => void, 
+  onSave: (event: any) => Promise<void>,
+  initialData?: any 
+}) => {
   const [formData, setFormData] = useState({
-    title: '',
-    type: 'Tarefa' as CalendarEventType,
-    startDate: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-    description: '',
-    isAllDay: false
+    id: initialData?.id,
+    title: initialData?.title || '',
+    type: (initialData?.type as CalendarEventType) || 'Tarefa',
+    startDate: initialData?.startDate ? (
+      initialData.startDate.includes('T') 
+        ? initialData.startDate.substring(0, 16) 
+        : format(parseSafeDate(initialData.startDate), "yyyy-MM-dd'T'HH:mm")
+    ) : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+    endDate: initialData?.endDate ? (
+      initialData.endDate.includes('T') 
+        ? initialData.endDate.substring(0, 16) 
+        : format(parseSafeDate(initialData.endDate), "yyyy-MM-dd'T'HH:mm")
+    ) : format(addHours(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
+    description: initialData?.description || '',
+    isAllDay: initialData?.isAllDay || false
   });
   const [loading, setLoading] = useState(false);
   const handleSubmit = async (e: React.FormEvent) => {
@@ -575,23 +628,52 @@ const EventModal = ({ onClose, onSave }: { onClose: () => void, onSave: (event: 
         </div>
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
           <div className="space-y-2"><label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Título</label><input required autoFocus value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Reunião com Fornecedor..." className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-700 focus:border-[#1a5b65] text-gray-800 dark:text-white outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600" /></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Tipo</label><select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-700 focus:border-[#1a5b65] text-gray-800 dark:text-white outline-none transition-all appearance-none"><option value="Reunião">Reunião</option><option value="Tarefa">Tarefa</option><option value="Follow-up">Follow-up</option><option value="Lembrete">Lembrete</option></select></div>
-            <div className="space-y-2"><label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Início</label><input type={formData.isAllDay ? "date" : "datetime-local"} required value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-700 focus:border-[#1a5b65] text-gray-800 dark:text-white outline-none transition-all" /></div>
+          <div className="space-y-2"><label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Tipo</label><select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-700 focus:border-[#1a5b65] text-gray-800 dark:text-white outline-none transition-all appearance-none"><option value="Reunião">Reunião</option><option value="Tarefa">Tarefa</option><option value="Follow-up">Follow-up</option><option value="Lembrete">Lembrete</option></select></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Início</label>
+              <input 
+                type="datetime-local" 
+                value={formData.startDate} 
+                onChange={e => {
+                  const newStart = e.target.value;
+                  const currentEnd = formData.endDate;
+                  let newEnd = currentEnd;
+                  if (newStart > currentEnd) {
+                    newEnd = format(addHours(parseSafeDate(newStart), 1), "yyyy-MM-dd'T'HH:mm");
+                  }
+                  setFormData({...formData, startDate: newStart, endDate: newEnd});
+                }} 
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-700 focus:border-[#1a5b65] text-gray-800 dark:text-white outline-none transition-all" 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Término</label>
+              <input 
+                type="datetime-local" 
+                value={formData.endDate} 
+                min={formData.startDate}
+                onChange={e => setFormData({...formData, endDate: e.target.value})} 
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-700 focus:border-[#1a5b65] text-gray-800 dark:text-white outline-none transition-all" 
+              />
+            </div>
           </div>
           <div className="space-y-2"><label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Descrição</label><textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Detalhes adicionais..." className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl focus:bg-white dark:focus:bg-slate-700 focus:border-[#1a5b65] text-gray-800 dark:text-white outline-none transition-all resize-none placeholder:text-gray-400 dark:placeholder:text-gray-600" /></div>
           <div className="flex items-center gap-3 py-2 pl-1"><input type="checkbox" id="allDay" checked={formData.isAllDay} onChange={e => setFormData({...formData, isAllDay: e.target.checked})} className="w-5 h-5 rounded border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[#1a5b65] focus:ring-[#1a5b65]" /><label htmlFor="allDay" className="text-sm font-semibold text-gray-600 dark:text-gray-400 cursor-pointer">Evento dia inteiro</label></div>
-          <button type="submit" disabled={loading} className="w-full bg-[#1a5b65] text-white py-4 rounded-2xl font-bold shadow-lg shadow-teal-900/10 hover:bg-[#154a52] transition-all disabled:opacity-50">{loading ? 'Salvando...' : 'Salvar Evento'}</button>
+          <button type="submit" disabled={loading} className="w-full bg-[#1a5b65] text-white py-4 rounded-2xl font-bold shadow-lg shadow-teal-900/10 hover:bg-[#154a52] transition-all disabled:opacity-50">
+            {loading ? 'Salvando...' : (initialData ? 'Atualizar Evento' : 'Salvar Evento')}
+          </button>
         </form>
       </motion.div>
     </motion.div>
   );
 };
 
-const EventDetailsModal = ({ event, onClose, onDelete, currentUser }: { 
+const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser }: { 
   event: any, 
   onClose: () => void, 
   onDelete: (id: string) => void,
+  onEdit: (event: any) => void,
   currentUser?: TeamMember | null
 }) => {
   const canModify = !event.isAuto && (
@@ -617,9 +699,12 @@ const EventDetailsModal = ({ event, onClose, onDelete, currentUser }: {
           <div className="space-y-4">
             <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
               <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center shrink-0"><CalendarIcon size={20} className="text-gray-400 dark:text-gray-500" /></div>
-              <div><p className="text-sm font-bold text-gray-700 dark:text-gray-200">{format(parseISO(event.startDate), "EEEE, d 'de' MMMM", { locale: ptBR })}</p>
-                {!event.isAllDay && <p className="text-xs font-medium text-gray-400 dark:text-gray-500">{format(parseISO(event.startDate), "HH:mm")}h</p>}
-              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                {format(parseSafeDate(event.startDate), "eeee, d 'de' MMMM", { locale: ptBR })}
+              </p>
+              <p className="text-xs font-bold text-gray-400 dark:text-gray-500 mt-1">
+                {format(parseSafeDate(event.startDate), 'HH:mm')}h - {event.endDate ? format(parseSafeDate(event.endDate), 'HH:mm') : format(addHours(parseSafeDate(event.startDate), 1), 'HH:mm')}h
+              </p>
             </div>
             {event.description && (
               <div className="flex gap-4 text-gray-600 dark:text-gray-400">
@@ -651,7 +736,10 @@ const EventDetailsModal = ({ event, onClose, onDelete, currentUser }: {
           <div className="flex gap-3 pt-2">
             {canModify && (
               <>
-                <button className="flex-1 bg-white dark:bg-slate-800 border-2 border-gray-100 dark:border-slate-700 text-gray-700 dark:text-gray-300 py-3 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-slate-700 transition-all">
+                <button 
+                  onClick={() => onEdit(event)}
+                  className="flex-1 bg-white dark:bg-slate-800 border-2 border-gray-100 dark:border-slate-700 text-gray-700 dark:text-gray-300 py-3 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-slate-700 transition-all font-sans"
+                >
                   Editar
                 </button>
                 <button 
@@ -686,6 +774,7 @@ const getDetailsBg = (type: string) => {
     case 'Hospedagem': return 'bg-purple-600';
     case 'Aniversariante': return 'bg-pink-600';
     case 'Tarefa': return 'bg-gray-700';
+    case 'Reunião': return 'bg-indigo-700';
     case 'Follow-up': return 'bg-teal-600';
     case 'Lembrete': return 'bg-yellow-500';
     default: return 'bg-gray-700';
@@ -699,6 +788,7 @@ const getBadgeStyle = (type: string) => {
     case 'Hospedagem': return 'bg-purple-100 text-purple-700';
     case 'Aniversariante': return 'bg-pink-100 text-pink-700';
     case 'Tarefa': return 'bg-gray-100 text-gray-700';
+    case 'Reunião': return 'bg-indigo-100 text-indigo-700';
     case 'Follow-up': return 'bg-teal-100 text-teal-700';
     case 'Lembrete': return 'bg-yellow-100 text-yellow-700';
     default: return 'bg-gray-100 text-gray-600';
@@ -713,6 +803,7 @@ const getIconForTypeDetails = (type: string) => {
     case 'Aniversariante': return <User size={32} className="text-pink-500" />;
     case 'Tarefa': return <Clock size={32} className="text-gray-500" />;
     case 'Follow-up': return <Flag size={32} className="text-teal-500" />;
+    case 'Reunião': return <Briefcase size={32} className="text-indigo-500" />;
     case 'Lembrete': return <Bell size={32} className="text-yellow-500" />;
     default: return <CalendarIcon size={32} className="text-gray-500" />;
   }

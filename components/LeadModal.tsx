@@ -1,5 +1,6 @@
-import { apiFetch } from '@/lib/apiFetch';
 'use client';
+
+import { apiFetch } from '@/lib/apiFetch';
 
 import React, { useState, useEffect } from 'react';
 
