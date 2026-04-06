@@ -401,9 +401,7 @@ function TravelChecklist({ isIntl, region }: { isIntl: boolean, region: string }
             <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${isIntl ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
               {isIntl ? 'Viagem Internacional' : 'Viagem Nacional'}
             </span>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic leading-none">
-              Configurado para: <span className="text-slate-900 not-italic">{region}</span>
-            </p>
+
           </div>
         </div>
       </div>
@@ -2057,14 +2055,7 @@ export default function CotacaoPage() {
                   </div>
                 )}
                 
-                {/* Seção Região (Opcional - Visual de Elite) */}
-                <div className="hidden sm:flex items-center justify-center gap-2 px-6 py-4 hover:bg-white/5 transition-colors min-w-[160px]">
-                  <MapPin className="w-4 h-4 text-cyan-300" />
-                  <div className="text-center">
-                    <p className="text-[8px] text-white/50 font-black uppercase tracking-widest leading-none mb-1">Destino</p>
-                    <p className="text-sm font-black text-white leading-none whitespace-nowrap">{tripRegion}</p>
-                  </div>
-                </div>
+
               </div>
             </div>
           </div>
