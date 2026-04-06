@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -560,7 +561,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
         try {
 
-          const res = await fetch(`/api/lookup-hotel?type=search&name=${encodeURIComponent(name)}`);
+          const res = await apiFetch(`/api/lookup-hotel?type=search&name=${encodeURIComponent(name)}`);
 
           const data = await res.json();
 
@@ -608,19 +609,19 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
     try {
 
-      const res = await fetch(`/api/lookup-hotel?type=details&hotelId=${suggestion.hotelId}`);
+      const res = await apiFetch(`/api/lookup-hotel?type=details&hotelId=${suggestion.hotelId}`);
 
       const data = await res.json();
 
       if (res.ok) { setAllPhotos(data.photos || []); }
 
-      const resRooms = await fetch(`/api/lookup-hotel?type=rooms&hotelId=${suggestion.hotelId}`);
+      const resRooms = await apiFetch(`/api/lookup-hotel?type=rooms&hotelId=${suggestion.hotelId}`);
 
       const dataRooms = await resRooms.json();
 
       if (resRooms.ok) { setAvailableRooms(dataRooms.rooms || []); }
 
-      const resFac = await fetch(`/api/lookup-hotel?type=facilities&hotelId=${suggestion.hotelId}`);
+      const resFac = await apiFetch(`/api/lookup-hotel?type=facilities&hotelId=${suggestion.hotelId}`);
 
       const dataFac = await resFac.json();
 
@@ -640,7 +641,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
     try {
 
-      const res = await fetch(`/api/lookup-flight?flight=${encodeURIComponent(fn)}&date=${dt}`);
+      const res = await apiFetch(`/api/lookup-flight?flight=${encodeURIComponent(fn)}&date=${dt}`);
 
       const data = await res.json();
 

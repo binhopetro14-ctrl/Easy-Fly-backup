@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/apiFetch';
 import React, { useState, useEffect, useRef } from 'react';
 
 
@@ -1607,7 +1608,7 @@ export function SaleModal({
 
 
 
-        const res = await fetch(`/api/lookup-hotel?type=search&query=${encodeURIComponent(query)}`);
+        const res = await apiFetch(`/api/lookup-hotel?type=search&query=${encodeURIComponent(query)}`);
 
 
 
@@ -1735,7 +1736,7 @@ export function SaleModal({
 
 
 
-      const resPhotos = await fetch(`/api/lookup-hotel?type=details&hotelId=${hotelId}`);
+      const resPhotos = await apiFetch(`/api/lookup-hotel?type=details&hotelId=${hotelId}`);
 
 
 
@@ -1783,7 +1784,7 @@ export function SaleModal({
 
 
 
-      const resFac = await fetch(`/api/lookup-hotel?type=facilities&hotelId=${hotelId}`);
+      const resFac = await apiFetch(`/api/lookup-hotel?type=facilities&hotelId=${hotelId}`);
 
 
 
