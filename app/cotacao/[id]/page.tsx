@@ -511,7 +511,7 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'FRA': { coords: [50.0379, 8.5622], name: 'Frankfurt Airport' },
   'MXP': { coords: [45.6301, 8.7231], name: 'Malpensa - Milan' },
   'OPO': { coords: [41.2421, -8.6786], name: 'Francisco Sá Carneiro - Porto' },
-  'NBJ': { coords: [-23.2289, -45.8711], name: 'São José dos Campos - SP' },
+  'NBJ': { coords: [-8.8475, 13.4619], name: 'António Agostinho Neto - Luanda' },
   'SJK': { coords: [-23.2289, -45.8711], name: 'São José dos Campos - SP' },
   'RAO': { coords: [-21.1364, -47.7767], name: 'Leite Lopes - Ribeirão Preto' }
 };
