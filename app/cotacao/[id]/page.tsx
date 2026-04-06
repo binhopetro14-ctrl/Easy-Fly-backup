@@ -196,7 +196,7 @@ const checkInternational = (lead?: Lead) => {
   return { isIntl, region };
 };
 
-type ItemType = 'passagem' | 'hospedagem' | 'seguro' | 'carro' | 'adicionais';
+type ItemType = 'passagem' | 'hospedagem' | 'translado' | 'seguro' | 'carro' | 'adicionais';
 
 interface LeadItem {
   id: string;
@@ -273,6 +273,7 @@ function TypeIcon({ type }: { type: string }) {
   switch (type) {
     case 'passagem': return <Plane className="w-5 h-5" />;
     case 'hospedagem': return <Hotel className="w-5 h-5" />;
+    case 'translado': return <Car className="w-5 h-5" />;
     case 'seguro': return <Shield className="w-5 h-5" />;
     case 'carro': return <Car className="w-5 h-5" />;
     default: return <Package className="w-5 h-5" />;
@@ -283,6 +284,7 @@ function TypeGradient(type: string) {
   switch (type) {
     case 'passagem': return 'from-blue-500 to-cyan-500';
     case 'hospedagem': return 'from-[#19727d] to-cyan-500';
+    case 'translado': return 'from-cyan-500 to-blue-600';
     case 'seguro': return 'from-green-500 to-emerald-500';
     case 'carro': return 'from-orange-500 to-amber-500';
     default: return 'from-gray-500 to-slate-500';
@@ -291,7 +293,7 @@ function TypeGradient(type: string) {
 
 function TypeLabel({ type }: { type: string }) {
   const map: Record<string, string> = {
-    passagem: 'Passagem Aérea', hospedagem: 'Hospedagem',
+    passagem: 'Passagem Aérea', hospedagem: 'Hospedagem', translado: 'Translado',
     seguro: 'Seguro Viagem', carro: 'Aluguel de Carro', adicionais: 'Adicionais'
   };
   return <>{map[type] || type}</>;
