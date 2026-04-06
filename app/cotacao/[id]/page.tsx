@@ -147,18 +147,18 @@ const checkInternational = (lead?: Lead) => {
   let isIntl = false;
 
   const MERCOSUL = [
-    { name: 'Argentina', keys: ['ARGENTINA', 'BUENOS AIRES', 'MENDOZA', 'BARILOCHE', 'USHUAIA', 'EZE', 'AEP', 'MDZ', 'BRC', 'USH', 'IGR'] },
-    { name: 'Chile', keys: ['CHILE', 'SANTIAGO', 'SANTIAGO DO CHILE', 'VALPARAISO', 'VIÑA DEL MAR', 'PASCUA', 'SCL'] },
-    { name: 'Uruguai', keys: ['URUGUAI', 'MONTEVIDEO', 'PUNTA DEL ESTE', 'COLONIA'] },
-    { name: 'Paraguai', keys: ['PARAGUAI', 'ASUNCAO', 'CIUDAD DEL ESTE'] },
-    { name: 'Peru', keys: ['PERU', 'LIMA', 'CUSCO', 'MACHU PICCHU'] },
-    { name: 'Colombia', keys: ['COLOMBIA', 'BOGOTA', 'CARTAGENA', 'MEDELLIN'] }
+    { name: 'Argentina', keys: ['ARGENTINA', 'BUENOS AIRES', 'MENDOZA', 'BARILOCHE', 'USHUAIA', 'EZE', 'AEP', 'MDZ', 'BRC', 'USH', 'IGR', 'AEROPARQUE'] },
+    { name: 'Chile', keys: ['CHILE', 'SANTIAGO', 'VALPARAISO', 'VIÑA DEL MAR', 'PASCUA', 'SCL'] },
+    { name: 'Uruguai', keys: ['URUGUAI', 'MONTEVIDEO', 'PUNTA DEL ESTE', 'COLONIA', 'MVD'] },
+    { name: 'Paraguai', keys: ['PARAGUAI', 'ASUNCAO', 'CIUDAD DEL ESTE', 'ASU'] },
+    { name: 'Peru', keys: ['PERU', 'LIMA', 'CUSCO', 'MACHU PICCHU', 'LIM'] },
+    { name: 'Colombia', keys: ['COLOMBIA', 'BOGOTA', 'CARTAGENA', 'MEDELLIN', 'BOG'] }
   ];
 
-  const EUROPA = ['PORTUGAL', 'ESPANHA', 'FRANÇA', 'ITALIA', 'ALEMANHA', 'REINO UNIDO', 'INGLATERRA', 'LISBOA', 'MADRID', 'PARIS', 'ROMA', 'LONDRES', 'BERLIM', 'AMSTERDAM', 'SUIÇA', 'EUROPA', 'LIS', 'MAD', 'CDG', 'ORY', 'LHR', 'LGW', 'LCY', 'CIA', 'FCO', 'BCN', 'STN'];
-  const EUA = ['EUA', 'USA', 'ESTADOS UNIDOS', 'UNITED STATES', 'MIAMI', 'ORLANDO', 'NY', 'NEW YORK', 'LAS VEGAS', 'CHICAGO', 'LOS ANGELES', 'MIA', 'MCO', 'JFK', 'EWR', 'LAX', 'SFO', 'LAS'];
-  const MEXICO = ['MEXICO', 'CANCUN', 'RIVIERA MAYA', 'TULUM', 'CIDADE DO MEXICO', 'MEX', 'CUN'];
-  const DUBAI = ['DUBAI', 'UAE', 'EMIRADOS ARABES', 'ABU DHABI'];
+  const EUROPA = ['PORTUGAL', 'ESPANHA', 'FRANÇA', 'ITALIA', 'ALEMANHA', 'REINO UNIDO', 'INGLATERRA', 'LISBOA', 'MADRID', 'MADRI', 'PARIS', 'ROMA', 'LONDRES', 'BERLIM', 'AMSTERDAM', 'AMSTERDA', 'SUIÇA', 'EUROPA', 'LIS', 'MAD', 'CDG', 'ORY', 'LHR', 'LGW', 'LCY', 'CIA', 'FCO', 'BCN', 'STN', 'BARCELONA', 'ORLY', 'HEATHROW', 'GATWICK', 'STANSTED', 'PORTO', 'MILAO', 'MILAN', 'VENEZA', 'VENICE', 'MUNIQUE', 'MUNICH', 'FRANKFURT', 'ZURIQUE', 'ZURICH', 'GENEBRA', 'GENEVA', 'MADRID', 'BARCELONA'];
+  const EUA = ['EUA', 'USA', 'ESTADOS UNIDOS', 'UNITED STATES', 'MIAMI', 'ORLANDO', 'NY', 'NEW YORK', 'LAS VEGAS', 'CHICAGO', 'LOS ANGELES', 'MIA', 'MCO', 'JFK', 'EWR', 'LAX', 'SFO', 'LAS', 'NEWARK', 'FLORIDA', 'CALIFORNIA', 'TEXAS'];
+  const MEXICO = ['MEXICO', 'CANCUN', 'RIVIERA MAYA', 'TULUM', 'CIDADE DO MEXICO', 'MEX', 'CUN', 'PLAYA DEL CARMEN', 'COZUMEL'];
+  const DUBAI = ['DUBAI', 'UAE', 'EMIRADOS ARABES', 'ABU DHABI', 'DXB', 'AUH'];
 
   const getCleanText = (t?: string) => (t || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
@@ -170,12 +170,12 @@ const checkInternational = (lead?: Lead) => {
       
       if (dest && !BRAZILIAN_STATES.includes(dest) && dest !== 'BRASIL' && dest !== 'BRAZIL' && dest.length > 2) {
         isIntl = true;
-        if (EUA.some(k => dest.includes(k))) return { isIntl: true, region: 'Estados Unidos' };
-        if (EUROPA.some(k => dest.includes(k))) return { isIntl: true, region: 'Europa' };
-        if (MEXICO.some(k => dest.includes(k))) return { isIntl: true, region: 'México' };
-        if (DUBAI.some(k => dest.includes(k))) return { isIntl: true, region: 'Dubai' };
+        if (EUA.some(k => dest.includes(k) || k.includes(dest))) return { isIntl: true, region: 'Estados Unidos' };
+        if (EUROPA.some(k => dest.includes(k) || k.includes(dest))) return { isIntl: true, region: 'Europa' };
+        if (MEXICO.some(k => dest.includes(k) || k.includes(dest))) return { isIntl: true, region: 'México' };
+        if (DUBAI.some(k => dest.includes(k) || k.includes(dest))) return { isIntl: true, region: 'Dubai' };
         
-        const merc = MERCOSUL.find(m => m.keys.some(k => dest.includes(k)));
+        const merc = MERCOSUL.find(m => m.keys.some(k => dest.includes(k) || k.includes(dest)));
         if (merc) return { isIntl: true, region: merc.name };
         
         return { isIntl: true, region: 'Internacional' };
@@ -510,7 +510,40 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'AMS': { coords: [52.3105, 4.7683], name: 'Schiphol - Amsterdam' },
   'FRA': { coords: [50.0379, 8.5622], name: 'Frankfurt Airport' },
   'MXP': { coords: [45.6301, 8.7231], name: 'Malpensa - Milan' },
-  'OPO': { coords: [41.2421, -8.6786], name: 'Francisco Sá Carneiro - Porto' }
+  'OPO': { coords: [41.2421, -8.6786], name: 'Francisco Sá Carneiro - Porto' },
+  'NBJ': { coords: [-23.2289, -45.8711], name: 'São José dos Campos - SP' },
+  'SJK': { coords: [-23.2289, -45.8711], name: 'São José dos Campos - SP' },
+  'RAO': { coords: [-21.1364, -47.7767], name: 'Leite Lopes - Ribeirão Preto' }
+};
+
+const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string, arrDate?: string) => {
+  if (!depTime || !arrTime) return null;
+  try {
+    const parse = (t: string, d?: string) => {
+      const [h, m] = t.split(':').map(Number);
+      if (d) {
+        const parts = d.split(/[/-]/);
+        let day, month, year;
+        if (parts[0].length === 4) { [year, month, day] = parts; }
+        else { [day, month, year] = parts; }
+        return new Date(Number(year), Number(month) - 1, Number(day), h, m).getTime();
+      }
+      return new Date(2000, 0, 1, h, m).getTime();
+    };
+
+    const start = parse(depTime, depDate);
+    const end = parse(arrTime, arrDate);
+    
+    let diffMs = end - start;
+    if (!depDate && diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
+    
+    const totalMin = Math.floor(diffMs / (1000 * 60));
+    if (totalMin <= 0) return null;
+    
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}h ${m}min`;
+  } catch { return null; }
 };
 
 function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {
@@ -856,7 +889,11 @@ function FlightLegCard({
                           let validSum = true;
 
                           segments.forEach((seg, idx) => {
-                            const sNum = getNums(seg.duration);
+                            let sDuration = seg.duration;
+                            if (!sDuration) {
+                              sDuration = calculateDuration(seg.departureTime, seg.arrivalTime, seg.departureDate, seg.arrivalDate) || '';
+                            }
+                            const sNum = getNums(sDuration);
                             if (sNum.length >= 2) {
                               totalMinutes += (sNum[0] * 60) + sNum[1];
                             } else {
@@ -879,12 +916,16 @@ function FlightLegCard({
                         }
 
                         // 2. Single segment or fallback for length 1
-                        if (segments.length === 1 && segments[0].duration) {
-                          const nums = getNums(segments[0].duration);
-                          if (nums.length >= 2) {
-                             return `${nums[0].toString().padStart(2, '0')}h ${nums[1].toString().padStart(2, '0')} min`;
+                        if (segments.length === 1) {
+                          const s = segments[0];
+                          const dStr = s.duration || calculateDuration(s.departureTime, s.arrivalTime, s.departureDate, s.arrivalDate);
+                          if (dStr) {
+                            const nums = getNums(dStr);
+                            if (nums.length >= 2) {
+                              return `${nums[0].toString().padStart(2, '0')}h ${nums[1].toString().padStart(2, '0')} min`;
+                            }
+                            return dStr;
                           }
-                          return segments[0].duration;
                         }
 
                         // 3. Last fallback (itemDuration if provided)
@@ -970,7 +1011,9 @@ function FlightLegCard({
                                     </div>
                                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100/50">
                                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                       <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">Duração: {seg.duration || '--'}</span>
+                                       <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">
+                                          Duração: {seg.duration || calculateDuration(seg.departureTime, seg.arrivalTime, seg.departureDate, seg.arrivalDate) || '--'}
+                                       </span>
                                     </div>
                                  </div>
 
