@@ -51,7 +51,7 @@ const INTEREST_RATES: Record<number, number> = {
 };
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0, minimumFractionDigits: 0 }).format(value);
 
 const normalizePhotoUrl = (photo: any): string => {
   if (!photo) return '';
@@ -299,7 +299,7 @@ function TypeLabel({ type }: { type: string }) {
 
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <div className="flex items-center gap-3 mb-4">
+    <div className="flex items-center gap-3 mb-3">
       <div className="w-8 h-8 bg-[#19727d]/10 rounded-xl flex items-center justify-center text-[#19727d]">
         {icon}
       </div>
@@ -796,39 +796,39 @@ function FlightLegCard({
   return (
     <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-500 group mb-8">
       <div className="p-0">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 ${type === 'Ida' ? 'bg-cyan-50' : 'bg-purple-50'} rounded-2xl flex items-center justify-center`}>
                  <Plane className={`w-5 h-5 ${type === 'Ida' ? 'text-cyan-600' : 'text-purple-600'}`} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Voo de {type}</h3>
-                {firstSeg && <p className="text-xs font-bold text-slate-400">{formatDate(firstSeg.departureDate)}</p>}
+                <h3 className="text-[11px] sm:text-sm font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Voo de {type}</h3>
+                {firstSeg && <p className="text-[10px] sm:text-xs font-bold text-slate-400">{formatDate(firstSeg.departureDate)}</p>}
               </div>
             </div>
             <button 
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 hover:bg-cyan-50 text-slate-500 hover:text-cyan-600 rounded-xl text-xs font-black transition-all border border-transparent hover:border-cyan-100"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-50 hover:bg-cyan-50 text-slate-500 hover:text-cyan-600 rounded-xl text-[10px] sm:text-xs font-black transition-all border border-transparent hover:border-cyan-100"
             >
               {isExpanded ? 'Menos detalhes' : 'Mais detalhes'}
               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
 
-          <div className="flex items-center justify-between mt-8 mb-4 px-2">
+          <div className="flex items-center justify-between mt-6 sm:mt-8 mb-4 px-0 sm:px-2 gap-2">
             {/* Left Block - Departure */}
-            <div className="text-left w-[200px] flex flex-col justify-start">
-              <p className="text-3xl font-black text-slate-900 leading-none">{firstSeg?.departureTime ? fmt(firstSeg.departureTime) : '--:--'}</p>
-              <div className="mt-1.5 h-7 flex items-start overflow-hidden">
-                <p className="text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase">
+            <div className="text-left flex-1 sm:w-[200px] flex flex-col justify-start">
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">{firstSeg?.departureTime ? fmt(firstSeg.departureTime) : '--:--'}</p>
+              <div className="mt-1 h-6 sm:h-7 flex items-start overflow-hidden">
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase">
                   {AIRPORT_INFO[firstSeg?.origin || '']?.name || firstSeg?.origin || '---'}
                 </p>
               </div>
             </div>
 
 {/* Middle Block - Timeline */}
-            <div className="flex-1 flex flex-col items-center relative h-12 group self-center">
+            <div className="flex-[0.5] sm:flex-1 flex flex-col items-center relative h-10 sm:h-12 group self-center px-2">
                {/* Journey Duration above badge */}
                <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 flex items-center gap-1.5 whitespace-nowrap">
                   <Clock className="w-3 h-3 text-slate-300" />
@@ -902,17 +902,17 @@ function FlightLegCard({
                
                {/* Badge centered absolutely */}
                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pt-1">
-                  <span className="relative z-10 text-[9px] font-black uppercase text-slate-400 bg-white px-3 py-1 border border-slate-100 rounded-full tracking-[0.15em] whitespace-nowrap shadow-sm">
-                    {hasConnections ? 'Com Conexão' : 'Voo Direto'}
+                  <span className="relative z-10 text-[7px] sm:text-[9px] font-black uppercase text-slate-400 bg-white px-2 py-0.5 sm:px-3 sm:py-1 border border-slate-100 rounded-full tracking-[0.1em] sm:tracking-[0.15em] whitespace-nowrap shadow-sm">
+                    {hasConnections ? 'Conexão' : 'Direto'}
                   </span>
                </div>
             </div>
 
             {/* Right Block - Arrival */}
-            <div className="text-right w-[200px] flex flex-col items-end justify-start">
-              <p className="text-3xl font-black text-slate-900 leading-none">{lastSeg?.arrivalTime ? fmt(lastSeg.arrivalTime) : '--:--'}</p>
-              <div className="mt-1.5 h-7 flex items-start justify-end overflow-hidden">
-                <p className="text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase text-right">
+            <div className="text-right flex-1 sm:w-[200px] flex flex-col items-end justify-start">
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">{lastSeg?.arrivalTime ? fmt(lastSeg.arrivalTime) : '--:--'}</p>
+              <div className="mt-1 h-6 sm:h-7 flex items-start justify-end overflow-hidden">
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase text-right">
                   {AIRPORT_INFO[lastSeg?.destination || '']?.name || lastSeg?.destination || '---'}
                 </p>
               </div>
@@ -1194,35 +1194,35 @@ function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: {
           );
         })()}
 
-        <div className="p-4 sm:p-5 space-y-4">
-          <div className="flex flex-row items-center justify-between gap-4 flex-nowrap overflow-hidden">
+        <div className="p-4 sm:p-5 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#19727d] flex items-center justify-center text-white shadow-xl shadow-[#19727d]/20 shrink-0 transform group-hover/hotel:rotate-3 transition-transform duration-500">
-                <Hotel className="w-7 h-7" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#19727d] flex items-center justify-center text-white shadow-xl shadow-[#19727d]/20 shrink-0 transform group-hover/hotel:rotate-3 transition-transform duration-500">
+                <Hotel className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-[#19727d] uppercase tracking-[0.3em] leading-none mb-1.5">Hospedagem</p>
-                <h3 className="font-black text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">{item.hotelName || 'Nome do Hotel'}</h3>
+                <p className="text-[9px] sm:text-[10px] font-black text-[#19727d] uppercase tracking-[0.3em] leading-none mb-1.5">Hospedagem</p>
+                <h3 className="font-black text-xl sm:text-3xl text-slate-900 tracking-tight leading-tight max-w-[280px] sm:max-w-none">{item.hotelName || 'Nome do Hotel'}</h3>
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-2 shrink-0">
-               <div className="flex bg-white border border-slate-100 rounded-xl p-2 gap-4 shadow-sm">
-                  <div className="text-center px-2.5">
-                     <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-in</p>
-                     <p className="text-[13px] font-black text-[#19727d] leading-none">{checkIn ? formatDate(checkIn) : '--/--/--'}</p>
+            <div className="flex flex-row flex-wrap sm:flex-col items-center sm:items-end gap-2 sm:gap-3 shrink-0">
+               <div className="flex bg-white border border-slate-100 rounded-xl p-1.5 sm:p-2 gap-2 sm:gap-4 shadow-sm">
+                  <div className="text-center px-1 sm:px-2.5">
+                     <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-in</p>
+                     <p className="text-[11px] sm:text-[13px] font-black text-[#19727d] leading-none">{checkIn ? formatDate(checkIn) : '--/--/--'}</p>
                   </div>
                   <div className="w-px bg-slate-100" />
-                  <div className="text-center px-2.5">
-                     <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-out</p>
-                     <p className="text-[13px] font-black text-[#19727d] leading-none">{checkOut ? formatDate(checkOut) : '--/--/--'}</p>
+                  <div className="text-center px-1 sm:px-2.5">
+                     <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-out</p>
+                     <p className="text-[11px] sm:text-[13px] font-black text-[#19727d] leading-none">{checkOut ? formatDate(checkOut) : '--/--/--'}</p>
                   </div>
                </div>
 
                {(item.hasBreakfast || item.boardBasis?.toLowerCase().includes('café')) && (
-                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-100 rounded-xl shadow-sm h-fit w-full justify-center">
-                    <Coffee className="w-4 h-4 text-orange-500" />
-                    <span className="text-[10px] font-black uppercase text-slate-700 tracking-tight whitespace-nowrap">Café da manhã</span>
+                <div className="flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 bg-orange-50 border border-orange-100 rounded-xl shadow-sm h-fit">
+                    <Coffee className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-500" />
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase text-orange-700 tracking-tight whitespace-nowrap">Café incluso</span>
                  </div>
                )}
             </div>
@@ -1244,8 +1244,8 @@ function HotelItemCard({ item, fallbackCheckIn, fallbackCheckOut }: {
                  </div>
                  <h3 className="text-base font-black text-slate-900 tracking-tight">O que este hotel oferece</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                {item.hotelAmenities.slice(0, 16).map((a, idx) => {
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                {item.hotelAmenities.slice(0, 5).map((a, idx) => {
                   const resolved = resolveAmenity(a);
                   const Icon = resolved.icon as any;
                   return (
@@ -1390,10 +1390,10 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="relative w-full max-w-6xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-full sm:max-w-6xl bg-white rounded-t-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh] animate-in fade-in zoom-in duration-300"
       >
         {/* HEADER MODAL */}
-        <div className="relative h-48 sm:h-72 flex-shrink-0 bg-slate-100">
+        <div className="relative h-24 sm:h-72 flex-shrink-0 bg-slate-100">
           {(() => {
             const firstPhoto = normalizePhotoUrl(item.hotelPhotos?.[0] || item.hotelImages?.[0]);
             if (!firstPhoto) return null;
@@ -1410,88 +1410,94 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
           
           <button 
             onClick={onClose}
-            className="absolute top-6 right-6 p-3 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-all hover:rotate-90 z-50 shadow-xl"
+            className="absolute top-3 right-3 sm:top-6 sm:right-6 p-2 sm:p-3 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-all hover:rotate-90 z-50 shadow-xl"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
-          <div className="absolute bottom-0 left-0 right-0 p-10">
-            <div className="flex items-center gap-3 mb-3">
-               <div className="px-3 py-1 bg-cyan-500 text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-lg shadow-lg shadow-cyan-500/20">
+          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-10">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-3">
+               <div className="px-2 py-0.5 sm:px-3 sm:py-1 bg-cyan-500 text-white text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] rounded-lg shadow-lg shadow-cyan-500/20">
                   Reserva Confirmada
                </div>
-               <div className="h-px w-8 bg-slate-300" />
+               <div className="h-px w-6 sm:w-8 bg-slate-300" />
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tighter leading-none shadow-sm">{item.hotelName}</h2>
+            <h2 className="text-lg sm:text-5xl font-black text-gray-900 tracking-tighter leading-tight shadow-sm line-clamp-1 sm:line-clamp-none">{item.hotelName}</h2>
             {item.hotelAddress && (
-              <div className="flex items-center gap-2.5 mt-4 text-slate-600 font-bold text-sm bg-white/60 backdrop-blur-md w-fit px-4 py-2 rounded-2xl border border-white/40">
-                <MapPin className="w-4 h-4 text-cyan-600" />
-                {item.hotelAddress}
+              <div className="flex items-center gap-1 mt-0.5 sm:mt-4 text-slate-600 font-bold text-[8px] sm:text-sm bg-white/60 backdrop-blur-md w-fit px-1.5 py-0.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-2xl border border-white/40">
+                <MapPin className="w-2.5 h-2.5 sm:w-4 sm:h-4 text-cyan-600" />
+                <span className="line-clamp-1 sm:line-clamp-none">{item.hotelAddress}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* CONTEÚDO UNIFICADO */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/30">
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-8 custom-scrollbar bg-slate-50/30">
+          <div className="space-y-4 sm:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            {/* CHECK-IN / CHECK-OUT NO MODAL */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* CHECK-IN / CHECK-OUT NO MODAL - LAYOUT DE LINHA ÚNICA */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-4">
               {item.checkInDate && (
-                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                  <p className="text-[10px] font-black text-[#19727d] uppercase tracking-widest mb-3 flex items-center gap-2">
-                     <ArrowRight className="w-4 h-4" /> Check-in na Propriedade
+                <div className="bg-white border border-slate-100 rounded-lg sm:rounded-3xl py-1.5 px-3 sm:p-6 shadow-sm flex items-center justify-between gap-2">
+                  <p className="text-[9px] sm:text-[10px] font-black text-[#19727d] uppercase tracking-widest flex items-center gap-1.5 min-w-[70px]">
+                     <ArrowRight className="w-2.5 h-2.5 sm:w-4 sm:h-4" /> Check-in
                   </p>
-                  <p className="text-xl font-black text-slate-800">{formatDate(item.checkInDate)}</p>
-                  <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" /> {item.checkInTime || 'A partir das 14:00'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[12px] sm:text-xl font-black text-slate-800">{formatDate(item.checkInDate)}</p>
+                    <p className="text-[9px] sm:text-sm font-bold text-slate-400 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 sm:w-4 sm:h-4" /> {item.checkInTime || '14:00'}
+                    </p>
+                  </div>
                 </div>
               )}
               {item.checkOutDate && (
-                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                     <ArrowRight className="w-4 h-4 rotate-180" /> Check-out da Propriedade
+                <div className="bg-white border border-slate-100 rounded-lg sm:rounded-3xl py-1.5 px-3 sm:p-6 shadow-sm flex items-center justify-between gap-2">
+                  <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 min-w-[70px]">
+                     <ArrowRight className="w-2.5 h-2.5 sm:w-4 sm:h-4 rotate-180" /> Check-out
                   </p>
-                  <p className="text-xl font-black text-slate-800">{formatDate(item.checkOutDate)}</p>
-                  <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" /> {item.checkOutTime || 'Até às 12:00'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[12px] sm:text-xl font-black text-slate-800">{formatDate(item.checkOutDate)}</p>
+                    <p className="text-[9px] sm:text-sm font-bold text-slate-400 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 sm:w-4 sm:h-4" /> {item.checkOutTime || '12:00'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* REGIME DE ALIMENTAÇÃO NO MODAL INTEGRADO COM MINI MAPA */}
             {(item.hasBreakfast || (item.boardBasis && item.boardBasis.toLowerCase().includes('café'))) && (
-              <div className="bg-white border border-slate-100 rounded-[32px] p-2.5 pr-6 shadow-sm flex items-center justify-between gap-6 overflow-hidden">
-                <div className="flex items-center gap-4 pl-4 min-w-[220px]">
-                  <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm border border-orange-100/50">
-                    <Coffee className="w-6 h-6" />
+              <div className="bg-white border border-slate-100 rounded-[20px] sm:rounded-[32px] p-1.5 sm:p-2.5 pr-3 sm:pr-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6 overflow-hidden">
+                <div className="flex items-center gap-2 sm:gap-4 pl-1 sm:pl-4 min-w-0 sm:min-w-[220px]">
+                  <div className="w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm border border-orange-100/50">
+                    <Coffee className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-sm">Café da manhã incluso</h4>
-                    <p className="text-[10px] font-bold text-slate-400 leading-tight">Incluso nesta reserva</p>
+                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-[9px] sm:text-sm whitespace-nowrap">Café da manhã incluso</h4>
+                    <p className="hidden sm:block text-[8px] sm:text-[10px] font-bold text-slate-400 leading-tight">Incluso nesta reserva</p>
                   </div>
                 </div>
 
                 {/* MINI MAPA À DIREITA - AGORA EM FLEX-1 */}
                 {item.hotelAddress && (
-                  <HotelMiniMap address={item.hotelAddress} hotelName={item.hotelName || ''} />
+                  <div className="w-full sm:flex-1">
+                     <HotelMiniMap address={item.hotelAddress} hotelName={item.hotelName || ''} />
+                  </div>
                 )}
               </div>
             )}
 
             {/* DESCRIÇÃO */}
             {item.hotelDescription && (
-              <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
-                    <FileText className="w-5 h-5" />
+              <div className="bg-white rounded-xl sm:rounded-3xl p-3 sm:p-8 shadow-sm border border-slate-100">
+                <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-6">
+                  <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-50 flex items-center justify-center text-slate-700">
+                    <FileText className="w-3 sm:w-5 sm:h-5" />
                   </div>
-                  <h3 className="font-black text-xl text-gray-800">Sobre a Propriedade</h3>
+                  <h3 className="font-black text-[11px] sm:text-xl text-gray-800 tracking-tight">Sobre a Propriedade</h3>
                 </div>
-                <p className="text-gray-600 leading-relaxed text-sm font-medium whitespace-pre-wrap">{item.hotelDescription}</p>
+                <p className="text-gray-600 leading-relaxed text-[10.5px] sm:text-sm font-medium whitespace-pre-wrap line-clamp-4 sm:line-clamp-none">{item.hotelDescription}</p>
               </div>
             )}
 
@@ -1504,16 +1510,16 @@ function HotelDetailsModal({ item, onClose }: { item: LeadItem, onClose: () => v
                   </div>
                   <h3 className="font-black text-xl text-gray-900 tracking-tight">O que este hotel oferece</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {item.hotelAmenities.map((amenity: string, idx: number) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {item.hotelAmenities.slice(0, 5).map((amenity: string, idx: number) => {
                     const resolved = resolveAmenity(amenity);
                     const Icon = resolved.icon as any;
                     return (
-                      <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm group hover:border-cyan-200 hover:shadow-md transition-all">
-                        <div className="w-9 h-9 rounded-full bg-cyan-50/50 flex items-center justify-center shrink-0 group-hover:bg-cyan-50 transition-colors border border-cyan-100/20">
-                          <Icon className="w-4 h-4 text-cyan-600" />
+            <div key={idx} className="flex items-center gap-2 sm:gap-3 bg-white p-1.5 sm:p-3 rounded-lg sm:rounded-2xl border border-slate-100 shadow-sm group hover:border-cyan-200 hover:shadow-md transition-all">
+                        <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-cyan-50/50 flex items-center justify-center shrink-0 group-hover:bg-cyan-50 transition-colors border border-cyan-100/20">
+                          <Icon className="w-3 sm:w-4 sm:h-4 text-cyan-600" />
                         </div>
-                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-tight leading-tight">{resolved.label}</span>
+                        <span className="text-[7.5px] sm:text-[10px] font-black text-slate-700 uppercase tracking-tight leading-tight">{resolved.label}</span>
                       </div>
                     );
                   })}
@@ -1628,6 +1634,7 @@ export default function CotacaoPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [fallbackRates, setFallbackRates] = useState<{USD: number, EUR: number, GBP: number} | null>(null);
+  const [showAllInstallments, setShowAllInstallments] = useState(false);
   const { isIntl, region: tripRegion } = checkInternational(lead || undefined);
 
   useEffect(() => {
@@ -1863,89 +1870,108 @@ export default function CotacaoPage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-10">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-10">
           {/* Logo e Consultor na mesma linha */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 mb-12">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl flex-shrink-0 p-2 transform hover:scale-105 transition-transform">
-                <Image src={AGENCY.logoUrl} alt="Easy Fly" width={64} height={64} className="w-full h-full object-contain" />
+          <div className="flex flex-row items-center justify-between gap-2 sm:gap-6 mb-5 sm:mb-10">
+            <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-[2rem] bg-white flex items-center justify-center shadow-xl flex-shrink-0 p-2 sm:p-2.5 transform hover:scale-105 transition-transform">
+                <Image src={AGENCY.logoUrl} alt="Easy Fly" width={80} height={80} className="w-full h-full object-contain" />
               </div>
-              <div>
-                <p className="font-black text-white text-2xl leading-tight tracking-tight">Easy Fly</p>
-                <p className="text-white/70 text-xs uppercase tracking-[0.3em] font-bold">Agência de Viagens</p>
+              <div className="min-w-0">
+                <p className="font-black text-white text-xl sm:text-4xl leading-tight tracking-tighter truncate">Easy Fly</p>
+                <p className="text-white/70 text-[11px] sm:text-base uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black truncate">Agência de Viagens</p>
               </div>
             </div>
 
             {lead.emissor && (
-              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-lg">
-                <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-400/30">
-                  <Briefcase className="w-4 h-4 text-cyan-300" />
+              <div className="flex items-center gap-2 sm:gap-3 bg-white/10 backdrop-blur-md px-3 py-1.5 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-2xl border border-white/20 shadow-lg shrink-0">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-400/30">
+                  <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-300" />
                 </div>
-                <div>
-                  <p className="text-[10px] text-white/50 font-black uppercase tracking-widest leading-none mb-1">Consultor</p>
-                  <p className="text-sm font-black text-white leading-none">{lead.emissor}</p>
+                <div className="text-center">
+                  <p className="text-[8px] sm:text-[10px] text-white/50 font-black uppercase tracking-widest leading-none mb-0.5 sm:mb-1">Consultor</p>
+                  <p className="text-[10px] sm:text-sm font-black text-white leading-none truncate max-w-[80px] sm:max-w-none">{lead.emissor}</p>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="text-center space-y-6">
-            {/* Badge Premium */}
+          <div className="text-center space-y-2 sm:space-y-5">
+            {/* Badge Premium Minimalista */}
             <motion.div 
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex justify-center mb-4"
+              className="flex justify-center"
             >
-              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-xl px-10 py-4 rounded-full text-xl font-black text-white border-2 border-white/20 shadow-2xl shadow-black/20 transform hover:scale-105 transition-all duration-500">
-                 <Sparkles className="w-7 h-7 text-cyan-300 animate-pulse" />
-                 <span className="tracking-tight uppercase">Proposta de Viagem</span>
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black text-white border border-white/20 shadow-lg tracking-widest uppercase mb-1">
+                 <Sparkles className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
+                 <span>Proposta de Viagem</span>
               </div>
             </motion.div>
 
-            <h1 className="text-5xl sm:text-6xl font-black text-white tracking-tighter leading-[1.05] max-w-3xl mx-auto drop-shadow-sm">
+            <h1 className="text-4xl sm:text-7xl font-black text-white tracking-tighter leading-[1.02] max-w-3xl mx-auto drop-shadow-2xl">
               {lead.title || 'Sua Próxima Aventura'}
             </h1>
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
-              <div className="flex items-center gap-3 bg-white/10 px-6 py-2.5 rounded-2xl backdrop-blur-md border border-white/20 shadow-lg">
-                <Users className="w-5 h-5 text-cyan-300" />
-                <div className="text-left">
-                  <p className="text-[10px] text-white/50 font-black uppercase tracking-widest leading-none mb-1">Passageiros</p>
-                  <p className="text-sm font-black text-white leading-none">
-                    {lead.name} 
-                    <span className="ml-2 text-cyan-300/80 font-bold border-l border-white/20 pl-2">
-                      {(lead.adults || 0) > 0 && `${lead.adults} Adulto${(lead.adults || 0) > 1 ? 's' : ''}`}
-                      {(lead.children || 0) > 0 && ` ${(lead.children || 0)} Criança${(lead.children || 0) > 1 ? 's' : ''}`}
-                      {(lead.babies || 0) > 0 && ` ${(lead.babies || 0)} Bebê${(lead.babies || 0) > 1 ? 's' : ''}`}
-                    </span>
-                  </p>
-                </div>
-              </div>
+            {lead.name && (
+              <h2 className="text-xl sm:text-4xl font-black text-white/90 tracking-tighter leading-tight max-w-3xl mx-auto drop-shadow-xl mt-0.5 italic">
+                {lead.name}
+              </h2>
+            )}
 
-              {tripDuration && (
-                <div className="flex items-center gap-3 bg-white/10 px-6 py-2.5 rounded-2xl backdrop-blur-md border border-white/20 shadow-lg">
-                  <Clock className="w-5 h-5 text-cyan-300" />
-                  <div className="text-left">
-                    <p className="text-[10px] text-white/50 font-black uppercase tracking-widest leading-none mb-1">Duração</p>
-                    <p className="text-sm font-black text-white leading-none">{tripDuration}</p>
+            {/* Barra de Resumo Horizontal (High Density) */}
+            <div className="flex justify-center mt-3 sm:mt-8">
+              <div className="inline-flex items-center bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden divide-x divide-white/10">
+                {/* Seção Passageiros */}
+                <div className="flex items-center justify-center gap-2 px-4 py-3 sm:px-6 sm:py-4 hover:bg-white/5 transition-colors min-w-[120px] sm:min-w-[160px]">
+                  <Users className="w-4 h-4 text-cyan-300" />
+                  <div className="text-center">
+                    <p className="text-[8px] text-white/50 font-black uppercase tracking-widest leading-none mb-1">Passageiros</p>
+                    <p className="text-[11px] sm:text-sm font-black text-white leading-none whitespace-nowrap">
+                      {[
+                        (lead.adults || 0) > 0 ? `${lead.adults} Adulto${(lead.adults || 0) > 1 ? 's' : ''}` : null,
+                        (lead.children || 0) > 0 ? `${lead.children} Criança${(lead.children || 0) > 1 ? 's' : ''}` : null,
+                        (lead.babies || 0) > 0 ? `${lead.babies} Bebê${(lead.babies || 0) > 1 ? 's' : ''}` : null,
+                      ].filter(Boolean).join(' • ')}
+                    </p>
                   </div>
                 </div>
-              )}
+
+                {/* Seção Duração */}
+                {tripDuration && (
+                  <div className="flex items-center justify-center gap-2 px-4 py-3 sm:px-6 sm:py-4 hover:bg-white/5 transition-colors min-w-[120px] sm:min-w-[160px]">
+                    <Clock className="w-4 h-4 text-cyan-300" />
+                    <div className="text-center">
+                      <p className="text-[8px] text-white/50 font-black uppercase tracking-widest leading-none mb-1">Duração</p>
+                      <p className="text-[11px] sm:text-sm font-black text-white leading-none whitespace-nowrap">{tripDuration}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Seção Região (Opcional - Visual de Elite) */}
+                <div className="hidden sm:flex items-center justify-center gap-2 px-6 py-4 hover:bg-white/5 transition-colors min-w-[160px]">
+                  <MapPin className="w-4 h-4 text-cyan-300" />
+                  <div className="text-center">
+                    <p className="text-[8px] text-white/50 font-black uppercase tracking-widest leading-none mb-1">Destino</p>
+                    <p className="text-sm font-black text-white leading-none whitespace-nowrap">{tripRegion}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-7">
 
         {flights.length > 0 && (
           <section>
-            <SectionTitle icon={<Plane className="w-4 h-4" />} title="Opções de Voos" />
+            <SectionTitle icon={<Plane className="w-4 h-4" />} title="Voos" />
             
             {/* Mapa Consolidado da Rota Real */}
             <MainTravelMap lead={lead} flights={flights} />
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {flights.map(item => <FlightItemCard key={item.id} item={item} lead={lead} />)}
             </div>
           </section>
@@ -1954,7 +1980,7 @@ export default function CotacaoPage() {
         {hotels.length > 0 && (
           <section>
             <SectionTitle icon={<Hotel className="w-4 h-4" />} title="Hospedagem" />
-            <div className="space-y-4">
+            <div className="space-y-3">
               {hotels.map(item => (
                 <HotelItemCard 
                   key={item.id} 
@@ -1970,14 +1996,14 @@ export default function CotacaoPage() {
         {others.length > 0 && (
           <section>
             <SectionTitle icon={<Package className="w-4 h-4" />} title="Outros Serviços" />
-            <div className="space-y-4">
+            <div className="space-y-3">
               {others.map(item => <OtherItemCard key={item.id} item={item} />)}
             </div>
           </section>
         )}
 
         {/* CHECKLIST DE REQUISITOS */}
-        <section className="space-y-6">
+        <section className="space-y-4">
           <SectionTitle icon={<ShieldAlert className="w-4 h-4" />} title="Checklist de embarque e segurança" />
           <TravelChecklist isIntl={isIntl} region={tripRegion} />
         </section>
@@ -1986,27 +2012,27 @@ export default function CotacaoPage() {
         {lead.value > 0 && (
           <section>
             <SectionTitle icon={<CreditCard className="w-4 h-4" />} title="Investimento" />
-            <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] rounded-2xl p-6 text-white shadow-xl shadow-[#19727d]/20">
-              <div className="flex items-center justify-between mb-4">
-                <div>
+            <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] rounded-2xl p-5 sm:p-6 text-white shadow-xl shadow-[#19727d]/20">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-5 md:mb-3">
+                <div className="w-full">
                   <p className="text-white/70 text-sm font-bold uppercase tracking-widest leading-none mb-3">INVESTIMENTO TOTAL</p>
-                  <div className="flex flex-wrap items-baseline gap-2.5">
-                    <p className="text-5xl font-black tracking-tighter leading-none">{formatCurrency(lead.value)}</p>
-                    <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-xl border border-white/5">
-                       <span className="text-[10px] font-black text-white uppercase tracking-wider">À vista</span>
+                  <div className="flex flex-row items-center gap-3">
+                    <p className="text-4xl sm:text-5xl font-black tracking-tighter leading-none shrink-0">{formatCurrency(lead.value)}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 px-2.5 py-1.5 bg-white/10 rounded-xl border border-white/5">
+                       <span className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider">À vista</span>
                        <div className="flex items-center gap-1.5">
                           {(lead.adults || 0) > 0 && (
-                            <span className="text-[10px] font-black text-cyan-200 uppercase tracking-tight">
+                            <span className="text-[9px] sm:text-[10px] font-black text-cyan-200 uppercase tracking-tight">
                                {(lead.adults || 0)} {(lead.adults || 0) === 1 ? 'Adulto' : 'Adultos'}
                             </span>
                           )}
                           {(lead.children || 0) > 0 && (
-                            <span className="text-[10px] font-black text-cyan-200 uppercase tracking-tight">
+                            <span className="text-[9px] sm:text-[10px] font-black text-cyan-200 uppercase tracking-tight">
                                • {(lead.children || 0)} {(lead.children || 0) === 1 ? 'Criança' : 'Crianças'}
                             </span>
                           )}
                           {(lead.babies || 0) > 0 && (
-                            <span className="text-[10px] font-black text-cyan-200 uppercase tracking-tight">
+                            <span className="text-[9px] sm:text-[10px] font-black text-cyan-200 uppercase tracking-tight">
                                • {(lead.babies || 0)} {(lead.babies || 0) === 1 ? 'Bebê' : 'Bebês'}
                             </span>
                           )}
@@ -2015,7 +2041,7 @@ export default function CotacaoPage() {
                   </div>
                 </div>
                 {/* CÂMBIO E ÍCONE PRINCIPAL */}
-                <div className="flex flex-col items-end gap-3 shrink-0 self-start -mt-2">
+                <div className="flex flex-wrap md:flex-col items-center md:items-end gap-3 shrink-0 self-start md:-mt-2 w-full md:w-auto overflow-hidden">
                    {/* CÂMBIO (SEGURO OU FALLBACK) */}
                    {(() => {
                      const isPersisted = lead.usd_rate > 0;
@@ -2026,13 +2052,13 @@ export default function CotacaoPage() {
                      if (!displayRates || displayRates.USD <= 0) return null;
 
                      return (
-                       <div className="flex gap-2.5">
+                       <div className="flex gap-2.5 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
                           {[
                             { code: 'USD', symbol: '$', rate: displayRates.USD },
                             { code: 'EUR', symbol: '€', rate: displayRates.EUR },
                             { code: 'GBP', symbol: '£', rate: displayRates.GBP }
                           ].filter(c => c.rate > 0).map(c => (
-                            <div key={c.code} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3.5 py-2.5 flex flex-col items-center min-w-[85px] shadow-sm animate-in fade-in zoom-in duration-500">
+                            <div key={c.code} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3.5 py-2.5 flex flex-col items-center min-w-[85px] shadow-sm flex-shrink-0 animate-in fade-in zoom-in duration-500">
                                <div className="flex items-center gap-1.5 mb-1">
                                   <span className="text-[8px] font-black text-cyan-300 tracking-widest leading-none">{c.code}</span>
                                   {isPersisted ? (
@@ -2053,17 +2079,21 @@ export default function CotacaoPage() {
                 </div>
               </div>
 
-              <div className="border-t border-white/20 pt-4">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="border-t border-white/20 pt-3">
+                <div className="flex items-center gap-2 mb-2">
                    <p className="text-white/70 text-sm font-bold uppercase tracking-widest leading-none">Parcelamento no cartão</p>
                    <CreditCard className="w-3.5 h-3.5 text-white/40" />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className={`grid ${showAllInstallments ? 'grid-cols-2' : 'grid-cols-1'} sm:grid-cols-4 gap-2`}>
                    {(() => {
                      const maxInstallments = lead.fees_installments || 12;
                      const type = lead.fees_type || 'interest_free';
                      
-                     return INSTALLMENTS.filter(n => n <= maxInstallments).map((n: number) => {
+                     let allowedInstallments = showAllInstallments 
+                        ? INSTALLMENTS.filter(n => n <= maxInstallments)
+                        : INSTALLMENTS.filter(n => [6, 10].includes(n) && n <= maxInstallments);
+
+                     return allowedInstallments.map((n: number) => {
                        let totalValue = lead.value;
                        let isInterestFree = type === 'interest_free';
                        
@@ -2071,14 +2101,18 @@ export default function CotacaoPage() {
                          const rate = INTEREST_RATES[n] || 0;
                          totalValue = lead.value * (1 + rate / 100);
                        }
+
+                       const isHighlight = n === 10;
                        
                        return (
-                         <div key={n} className="bg-white/10 rounded-xl p-2.5 text-center hover:bg-white/20 transition-colors relative group/inst">
-                           <p className="text-[11px] text-white/60 font-bold">{n}x de</p>
+                         <div key={n} className={`bg-white/10 rounded-xl p-2.5 text-center hover:bg-white/20 transition-colors relative group/inst flex flex-col justify-center min-h-[68px] ${isHighlight && !showAllInstallments ? 'ring-2 ring-cyan-400 bg-white/20' : ''}`}>
+                           <p className="text-[11px] text-white/60 font-bold mb-0.5">
+                             {n}x {n === 1 ? '(à vista)' : (isInterestFree ? 'sem juros de' : 'de')}
+                           </p>
                            <p className="text-sm font-black text-white">{formatCurrency(totalValue / n)}</p>
-                           {isInterestFree && (
-                             <span className="absolute -top-1 -right-1 bg-emerald-500 text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-lg opacity-0 group-hover/inst:opacity-100 transition-opacity">
-                               SEM JUROS
+                           {isHighlight && !showAllInstallments && (
+                             <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-cyan-500 text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg whitespace-nowrap">
+                               MAIS ESCOLHIDO
                              </span>
                            )}
                          </div>
@@ -2086,7 +2120,24 @@ export default function CotacaoPage() {
                      });
                    })()}
                 </div>
-                <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-6 text-center leading-relaxed max-w-2xl mx-auto border-t border-white/10 pt-6">
+                
+                {/* Botões de Ver Mais/Menos */}
+                {(lead.fees_installments || 12) > 1 && (
+                  <div className="flex justify-center mt-4">
+                    <button 
+                      onClick={() => setShowAllInstallments(!showAllInstallments)}
+                      className="text-[10px] text-white/90 hover:text-white font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-2 rounded-full transition-all flex items-center gap-2 active:scale-95"
+                    >
+                      {showAllInstallments ? (
+                        <><ChevronUp className="w-3.5 h-3.5" /> Ver menos opções</>
+                      ) : (
+                        <><ChevronDown className="w-3.5 h-3.5" /> Ver mais opções</>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-4 text-center leading-relaxed max-w-2xl mx-auto border-t border-white/10 pt-4">
                   Os valores apresentados podem sofrer alterações a qualquer momento. De acordo com as regras das companhias aéreas. A reserva só é garantida após confirmação de pagamento
                 </p>
               </div>
@@ -2104,9 +2155,9 @@ export default function CotacaoPage() {
         )}
 
         {/* MÉTODOS DE PAGAMENTO */}
-        <section className="space-y-6">
+        <section className="space-y-4">
           <SectionTitle icon={<Info className="w-4 h-4" />} title="Métodos de pagamento" />
-          <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm text-center">
+          <div className="bg-white rounded-[32px] border border-slate-100 p-6 shadow-sm text-center">
              <div className="flex flex-col items-center gap-4">
                 <div className="flex items-center gap-3 group">
                    <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 border border-emerald-100 group-hover:scale-110 transition-transform">
@@ -2167,7 +2218,7 @@ export default function CotacaoPage() {
         </section>
 
         {/* CONTATO */}
-        <section className="space-y-6 pb-20">
+        <section className="space-y-4 pb-12">
           <SectionTitle icon={<Phone className="w-4 h-4" />} title="Informações e contato" />
           <div className="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-xl shadow-slate-200/50">
              <div className="grid grid-cols-1 md:grid-cols-2">
@@ -2215,14 +2266,14 @@ export default function CotacaoPage() {
                          </div>
                       </div>
 
-                      <div className="flex items-center gap-4 group">
+                      <a href="https://www.instagram.com/easyflly/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group cursor-pointer hover:opacity-80 transition-opacity">
                          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-600 transition-all border border-slate-100">
                             <Instagram className="w-5 h-5" />
                          </div>
                          <div>
                             <p className="text-sm font-bold text-slate-600 leading-none">{AGENCY.instagram}</p>
                          </div>
-                      </div>
+                      </a>
                    </div>
 
                    <a 

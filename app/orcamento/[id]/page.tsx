@@ -366,7 +366,7 @@ function HotelItem({ item }: { item: SaleItem }) {
       <div className="h-1.5 w-full bg-[#19727d]" />
       
       <div className="p-4 sm:p-5 space-y-4">
-        <div className="flex flex-row items-center justify-between gap-4 flex-nowrap overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#19727d] flex items-center justify-center text-white shadow-xl shadow-[#19727d]/20 shrink-0 transform group-hover:rotate-3 transition-transform duration-500">
               <Hotel className="w-7 h-7" />
@@ -377,23 +377,23 @@ function HotelItem({ item }: { item: SaleItem }) {
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2 shrink-0">
-             <div className="flex bg-white border border-slate-100 rounded-xl p-2 gap-4 shadow-sm">
-                <div className="text-center px-2.5">
-                   <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-in</p>
-                   <p className="text-[13px] font-black text-[#19727d] leading-none">{formatDate(item.checkIn || item.checkInDate)}</p>
+          <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-2 shrink-0">
+             <div className="flex bg-white border border-slate-100 rounded-xl p-1.5 sm:p-2 gap-2 sm:gap-4 shadow-sm">
+                <div className="text-center px-1.5 sm:px-2.5">
+                   <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-in</p>
+                   <p className="text-[11px] sm:text-[13px] font-black text-[#19727d] leading-none">{formatDate(item.checkIn || item.checkInDate)}</p>
                 </div>
                 <div className="w-px bg-slate-100" />
-                <div className="text-center px-2.5">
-                   <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-out</p>
-                   <p className="text-[13px] font-black text-[#19727d] leading-none">{formatDate(item.checkOut || item.checkOutDate)}</p>
+                <div className="text-center px-1.5 sm:px-2.5">
+                   <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase leading-none mb-1 tracking-tight">Check-out</p>
+                   <p className="text-[11px] sm:text-[13px] font-black text-[#19727d] leading-none">{formatDate(item.checkOut || item.checkOutDate)}</p>
                 </div>
              </div>
 
              {item.hasBreakfast && (
-               <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-100 rounded-xl shadow-sm h-fit w-full justify-center">
-                  <Coffee className="w-4 h-4 text-orange-500" />
-                  <span className="text-[10px] font-black uppercase text-slate-700 tracking-tight whitespace-nowrap">Café da manhã</span>
+               <div className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-white border border-slate-100 rounded-xl shadow-sm h-fit">
+                  <Coffee className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-700 tracking-tight whitespace-nowrap">Café da manhã</span>
                </div>
              )}
           </div>
