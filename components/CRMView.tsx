@@ -202,6 +202,16 @@ export function CRMView({
     return null;
   };
 
+  const redLeadsCount = useMemo(() => {
+    return filteredLeads.filter((lead: Lead) => {
+      const stopBlinking = ['proposta_enviada', 'aprovado', 'perdido'].includes(lead.status as string);
+      if (stopBlinking) return false;
+      const startTime = new Date(lead.slaStartAt || lead.createdAt || new Date().toISOString());
+      const diff = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
+      return diff >= 360;
+    }).length;
+  }, [filteredLeads, now]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] bg-[#f8fafc] dark:bg-slate-950 p-2 pt-1 pb-0 animate-in fade-in duration-500 relative">
       
@@ -232,11 +242,21 @@ export function CRMView({
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* 1. HEADER DO CRM */}
       <div className="flex justify-between items-center gap-3 mb-2 shrink-0">
         <div className="flex items-center gap-2">
-          {/* Espaço vazio para manter alinhamento ou remover se preferir */}
+          {redLeadsCount > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
+              <span className="relative flex h-2 w-2 items-center justify-center">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">
+                {redLeadsCount} {redLeadsCount === 1 ? 'lead esperando' : 'leads esperando'}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
