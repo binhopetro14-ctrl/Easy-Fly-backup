@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lead, CRMStatus, TeamMember } from '@/types';
 import { useLeads } from '@/hooks/useLeads';
+import { AcoesDoDiaModal } from './AcoesDoDiaModal';
 
 interface CRMViewProps {
   leads: Lead[];
@@ -47,6 +48,7 @@ export function CRMView({
   const [searchTerm, setSearchTerm] = useState('');
   const [now, setNow] = useState(new Date());
   const [notification, setNotification] = useState<{ message: string; type: 'error' | 'warning' } | null>(null);
+  const [acoesModalOpen, setAcoesModalOpen] = useState(false);
 
   // Fecha notificação após 3 segundos
   useEffect(() => {
@@ -212,6 +214,10 @@ export function CRMView({
     }).length;
   }, [filteredLeads, now]);
 
+  const followUpsCount = useMemo(() => {
+    return leads.filter((l: Lead) => l.status === 'proposta_enviada' && !l.responded).length;
+  }, [leads]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] bg-[#f8fafc] dark:bg-slate-950 p-2 pt-1 pb-0 animate-in fade-in duration-500 relative">
       
@@ -264,6 +270,22 @@ export function CRMView({
               </span>
             </div>
           )}
+
+          <button 
+            onClick={() => setAcoesModalOpen(true)}
+            className="flex items-center gap-1.5 ml-2 px-3 py-1.5 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-slate-700/80 transition-all focus:ring-2 focus:ring-yellow-500/20"
+          >
+            <span className="text-yellow-500 text-sm leading-none">⚡</span>
+            <span>Ações do Dia</span>
+            {followUpsCount > 0 && (
+              <>
+                <span className="text-gray-300 dark:text-gray-600">-</span>
+                <span className="text-gray-500 dark:text-gray-400 lowercase italic tracking-tight font-medium">
+                  {followUpsCount} follow-ups pendentes
+                </span>
+              </>
+            )}
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -473,6 +495,12 @@ export function CRMView({
           })}
         </div>
       </div>
+      
+      <AcoesDoDiaModal 
+        isOpen={acoesModalOpen}
+        onClose={() => setAcoesModalOpen(false)}
+        leads={leads}
+      />
     </div>
   );
 }
