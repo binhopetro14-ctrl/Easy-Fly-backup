@@ -66,7 +66,7 @@ const STATUS_OPTIONS: { value: CRMStatus; label: string }[] = [
 
   { value: 'novo_contato', label: 'Novo Contato' },
 
-  { value: 'em_cotacao', label: 'Em Cotação' },
+  { value: 'em_cotacao', label: 'Montando Proposta' },
 
   { value: 'proposta_enviada', label: 'Proposta Enviada' },
 
