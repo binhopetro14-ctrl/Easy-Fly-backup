@@ -1928,11 +1928,11 @@ export default function CotacaoPage() {
     );
   }
 
-  const flights = (lead.items || []).filter(i => i.type === 'passagem');
-  const hotels = (lead.items || []).filter(i => i.type === 'hospedagem');
-  const transfers = (lead.items || []).filter(i => i.type === 'translado');
-  const others = (lead.items || []).filter(i => !['passagem', 'hospedagem', 'translado'].includes(i.type));
-  const whatsappMsg = encodeURIComponent(`Olá! Vi a cotação "${lead.title || lead.name}" enviada pela Easy Fly e gostaria de mais informações.`);
+  const flights = useMemo(() => (lead.items || []).filter(i => i.type === 'passagem'), [lead?.items]);
+  const hotels = useMemo(() => (lead.items || []).filter(i => i.type === 'hospedagem'), [lead?.items]);
+  const transfers = useMemo(() => (lead.items || []).filter(i => i.type === 'translado'), [lead?.items]);
+  const others = useMemo(() => (lead.items || []).filter(i => !['passagem', 'hospedagem', 'translado'].includes(i.type)), [lead?.items]);
+  const whatsappMsg = useMemo(() => encodeURIComponent(`Olá! Vi a cotação "${lead.title || lead.name}" enviada pela Easy Fly e gostaria de mais informações.`), [lead?.title, lead?.name]);
 
   // Resolver aeroportos dinamicamente
   const allIatas = useMemo(() => {
@@ -1996,7 +1996,7 @@ export default function CotacaoPage() {
     }
   };
 
-  const tripDuration = calculateDuration();
+  const tripDuration = useMemo(() => calculateDuration(), [flights, lead?.duration]);
 
   // FALLBACK DE DATAS PARA HOTEL (CASO O ITEM NÃO TENHA DATAS PRÓPRIAS)
   const getFallbackDates = () => {
