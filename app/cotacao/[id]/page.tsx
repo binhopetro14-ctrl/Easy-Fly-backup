@@ -546,22 +546,23 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
 function useAirportResolver(initialAirports: string[]) {
   const [resolvedMap, setResolvedMap] = useState<Record<string, { coords: [number, number], name: string }>>(AIRPORT_INFO);
   const [isLoading, setIsLoading] = useState(false);
+  const fetchedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchMissing = async () => {
-      // Usar a versão mais recente do cache para filtrar
-      const missing = initialAirports?.filter(iata => !resolvedMap[iata] && iata && iata.length === 3) || [];
+      const missing = initialAirports?.filter(iata => !resolvedMap[iata] && iata && iata.length === 3 && !fetchedRef.current.has(iata)) || [];
       if (missing.length === 0) return;
 
       setIsLoading(true);
       const newEntries: Record<string, any> = {};
 
       for (const iata of missing) {
+        fetchedRef.current.add(iata); // Adiciona ao ref para garantir que não tente de novo
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${iata}+Airport&format=json&limit=1`, {
             headers: { 
               'Accept-Language': 'pt-BR',
-              'User-Agent': 'Easy Fly CRM/1.0 (binhopetro14-ctrl/Easy-Fly-backup)'
+              'User-Agent': 'Easy Fly CRM/1.0'
             }
           });
           const data = await res.json();
@@ -578,7 +579,6 @@ function useAirportResolver(initialAirports: string[]) {
             newEntries[iata] = { coords: [-15, -47], name: `Aeroporto ${iata}` };
           }
         } catch (e) {
-          console.error(`Erro ao resolver aeroporto ${iata}:`, e);
           newEntries[iata] = { coords: [-15, -47], name: `Aeroporto ${iata}` };
         }
       }
@@ -588,7 +588,7 @@ function useAirportResolver(initialAirports: string[]) {
     };
 
     fetchMissing();
-  }, [initialAirports]); // resolvedMap propositalmente fora para evitar loops
+  }, [initialAirports, resolvedMap]);
 
   return { airportInfo: resolvedMap, isLoading };
 }
@@ -650,11 +650,20 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
     const L = (window as any).L;
     
     if (mapRef.current) {
+      mapRef.current.off();
       mapRef.current.remove();
+      mapRef.current = null;
+    }
+    
+    if (containerRef.current) {
+        const container = containerRef.current as any;
+        if (container._leaflet_id) {
+            container._leaflet_id = null;
+        }
     }
 
     const firstFlight = flights[0];
-    const outbound = firstFlight.outboundSegments || [];
+    const outbound = Array.isArray(firstFlight?.outboundSegments) ? firstFlight.outboundSegments : [];
     
     const ori = outbound[0]?.origin || 'REC';
     const des = outbound[outbound.length - 1]?.destination || 'GIG';
@@ -665,10 +674,16 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
     const centerLat = isNaN((p1[0]+p2[0])/2) ? -15 : (p1[0]+p2[0])/2;
     const centerLng = isNaN((p1[1]+p2[1])/2) ? -47 : (p1[1]+p2[1])/2;
 
-    const map = L.map(containerRef.current, {
-      zoomControl: false,
-      attributionControl: false
-    }).setView([ centerLat, centerLng ], 4);
+    let map: any;
+    try {
+      map = L.map(containerRef.current, {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([ centerLat, centerLng ], 4);
+    } catch (e) {
+      console.error("Erro ao inicializar mapa", e);
+      return;
+    }
     
     mapRef.current = map;
 
@@ -1937,12 +1952,18 @@ export default function CotacaoPage() {
   // Resolver aeroportos dinamicamente
   const allIatas = useMemo(() => {
     if (!lead?.items) return [];
-    return Array.from(new Set(lead.items.flatMap(item => {
-      if (item.type !== 'passagem') return [];
-      const out = (item.outboundSegments || []).flatMap((s: any) => [s.origin, s.destination]);
-      const inc = (item.inboundSegments || []).flatMap((s: any) => [s.origin, s.destination]);
-      return [...out, ...inc];
-    }).filter(iata => iata && iata.length === 3) as string[]));
+    try {
+      return Array.from(new Set(lead.items.flatMap(item => {
+        if (item.type !== 'passagem') return [];
+        const outSegments = Array.isArray(item.outboundSegments) ? item.outboundSegments : [];
+        const incSegments = Array.isArray(item.inboundSegments) ? item.inboundSegments : [];
+        const out = outSegments.flatMap((s: any) => [s.origin, s.destination]);
+        const inc = incSegments.flatMap((s: any) => [s.origin, s.destination]);
+        return [...out, ...inc];
+      }).filter(iata => iata && typeof iata === 'string' && iata.length === 3) as string[]));
+    } catch (e) {
+      return [];
+    }
   }, [lead?.items]);
 
   const { airportInfo } = useAirportResolver(allIatas);
@@ -1963,10 +1984,10 @@ export default function CotacaoPage() {
       return d > 0 ? getDurationText(d) : null;
     }
 
-    if (flight.flightType === 'ida') return 'Somente Ida';
+    if (String(flight.flightType) === 'ida') return 'Somente Ida';
     
-    const outbound = flight.outboundSegments || [];
-    const inbound = flight.inboundSegments || [];
+    const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
+    const inbound = Array.isArray(flight.inboundSegments) ? flight.inboundSegments : [];
     
     const startStr = outbound[0]?.departureDate;
     const endStr = inbound[inbound.length - 1]?.departureDate || inbound[inbound.length - 1]?.arrivalDate;
@@ -2002,8 +2023,8 @@ export default function CotacaoPage() {
   const getFallbackDates = () => {
     const flight = flights[0];
     if (!flight) return { checkIn: undefined, checkOut: undefined };
-    const outbound = flight.outboundSegments || [];
-    const inbound = flight.inboundSegments || [];
+    const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
+    const inbound = Array.isArray(flight.inboundSegments) ? flight.inboundSegments : [];
     const start = outbound[0]?.departureDate;
     const end = inbound[inbound.length - 1]?.departureDate || inbound[inbound.length - 1]?.arrivalDate;
     return { checkIn: start, checkOut: end };
