@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Script from 'next/script';
@@ -453,6 +453,7 @@ function TravelChecklist({ isIntl, region }: { isIntl: boolean, region: string }
 }
 
 const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> = {
+  // BRASIL - PRINCIPAIS
   'REC': { coords: [-8.1264, -34.9228], name: 'Guararapes - Recife' },
   'GIG': { coords: [-22.8100, -43.2506], name: 'Galeão - Rio de Janeiro' },
   'GRU': { coords: [-23.4356, -46.4731], name: 'Guarulhos - São Paulo' },
@@ -477,6 +478,33 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'SLZ': { coords: [-2.5869, -44.2361], name: 'Marechal Cunha Machado - São Luís' },
   'IGU': { coords: [-25.5977, -54.4853], name: 'Cataratas - Foz do Iguaçu' },
   'AJU': { coords: [-10.9852, -37.0733], name: 'Santa Maria - Aracaju' },
+  'THE': { coords: [-5.0606, -42.8244], name: 'Teresina - Piauí' },
+  'BVB': { coords: [2.8414, -60.6922], name: 'Boa Vista - Roraima' },
+  'MCP': { coords: [0.0506, -51.0722], name: 'Macapá - Amapá' },
+  'PVH': { coords: [-8.7075, -63.9025], name: 'Porto Velho - Rondônia' },
+  'RBR': { coords: [-9.9939, -67.8922], name: 'Rio Branco - Acre' },
+  'PMW': { coords: [-10.2906, -48.3578], name: 'Palmas - Tocantins' },
+  // BRASIL - REGIONAIS IMPORTANTES
+  'FEN': { coords: [-3.8547, -32.4233], name: 'Fernando de Noronha - PE' },
+  'PNZ': { coords: [-9.3622, -40.5636], name: 'Sen. Nilo Coelho - Petrolina' },
+  'PAV': { coords: [-9.4008, -38.2506], name: 'Paulo Afonso - Bahia' },
+  'BPS': { coords: [-16.4378, -39.0778], name: 'Porto Seguro - Bahia' },
+  'IOS': { coords: [-14.8142, -39.0333], name: 'Jorge Amado - Ilhéus' },
+  'NVT': { coords: [-26.8786, -48.6514], name: 'Navegantes - SC' },
+  'JOI': { coords: [-26.2231, -48.7978], name: 'Joinville - SC' },
+  'XAP': { coords: [-27.1339, -52.6611], name: 'Chapecó - SC' },
+  'UDI': { coords: [-18.8836, -48.2253], name: 'Uberlândia - MG' },
+  'SJP': { coords: [-20.8122, -49.4047], name: 'São José do Rio Preto - SP' },
+  'MGF': { coords: [-23.4794, -51.9161], name: 'Maringá - PR' },
+  'LDB': { coords: [-23.3303, -51.1378], name: 'Londrina - PR' },
+  'CAC': { coords: [-24.9961, -53.5006], name: 'Cascavel - PR' },
+  'PET': { coords: [-31.7178, -52.3314], name: 'Pelotas - RS' },
+  'CPV': { coords: [-7.2697, -35.8892], name: 'Campina Grande - PB' },
+  'JDO': { coords: [-7.2186, -39.2708], name: 'Juazeiro do Norte - CE' },
+  'CXJ': { coords: [-29.1956, -51.1883], name: 'Caxias do Sul - RS' },
+  'IMP': { coords: [-5.5303, -47.4589], name: 'Imperatriz - MA' },
+  'MOC': { coords: [-16.7067, -43.8219], name: 'Montes Claros - MG' },
+  // INTERNACIONAL - MAIS COMUNS
   'MIA': { coords: [25.7959, -80.2870], name: 'Miami International' },
   'MCO': { coords: [28.4312, -81.3081], name: 'Orlando International' },
   'JFK': { coords: [40.6413, -73.7781], name: 'John F. Kennedy - New York' },
@@ -501,20 +529,67 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'BRC': { coords: [-41.1511, -71.1394], name: 'Teniente L. Candelaria - Bariloche' },
   'MDZ': { coords: [-32.8317, -68.7928], name: 'El Plumerillo - Mendoza' },
   'IGR': { coords: [-25.7372, -54.4733], name: 'Cataratas del Iguazú - Argentina' },
-  'VVI': { coords: [-17.6447, -63.1353], name: 'Viru Viru - Santa Cruz' },
-  'STN': { coords: [51.8860, 0.2389], name: 'London Stansted' },
-  'BCN': { coords: [41.2974, 2.0833], name: 'Barcelona-El Prat' },
-  'LGW': { coords: [51.1481, -0.1903], name: 'London Gatwick' },
-  'FCO': { coords: [41.8003, 12.2389], name: 'Fiumicino - Rome' },
-  'AEP': { coords: [-34.5592, -58.4156], name: 'Aeroparque Jorge Newbery - Buenos Aires' },
+  'DXB': { coords: [25.2528, 55.3644], name: 'Dubai International' },
+  'AUH': { coords: [24.4331, 54.6511], name: 'Abu Dhabi International' },
+  'DOH': { coords: [25.2731, 51.6083], name: 'Hamad - Doha' },
+  'IST': { coords: [41.2753, 28.7519], name: 'Istanbul Airport' },
   'AMS': { coords: [52.3105, 4.7683], name: 'Schiphol - Amsterdam' },
-  'FRA': { coords: [50.0379, 8.5622], name: 'Frankfurt Airport' },
-  'MXP': { coords: [45.6301, 8.7231], name: 'Malpensa - Milan' },
+  'BCN': { coords: [41.2974, 2.0833], name: 'Barcelona-El Prat' },
   'OPO': { coords: [41.2421, -8.6786], name: 'Francisco Sá Carneiro - Porto' },
-  'NBJ': { coords: [-8.8475, 13.4619], name: 'António Agostinho Neto - Luanda' },
-  'SJK': { coords: [-23.2289, -45.8711], name: 'São José dos Campos - SP' },
   'RAO': { coords: [-21.1364, -47.7767], name: 'Leite Lopes - Ribeirão Preto' }
 };
+
+/**
+ * Hook para resolver informações de aeroportos dinamicamente.
+ * Usa um cache estático (AIRPORT_INFO) e busca no Nominatim se não encontrar.
+ */
+function useAirportResolver(initialAirports: string[]) {
+  const [resolvedMap, setResolvedMap] = useState<Record<string, { coords: [number, number], name: string }>>(AIRPORT_INFO);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchMissing = async () => {
+      const missing = initialAirports?.filter(iata => !resolvedMap[iata] && iata && iata.length === 3) || [];
+      if (missing.length === 0) return;
+
+      setIsLoading(true);
+      const newEntries: Record<string, any> = {};
+
+      for (const iata of missing) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${iata}+Airport&format=json&limit=1`, {
+            headers: { 'Accept-Language': 'pt-BR' }
+          });
+          const data = await res.json();
+          if (data && data[0]) {
+            const displayName = data[0].display_name;
+            const parts = displayName.split(',').map((p: string) => p.trim());
+            // Tenta pegar o nome curto (ex: "Fernando de Noronha Airport")
+            const name = parts[0] + (parts[1] && isNaN(parseInt(parts[1])) ? ` - ${parts[1]}` : '');
+            
+            newEntries[iata] = {
+              coords: [parseFloat(data[0].lat), parseFloat(data[0].lon)],
+              name: name
+            };
+          } else {
+            // Fallback se não encontrar nada
+            newEntries[iata] = { coords: [-15, -47], name: `Aeroporto ${iata}` };
+          }
+        } catch (e) {
+          console.error(`Erro ao resolver aeroporto ${iata}:`, e);
+        }
+      }
+
+      setResolvedMap(prev => ({ ...prev, ...newEntries }));
+      setIsLoading(false);
+    };
+
+    fetchMissing();
+  }, [initialAirports]);
+
+  return { airportInfo: resolvedMap, isLoading };
+}
+
 
 const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string, arrDate?: string) => {
   if (!depTime || !arrTime) return null;
@@ -546,7 +621,7 @@ const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string,
   } catch { return null; }
 };
 
-function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {
+function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: LeadItem[]; airportInfo: Record<string, any> }) {
   const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLeafletReady, setLeafletReady] = useState(false);
@@ -580,8 +655,8 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
     
     const ori = outbound[0]?.origin || 'REC';
     const des = outbound[outbound.length - 1]?.destination || 'GIG';
-    const p1 = AIRPORT_INFO[ori]?.coords || [-15, -47];
-    const p2 = AIRPORT_INFO[des]?.coords || [-23, -46];
+    const p1 = airportInfo[ori]?.coords || [-15, -47];
+    const p2 = airportInfo[des]?.coords || [-23, -46];
 
     const map = L.map(containerRef.current, {
       zoomControl: false,
@@ -621,8 +696,8 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
     // --- IDA ---
     if (outbound.length > 0) {
       outbound.forEach((seg: any, idx: number) => {
-        const pStart = AIRPORT_INFO[seg.origin]?.coords || [-15, -47];
-        const pEnd = AIRPORT_INFO[seg.destination]?.coords || [-23, -46];
+        const pStart = airportInfo[seg.origin]?.coords || [-15, -47];
+        const pEnd = airportInfo[seg.destination]?.coords || [-23, -46];
         
         allPoints.push(pStart);
         if (idx === outbound.length - 1) allPoints.push(pEnd);
@@ -649,8 +724,8 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
     const inbound = firstFlight.inboundSegments || [];
     if (isIdaVolta && inbound.length > 0) {
       inbound.forEach((seg: any, idx: number) => {
-        const pStart = AIRPORT_INFO[seg.origin]?.coords || [-23, -46];
-        const pEnd = AIRPORT_INFO[seg.destination]?.coords || [-15, -47];
+        const pStart = airportInfo[seg.origin]?.coords || [-23, -46];
+        const pEnd = airportInfo[seg.destination]?.coords || [-15, -47];
         
         allPoints.push(pStart);
         if (idx === inbound.length - 1) allPoints.push(pEnd);
@@ -747,8 +822,8 @@ function InteractiveMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) 
   );
 }
 
-function MainTravelMap({ lead, flights }: { lead: Lead; flights: LeadItem[] }) {
-  return <InteractiveMap lead={lead} flights={flights} />;
+function MainTravelMap({ lead, flights, airportInfo }: { lead: Lead; flights: LeadItem[]; airportInfo: Record<string, any> }) {
+  return <InteractiveMap lead={lead} flights={flights} airportInfo={airportInfo} />;
 }
 
 function AirlineLogo({ name }: { name: string }) {
@@ -801,12 +876,14 @@ function FlightLegCard({
   segments, 
   type, 
   lead, 
-  itemDuration 
+  itemDuration,
+  airportInfo 
 }: { 
   segments: any[]; 
   type: 'Ida' | 'Volta'; 
   lead: Lead; 
   itemDuration?: string;
+  airportInfo: Record<string, any>;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const fmt = (t?: string) => {
@@ -864,7 +941,7 @@ function FlightLegCard({
               <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">{firstSeg?.departureTime ? fmt(firstSeg.departureTime) : '--:--'}</p>
               <div className="mt-1 h-6 sm:h-7 flex items-start overflow-hidden">
                 <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase">
-                  {AIRPORT_INFO[firstSeg?.origin || '']?.name || firstSeg?.origin || '---'}
+                  {airportInfo[firstSeg?.origin || '']?.name || firstSeg?.origin || '---'}
                 </p>
               </div>
             </div>
@@ -963,7 +1040,7 @@ function FlightLegCard({
               <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">{lastSeg?.arrivalTime ? fmt(lastSeg.arrivalTime) : '--:--'}</p>
               <div className="mt-1 h-6 sm:h-7 flex items-start justify-end overflow-hidden">
                 <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase text-right">
-                  {AIRPORT_INFO[lastSeg?.destination || '']?.name || lastSeg?.destination || '---'}
+                  {airportInfo[lastSeg?.destination || '']?.name || lastSeg?.destination || '---'}
                 </p>
               </div>
             </div>
@@ -1029,7 +1106,7 @@ function FlightLegCard({
                                              <span className="text-base font-black text-slate-400">{seg.origin}</span>
                                           </div>
                                           <p className="text-xs font-bold text-slate-500 opacity-60">
-                                             {AIRPORT_INFO[seg.origin]?.name || `Aeroporto ${seg.origin}`}
+                                             {airportInfo[seg.origin]?.name || `Aeroporto ${seg.origin}`}
                                           </p>
                                        </div>
                                     </div>
@@ -1045,7 +1122,7 @@ function FlightLegCard({
                                              <span className="text-base font-black text-slate-400">{seg.destination}</span>
                                           </div>
                                           <p className="text-xs font-bold text-slate-500 opacity-60">
-                                             {AIRPORT_INFO[seg.destination]?.name || `Aeroporto ${seg.destination}`}
+                                             {airportInfo[seg.destination]?.name || `Aeroporto ${seg.destination}`}
                                           </p>
                                        </div>
                                     </div>
@@ -1152,7 +1229,7 @@ function FlightLegCard({
   );
 }
 
-function FlightItemCard({ item, lead }: { item: LeadItem; lead: Lead }) {
+function FlightItemCard({ item, lead, airportInfo }: { item: LeadItem; lead: Lead; airportInfo: Record<string, any> }) {
   const outbound = item.outboundSegments || [];
   const inbound = item.inboundSegments || [];
 
@@ -1164,6 +1241,7 @@ function FlightItemCard({ item, lead }: { item: LeadItem; lead: Lead }) {
             type="Ida" 
             lead={lead} 
             itemDuration={item.duration} 
+            airportInfo={airportInfo}
          />
        )}
        {item.flightType === 'ida_volta' && inbound.length > 0 && (
@@ -1172,6 +1250,7 @@ function FlightItemCard({ item, lead }: { item: LeadItem; lead: Lead }) {
              type="Volta" 
              lead={lead} 
              itemDuration={item.returnDuration} 
+             airportInfo={airportInfo}
           />
        )}
     </div>
@@ -1845,6 +1924,19 @@ export default function CotacaoPage() {
   const others = (lead.items || []).filter(i => !['passagem', 'hospedagem', 'translado'].includes(i.type));
   const whatsappMsg = encodeURIComponent(`Olá! Vi a cotação "${lead.title || lead.name}" enviada pela Easy Fly e gostaria de mais informações.`);
 
+  // Resolver aeroportos dinamicamente
+  const allIatas = useMemo(() => {
+    if (!lead?.items) return [];
+    return Array.from(new Set(lead.items.flatMap(item => {
+      if (item.type !== 'passagem') return [];
+      const out = (item.outboundSegments || []).flatMap((s: any) => [s.origin, s.destination]);
+      const inc = (item.inboundSegments || []).flatMap((s: any) => [s.origin, s.destination]);
+      return [...out, ...inc];
+    }).filter(iata => iata && iata.length === 3) as string[]));
+  }, [lead?.items]);
+
+  const { airportInfo } = useAirportResolver(allIatas);
+
   const calculateDuration = () => {
     const flight = flights[0];
     
@@ -2070,10 +2162,10 @@ export default function CotacaoPage() {
             <SectionTitle icon={<Plane className="w-4 h-4" />} title="Voos" />
             
             {/* Mapa Consolidado da Rota Real */}
-            <MainTravelMap lead={lead} flights={flights} />
+            <MainTravelMap lead={lead} flights={flights} airportInfo={airportInfo} />
 
             <div className="space-y-3">
-              {flights.map(item => <FlightItemCard key={item.id} item={item} lead={lead} />)}
+              {flights.map(item => <FlightItemCard key={item.id} item={item} lead={lead} airportInfo={airportInfo} />)}
             </div>
           </section>
         )}
