@@ -246,7 +246,7 @@ export function CRMView({
       {/* 1. HEADER DO CRM */}
       <div className="flex justify-between items-center gap-3 mb-2 shrink-0">
         <div className="flex items-center gap-2">
-          {redLeadsCount > 0 && (
+          {redLeadsCount > 0 ? (
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
               <span className="relative flex h-2 w-2 items-center justify-center">
                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -254,6 +254,13 @@ export function CRMView({
               </span>
               <span className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">
                 {redLeadsCount} {redLeadsCount === 1 ? 'lead esperando' : 'leads esperando'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
+              <span className="text-[11px] leading-none mb-[1px]">✨</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                Tudo sob controle
               </span>
             </div>
           )}
