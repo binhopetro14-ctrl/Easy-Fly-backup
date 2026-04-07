@@ -12,6 +12,26 @@ interface AcoesDoDiaModalProps {
 export function AcoesDoDiaModal({ isOpen, onClose, leads }: AcoesDoDiaModalProps) {
   const [filter, setFilter] = useState<'todos' | 'recentes' | 'atrasados'>('todos');
 
+  // Helper para extrair origem/destino do lead
+  const getRouteInfo = (lead: Lead) => {
+    const flight = lead.items?.find((item: any) => item.type === 'passagem');
+    if (!flight) return null;
+
+    if (flight.origin && flight.destination) {
+      return { origin: flight.origin, destination: flight.destination };
+    }
+
+    const segs = flight.outboundSegments;
+    if (segs && segs.length > 0) {
+      const origin = segs[0].origin;
+      const destination = segs[segs.length - 1].destination;
+      if (origin && destination) {
+        return { origin, destination };
+      }
+    }
+    return null;
+  };
+
   // Filtrar apenas leads em proposta não respondida
   const followUps = useMemo(() => {
     const raw = leads.filter(l => l.status === 'proposta_enviada' && !l.responded);
@@ -89,7 +109,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads }: AcoesDoDiaModalProps
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+          className="relative bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
@@ -143,27 +163,44 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads }: AcoesDoDiaModalProps
           {/* Content List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
             {filtered.length > 0 ? (
-              filtered.map((item) => (
-                <div key={item.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow relative">
+              filtered.map((item) => {
+                const route = getRouteInfo(item);
+                return (
+                <div key={item.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative">
                   
                   {/* Top info row */}
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex gap-2">
-                      <div className={`mt-0.5 w-5 h-5 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-black text-white ${item.category === 'recente' ? 'bg-emerald-500' : item.category === 'pendente' ? 'bg-amber-400' : 'bg-[#f43f5e]'}`}>
+                    <div className="flex gap-3">
+                      <div className={`mt-0.5 w-6 h-6 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-black text-white ${item.category === 'recente' ? 'bg-emerald-500' : item.category === 'pendente' ? 'bg-amber-400' : 'bg-[#f43f5e]'}`}>
                         L
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-[13px] font-bold text-gray-900 dark:text-white truncate pr-2">
-                          {item.title || item.name}
+                        <h4 className="text-[14px] font-bold text-gray-900 dark:text-white truncate pr-2">
+                          {item.title || 'Cotação em andamento'}
                         </h4>
-                        <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase tracking-wide mt-0.5">
-                          <span className="truncate">{item.emissor || 'Sem dono'}</span>
-                          {item.emissor && <span>•</span>}
-                          {item.tags && item.tags[0] && (
-                            <>
+                        
+                        <div className="flex flex-col mt-1">
+                          {/* Name and Route */}
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                            <span className="truncate">{item.name}</span>
+                            {route && (
+                              <>
+                                <span className="text-gray-300 dark:text-gray-600">•</span>
+                                <span className="truncate text-blue-600 dark:text-blue-400">
+                                  {route.origin} <span className="opacity-70 px-0.5">✈️</span> {route.destination}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          
+                          {/* Emissor and tags */}
+                          <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase tracking-wide mt-1">
+                            <span className="truncate">{item.emissor || 'Sem dono'}</span>
+                            {item.emissor && <span className="text-gray-300 dark:text-gray-600">•</span>}
+                            {item.tags && item.tags[0] && (
                               <span className="truncate">{item.tags[0]}</span>
-                            </>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -202,7 +239,8 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads }: AcoesDoDiaModalProps
                   </div>
 
                 </div>
-              ))
+              );
+            })
             ) : (
               <div className="flex flex-col items-center justify-center h-32 text-gray-400 dark:text-gray-500">
                 <span className="text-3xl mb-2">🎉</span>
