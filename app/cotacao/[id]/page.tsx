@@ -549,6 +549,7 @@ function useAirportResolver(initialAirports: string[]) {
 
   useEffect(() => {
     const fetchMissing = async () => {
+      // Usar a versão mais recente do cache para filtrar
       const missing = initialAirports?.filter(iata => !resolvedMap[iata] && iata && iata.length === 3) || [];
       if (missing.length === 0) return;
 
@@ -558,13 +559,15 @@ function useAirportResolver(initialAirports: string[]) {
       for (const iata of missing) {
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${iata}+Airport&format=json&limit=1`, {
-            headers: { 'Accept-Language': 'pt-BR' }
+            headers: { 
+              'Accept-Language': 'pt-BR',
+              'User-Agent': 'Easy Fly CRM/1.0 (binhopetro14-ctrl/Easy-Fly-backup)'
+            }
           });
           const data = await res.json();
-          if (data && data[0]) {
+          if (data && data[0] && !isNaN(parseFloat(data[0].lat)) && !isNaN(parseFloat(data[0].lon))) {
             const displayName = data[0].display_name;
             const parts = displayName.split(',').map((p: string) => p.trim());
-            // Tenta pegar o nome curto (ex: "Fernando de Noronha Airport")
             const name = parts[0] + (parts[1] && isNaN(parseInt(parts[1])) ? ` - ${parts[1]}` : '');
             
             newEntries[iata] = {
@@ -572,11 +575,11 @@ function useAirportResolver(initialAirports: string[]) {
               name: name
             };
           } else {
-            // Fallback se não encontrar nada
             newEntries[iata] = { coords: [-15, -47], name: `Aeroporto ${iata}` };
           }
         } catch (e) {
           console.error(`Erro ao resolver aeroporto ${iata}:`, e);
+          newEntries[iata] = { coords: [-15, -47], name: `Aeroporto ${iata}` };
         }
       }
 
@@ -585,7 +588,7 @@ function useAirportResolver(initialAirports: string[]) {
     };
 
     fetchMissing();
-  }, [initialAirports]);
+  }, [initialAirports]); // resolvedMap propositalmente fora para evitar loops
 
   return { airportInfo: resolvedMap, isLoading };
 }
@@ -658,10 +661,14 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
     const p1 = airportInfo[ori]?.coords || [-15, -47];
     const p2 = airportInfo[des]?.coords || [-23, -46];
 
+    // Proteção contra NaN
+    const centerLat = isNaN((p1[0]+p2[0])/2) ? -15 : (p1[0]+p2[0])/2;
+    const centerLng = isNaN((p1[1]+p2[1])/2) ? -47 : (p1[1]+p2[1])/2;
+
     const map = L.map(containerRef.current, {
       zoomControl: false,
       attributionControl: false
-    }).setView([ (p1[0]+p2[0])/2, (p1[1]+p2[1])/2 ], 4);
+    }).setView([ centerLat, centerLng ], 4);
     
     mapRef.current = map;
 
@@ -748,8 +755,11 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
     }
 
     if (allPoints.length > 0) {
-       const bounds = L.latLngBounds(allPoints);
-       map.fitBounds(bounds, { padding: [50, 50] });
+       const validPoints = allPoints.filter(p => !isNaN(p[0]) && !isNaN(p[1]));
+       if (validPoints.length > 0) {
+         const bounds = L.latLngBounds(validPoints);
+         map.fitBounds(bounds, { padding: [50, 50] });
+       }
     }
 
     return () => {
@@ -758,7 +768,7 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
         mapRef.current = null;
       }
     };
-  }, [isLeafletReady, flights]);
+  }, [isLeafletReady, flights, airportInfo]);
 
   return (
     <div className="mb-12 no-print">
