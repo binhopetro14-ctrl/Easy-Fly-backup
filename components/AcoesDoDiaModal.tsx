@@ -210,31 +210,34 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads }: AcoesDoDiaModalProps
                     </div>
                   </div>
 
-                  {/* Middle row: Time + message text */}
-                  <div className="flex flex-col gap-1.5 mb-3">
-                    <div className="inline-flex max-w-fit items-center gap-1 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded border border-purple-100 dark:border-purple-500/20">
-                      <Clock className="w-3 h-3" />
-                      <span className="text-[10px] font-bold">{item.formattedHours} sem resposta</span>
+                  {/* Bottom section: Message and Action side-by-side */}
+                  <div className="flex items-end justify-between gap-4 mt-1 border-t border-gray-50 dark:border-slate-700/50 pt-3">
+                    {/* Left: Time and text msg */}
+                    <div className="flex flex-col gap-2 flex-1 pb-1">
+                      <div className="inline-flex max-w-fit items-center gap-1 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded border border-purple-100 dark:border-purple-500/20">
+                        <Clock className="w-3 h-3" />
+                        <span className="text-[10px] font-bold">{item.formattedHours} sem resposta</span>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 pr-2">
+                        {item.msg}
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-300">
-                      {item.msg}
-                    </p>
-                  </div>
 
-                  {/* Action row */}
-                  <div className="flex justify-end items-end gap-3 w-full border-t border-gray-50 dark:border-slate-700/50 pt-3 mt-1">
-                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wide text-right w-full">
+                    {/* Right: Button and Sublabel */}
+                    <div className="flex flex-col items-end shrink-0">
                        <a
                           href={`https://wa.me/${item.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(item.msg)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg font-bold text-xs shadow-sm transition-all focus:ring-2 ml-auto ${item.btnStyle}`}
+                          className={`inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg font-black text-xs uppercase shadow-sm hover:shadow-md transition-all focus:ring-2 ${item.btnStyle}`}
                        >
                           {item.btnIcon}
                           {item.btnLabel}
-                          <span className="ml-1 opacity-70">&gt;</span>
+                          <span className="ml-1 opacity-70 text-[10px]">&gt;</span>
                        </a>
-                       <div className="mt-1 mr-1">{item.subLabel}</div>
+                       <div className="mt-1.5 mr-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">
+                         {item.subLabel}
+                       </div>
                     </div>
                   </div>
 
