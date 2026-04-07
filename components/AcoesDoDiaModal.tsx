@@ -142,19 +142,26 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads }: AcoesDoDiaModalProps
 
             <div className="flex items-center gap-3 text-[10px] font-bold text-gray-400">
               <button 
-                onClick={() => setFilter(filter === 'recentes' ? 'todos' : 'recentes')} 
-                className={`hover:text-gray-600 dark:hover:text-gray-200 uppercase tracking-widest ${filter === 'recentes' ? 'text-gray-800 dark:text-white' : ''}`}
+                onClick={() => setFilter('todos')} 
+                className={`hover:text-gray-600 dark:hover:text-gray-200 uppercase tracking-widest transition-colors ${filter === 'todos' ? 'text-gray-800 dark:text-white font-black' : ''}`}
+              >
+                Todos
+              </button>
+              <span>•</span>
+              <button 
+                onClick={() => setFilter('recentes')} 
+                className={`hover:text-gray-600 dark:hover:text-gray-200 uppercase tracking-widest transition-colors ${filter === 'recentes' ? 'text-gray-800 dark:text-white font-black' : ''}`}
               >
                 Recentes
               </button>
               <span>•</span>
               <button 
-                onClick={() => setFilter(filter === 'atrasados' ? 'todos' : 'atrasados')} 
-                className={`hover:text-gray-600 dark:hover:text-gray-200 uppercase tracking-widest ${filter === 'atrasados' ? 'text-gray-800 dark:text-white' : ''}`}
+                onClick={() => setFilter('atrasados')} 
+                className={`hover:text-gray-600 dark:hover:text-gray-200 uppercase tracking-widest transition-colors ${filter === 'atrasados' ? 'text-gray-800 dark:text-white font-black' : ''}`}
               >
                 Atrasados
               </button>
-              <button onClick={() => setFilter('todos')} className="p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-md">
+              <button onClick={() => setFilter('todos')} title="Atualizar / Mostrar Todos" className="p-1 ml-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-md transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <RefreshCcw className="w-3.5 h-3.5" />
               </button>
             </div>
