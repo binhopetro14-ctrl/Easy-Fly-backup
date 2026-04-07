@@ -1907,6 +1907,79 @@ export default function CotacaoPage() {
     }
   };
 
+  const flights = useMemo(() => (lead?.items || []).filter(i => i.type === 'passagem'), [lead?.items]);
+  const hotels = useMemo(() => (lead?.items || []).filter(i => i.type === 'hospedagem'), [lead?.items]);
+  const transfers = useMemo(() => (lead?.items || []).filter(i => i.type === 'translado'), [lead?.items]);
+  const others = useMemo(() => (lead?.items || []).filter(i => !['passagem', 'hospedagem', 'translado'].includes(i.type)), [lead?.items]);
+  const whatsappMsg = useMemo(() => encodeURIComponent(`Olá! Vi a cotação "${lead?.title || lead?.name || ''}" enviada pela Easy Fly e gostaria de mais informações.`), [lead?.title, lead?.name]);
+
+  const allIatas = useMemo(() => {
+    if (!lead?.items) return [];
+    try {
+      return Array.from(new Set(lead.items.flatMap(item => {
+        if (item.type !== 'passagem') return [];
+        const outSegments = Array.isArray(item.outboundSegments) ? item.outboundSegments : [];
+        const incSegments = Array.isArray(item.inboundSegments) ? item.inboundSegments : [];
+        const out = outSegments.flatMap((s: any) => [s.origin, s.destination]);
+        const inc = incSegments.flatMap((s: any) => [s.origin, s.destination]);
+        return [...out, ...inc];
+      }).filter(iata => iata && typeof iata === 'string' && iata.length === 3) as string[]));
+    } catch (e) {
+      return [];
+    }
+  }, [lead?.items]);
+
+  const { airportInfo } = useAirportResolver(allIatas);
+
+  const tripDuration = useMemo(() => {
+    const flight = flights[0];
+    
+    const getDurationText = (days: number) => {
+      if (days <= 0) return null;
+      const nights = days - 1;
+      const daysText = `${days} ${days === 1 ? 'dia' : 'dias'}`;
+      const nightsText = `${nights} ${nights === 1 ? 'noite' : 'noites'}`;
+      return `${daysText} e ${nightsText}`;
+    };
+
+    if (!flight) {
+      const d = parseInt(lead?.duration || '0');
+      return d > 0 ? getDurationText(d) : null;
+    }
+
+    if (String(flight.flightType) === 'ida') return 'Somente Ida';
+    
+    const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
+    const inbound = Array.isArray(flight.inboundSegments) ? flight.inboundSegments : [];
+    
+    const startStr = outbound[0]?.departureDate;
+    const endStr = inbound[inbound.length - 1]?.departureDate || inbound[inbound.length - 1]?.arrivalDate;
+    
+    if (!startStr || !endStr) {
+      const d = parseInt(lead?.duration || '0');
+      return d > 0 ? getDurationText(d) : null;
+    }
+
+    const parse = (s: string) => {
+      if (s.includes('/')) {
+        const [d, m, y] = s.split('/');
+        return new Date(Number(y), Number(m) - 1, Number(d));
+      }
+      return new Date(s);
+    };
+
+    try {
+      const start = parse(startStr);
+      const end = parse(endStr);
+      const diffTime = end.getTime() - start.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      return diffDays > 0 ? getDurationText(diffDays) : null;
+    } catch {
+      const d = parseInt(lead?.duration || '0');
+      return d > 0 ? getDurationText(d) : null;
+    }
+  }, [flights, lead?.duration]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#19727d]/5 to-cyan-50 flex items-center justify-center">
@@ -1942,82 +2015,6 @@ export default function CotacaoPage() {
       </div>
     );
   }
-
-  const flights = useMemo(() => (lead.items || []).filter(i => i.type === 'passagem'), [lead?.items]);
-  const hotels = useMemo(() => (lead.items || []).filter(i => i.type === 'hospedagem'), [lead?.items]);
-  const transfers = useMemo(() => (lead.items || []).filter(i => i.type === 'translado'), [lead?.items]);
-  const others = useMemo(() => (lead.items || []).filter(i => !['passagem', 'hospedagem', 'translado'].includes(i.type)), [lead?.items]);
-  const whatsappMsg = useMemo(() => encodeURIComponent(`Olá! Vi a cotação "${lead.title || lead.name}" enviada pela Easy Fly e gostaria de mais informações.`), [lead?.title, lead?.name]);
-
-  // Resolver aeroportos dinamicamente
-  const allIatas = useMemo(() => {
-    if (!lead?.items) return [];
-    try {
-      return Array.from(new Set(lead.items.flatMap(item => {
-        if (item.type !== 'passagem') return [];
-        const outSegments = Array.isArray(item.outboundSegments) ? item.outboundSegments : [];
-        const incSegments = Array.isArray(item.inboundSegments) ? item.inboundSegments : [];
-        const out = outSegments.flatMap((s: any) => [s.origin, s.destination]);
-        const inc = incSegments.flatMap((s: any) => [s.origin, s.destination]);
-        return [...out, ...inc];
-      }).filter(iata => iata && typeof iata === 'string' && iata.length === 3) as string[]));
-    } catch (e) {
-      return [];
-    }
-  }, [lead?.items]);
-
-  const { airportInfo } = useAirportResolver(allIatas);
-
-  const calculateDuration = () => {
-    const flight = flights[0];
-    
-    const getDurationText = (days: number) => {
-      if (days <= 0) return null;
-      const nights = days - 1;
-      const daysText = `${days} ${days === 1 ? 'dia' : 'dias'}`;
-      const nightsText = `${nights} ${nights === 1 ? 'noite' : 'noites'}`;
-      return `${daysText} e ${nightsText}`;
-    };
-
-    if (!flight) {
-      const d = parseInt(lead.duration || '0');
-      return d > 0 ? getDurationText(d) : null;
-    }
-
-    if (String(flight.flightType) === 'ida') return 'Somente Ida';
-    
-    const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
-    const inbound = Array.isArray(flight.inboundSegments) ? flight.inboundSegments : [];
-    
-    const startStr = outbound[0]?.departureDate;
-    const endStr = inbound[inbound.length - 1]?.departureDate || inbound[inbound.length - 1]?.arrivalDate;
-    
-    if (!startStr || !endStr) {
-      const d = parseInt(lead.duration || '0');
-      return d > 0 ? getDurationText(d) : null;
-    }
-
-    const parse = (s: string) => {
-      if (s.includes('/')) {
-        const [d, m, y] = s.split('/');
-        return new Date(Number(y), Number(m) - 1, Number(d));
-      }
-      return new Date(s);
-    };
-
-    try {
-      const start = parse(startStr);
-      const end = parse(endStr);
-      const diffTime = end.getTime() - start.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      return diffDays > 0 ? getDurationText(diffDays) : null;
-    } catch {
-      const d = parseInt(lead.duration || '0');
-      return d > 0 ? getDurationText(d) : null;
-    }
-  };
-
-  const tripDuration = useMemo(() => calculateDuration(), [flights, lead?.duration]);
 
   // FALLBACK DE DATAS PARA HOTEL (CASO O ITEM NÃO TENHA DATAS PRÓPRIAS)
   const getFallbackDates = () => {
