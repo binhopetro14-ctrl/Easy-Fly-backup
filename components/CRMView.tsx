@@ -280,7 +280,7 @@ export function CRMView({
             {followUpsCount > 0 && (
               <>
                 <span className="text-gray-300 dark:text-gray-600">-</span>
-                <span className="text-gray-500 dark:text-gray-400 lowercase italic tracking-tight font-medium">
+                <span className="text-red-500 dark:text-red-400">
                   {followUpsCount} follow-ups pendentes
                 </span>
               </>
