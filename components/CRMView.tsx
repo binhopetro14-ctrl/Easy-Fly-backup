@@ -251,9 +251,9 @@ export function CRMView({
 
       {/* 1. HEADER DO CRM */}
       <div className="flex justify-between items-center gap-3 mb-2 shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {redLeadsCount > 0 ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
+            <div className="flex items-center justify-center gap-1.5 py-1.5 w-[300px] bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
               <span className="relative flex h-2 w-2 items-center justify-center">
                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
@@ -263,7 +263,7 @@ export function CRMView({
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
+            <div className="flex items-center justify-center gap-1.5 py-1.5 w-[300px] bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
               <span className="text-[11px] leading-none mb-[1px]">✨</span>
               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                 Tudo sob controle
@@ -273,7 +273,7 @@ export function CRMView({
 
           <button 
             onClick={() => setAcoesModalOpen(true)}
-            className="flex items-center gap-1.5 ml-2 px-3 py-1.5 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-slate-700/80 transition-all focus:ring-2 focus:ring-yellow-500/20"
+            className="flex items-center justify-center gap-1.5 py-1.5 w-[300px] bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-slate-700/80 transition-all focus:ring-2 focus:ring-yellow-500/20"
           >
             <span className="text-yellow-500 text-sm leading-none">⚡</span>
             <span>Ações do Dia</span>
