@@ -278,8 +278,8 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                   <div key={lead.id} className="bg-white/50 dark:bg-slate-800/40 border border-white dark:border-slate-700/50 rounded-xl p-3 md:p-3.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col lg:flex-row gap-4 lg:gap-4.5 relative group backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/5">
 
                     {/* LADO ESQUERDO: INFOS DO LEAD */}
-                    <div className="flex-[1.2] min-w-0">
-                      <div className="flex items-center gap-2.5">
+                    <div className={`min-w-0 ${activeTab === 'proposta' ? 'flex-1 flex flex-row items-center' : 'flex-[1.2]'}`}>
+                      <div className={`flex items-center gap-2.5 ${activeTab === 'proposta' ? 'min-w-[200px] shrink-0' : ''}`}>
                         <div className={`w-8 h-8 rounded-xl flex flex-shrink-0 items-center justify-center text-lg font-black text-white shadow-md transform -rotate-2 group-hover:rotate-0 transition-transform duration-500 ${lead.isUrgente ? 'bg-rose-400' : 'bg-gradient-to-br from-[#19727d] to-cyan-600 shadow-cyan-500/10'}`}>
                           {lead.name[0].toUpperCase()}
                         </div>
@@ -293,7 +293,9 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                         </div>
                       </div>
 
-                      <div className="mt-2.5 flex flex-col gap-0.5">
+                      {activeTab === 'proposta' && <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-6 opacity-60 shrink-0" />}
+
+                      <div className={`${activeTab === 'proposta' ? 'mt-0 flex-1' : 'mt-2.5'} flex flex-col gap-0.5`}>
                         {/* LINHA 1: ROTA + WHATSAPP */}
                         <div className="flex items-center gap-3">
                           {route && (
