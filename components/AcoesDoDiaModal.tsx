@@ -187,22 +187,21 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
           {/* Sub-header Controls */}
           <div className="flex items-center justify-between p-4 border-b border-gray-50 dark:border-slate-800/50 bg-gray-50/50 dark:bg-slate-800/50">
             <div className="flex items-center gap-4">
-              {followUps.length > 0 ? (
-                <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-500/20">
-                  <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm shadow-red-500/40">
-                    {followUps.length}
-                  </span>
-                  <span className="text-xs font-black uppercase tracking-wider text-red-600 dark:text-red-400">
-                    {activeTab === 'proposta' ? 'Leads aguardando orçamento' : 'Propostas em acompanhamento'}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                    ✨ Tudo sob controle
-                  </span>
-                </div>
-              )}
+              {/* Novo Badge Fixo de Orçamento (Lado Esquerdo) */}
+              {(() => {
+                const count = leads.filter(l => l.status === 'novo_contato' || l.status === 'em_cotacao').length;
+                if (count === 0) return null;
+                return (
+                  <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-500/20 shadow-sm transition-all hover:scale-105">
+                    <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm shadow-red-500/40">
+                      {count}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.05em] text-red-600 dark:text-red-400">
+                      Leads aguardando orçamento
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Integrated Tabs */}
               <div className="flex bg-gray-100 dark:bg-slate-800/60 p-1 rounded-xl border border-gray-200/50 dark:border-slate-700/50">
@@ -210,8 +209,8 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                   onClick={() => setActiveTab('proposta')}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                     activeTab === 'proposta'
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 font-black'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 font-bold'
                   }`}
                 >
                   Esperando Proposta
@@ -220,20 +219,20 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                   onClick={() => setActiveTab('resposta')}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                     activeTab === 'resposta'
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
-                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30 font-black'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 font-bold'
                   }`}
                 >
                   Esperando Resposta
                 </button>
               </div>
 
-              {/* Novo Badge Fixo de Acompanhamento */}
+              {/* Novo Badge Fixo de Acompanhamento (Lado Direito) */}
               {(() => {
                 const count = leads.filter(l => l.status === 'proposta_enviada' && !l.responded).length;
                 if (count === 0) return null;
                 return (
-                  <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-500/20">
+                  <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-500/20 shadow-sm transition-all hover:scale-105">
                     <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm shadow-red-500/40">
                       {count}
                     </span>
