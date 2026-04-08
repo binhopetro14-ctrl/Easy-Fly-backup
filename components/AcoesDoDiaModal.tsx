@@ -172,7 +172,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className={`relative bg-white/90 dark:bg-slate-900/95 w-full ${activeTab === 'proposta' ? 'max-w-[650px]' : 'max-w-[1200px]'} rounded-[2rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.3)] border border-white/20 dark:border-slate-800/50 overflow-hidden flex flex-col max-h-[92vh] backdrop-blur-3xl transition-all duration-500 ease-in-out`}
+          className="relative bg-white/90 dark:bg-slate-900/95 w-full max-w-[1200px] rounded-[2rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.3)] border border-white/20 dark:border-slate-800/50 overflow-hidden flex flex-col max-h-[92vh] backdrop-blur-3xl"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
@@ -227,6 +227,22 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                   Esperando Resposta
                 </button>
               </div>
+
+              {/* Novo Badge Fixo de Acompanhamento */}
+              {(() => {
+                const count = leads.filter(l => l.status === 'proposta_enviada' && !l.responded).length;
+                if (count === 0) return null;
+                return (
+                  <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-500/20">
+                    <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm shadow-red-500/40">
+                      {count}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.05em] text-red-600 dark:text-red-400">
+                      Propostas em acompanhamento
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-gray-400">
