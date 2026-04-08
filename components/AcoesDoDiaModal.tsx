@@ -295,9 +295,9 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
 
                       <div className="mt-2.5 flex flex-col gap-0.5">
                         {/* LINHA 1: ROTA + WHATSAPP */}
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
                           {route && (
-                            <div className="text-blue-600 dark:text-blue-400 text-[11px] font-black tracking-tight flex items-center gap-1 min-w-[110px]">
+                            <div className="text-blue-600 dark:text-blue-400 text-[11px] font-black tracking-tight flex items-center gap-1 min-w-[100px]">
                               {route.origin} <span className="text-[10px] opacity-60">✈️</span> {route.destination}
                             </div>
                           )}
@@ -317,8 +317,8 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                         </div>
 
                         {/* LINHA 2: EMISSOR + TEMPO */}
-                        <div className="flex items-center gap-6">
-                          <div className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide min-w-[110px]">
+                        <div className="flex items-center gap-3">
+                          <div className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide min-w-[100px]">
                             {lead.emissor || 'Emissor não identificado'}
                           </div>
 
