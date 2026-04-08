@@ -260,7 +260,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
               filtered.map((lead) => {
                 const route = getRouteInfo(lead);
                 return (
-                  <div key={lead.id} className="bg-white/50 dark:bg-slate-800/40 border border-white dark:border-slate-700/50 rounded-xl p-3 md:p-3.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col lg:flex-row gap-4 lg:gap-4.5 relative group backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <div key={lead.id} className="bg-white/50 dark:bg-slate-800/40 border border-white dark:border-slate-700/50 rounded-xl p-2.5 pb-2 md:p-3 md:pb-2 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col lg:flex-row gap-4 lg:gap-4.5 relative group backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/5">
 
                     {/* LADO ESQUERDO: INFOS DO LEAD */}
                     <div className="flex-[1.2] min-w-0">
@@ -278,7 +278,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                         </div>
                       </div>
 
-                      <div className="mt-2.5 flex flex-col gap-0.5">
+                      <div className="mt-1.5 flex flex-col gap-0.5">
                         {/* LINHA 1: ROTA + WHATSAPP */}
                         <div className="flex items-center gap-6">
                           {route && (
