@@ -100,7 +100,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
         if (isCompleted) {
           countdownLabel = 'Concluído';
         } else if (isAvailable) {
-          countdownLabel = 'DISPONÍVEL\nAGORA';
+          countdownLabel = 'DISPONÍVEL AGORA';
         } else {
           countdownLabel = `em ${remainingHours}h`;
         }
@@ -399,16 +399,18 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                                   href={`https://wa.me/${lead.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(stage.finalMsg)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`group/btn inline-flex items-center justify-between gap-2 w-full lg:w-[170px] px-3 py-1.5 rounded-lg font-black text-[8px] md:text-[9px] uppercase tracking-widest transition-all shadow-md active:scale-95 border-t border-white/20 hover:brightness-110 ${stage.isCompleted ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50 grayscale' : stage.color}`}
+                                  className={`group/btn inline-flex flex-col items-center justify-center gap-1 w-full lg:w-[170px] min-h-[48px] px-3 py-2 rounded-lg font-black text-[8px] md:text-[9px] uppercase tracking-widest transition-all shadow-md active:scale-95 border-t border-white/20 hover:brightness-110 ${stage.isCompleted ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50 grayscale' : stage.color}`}
                                 >
-                                  <span className="flex items-center gap-2 whitespace-nowrap">
+                                  <div className="flex items-center gap-2 whitespace-nowrap">
                                     {stage.icon && React.cloneElement(stage.icon as any, { className: 'w-3.5 h-3.5' })}
                                     {stage.label}
-                                  </span>
-
-                                  <div className={`px-1 py-0.5 rounded-lg text-[6.5px] font-black bg-white shadow-sm whitespace-pre-line leading-[1.1] text-center flex items-center justify-center min-w-[50px] group-hover/btn:scale-105 transition-transform ${stage.badgeColor}`}>
-                                    {stage.countdownLabel}
                                   </div>
+
+                                  {stage.countdownLabel && (
+                                    <div className={`px-2 py-0.5 rounded-md text-[7.5px] font-black bg-white/95 shadow-sm whitespace-nowrap leading-none flex items-center justify-center group-hover/btn:scale-105 transition-transform ${stage.badgeColor}`}>
+                                      {stage.countdownLabel}
+                                    </div>
+                                  )}
                                 </a>
                               </div>
 
