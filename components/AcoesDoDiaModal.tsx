@@ -355,10 +355,6 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                           <span className="h-2 w-[1px] bg-slate-200 dark:bg-slate-800" />
 
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="text-[8px] font-black text-blue-400/80 dark:text-cyan-500/70 uppercase tracking-[0.2em] shrink-0">
-                              AÉREO
-                            </div>
-                            
                             {lead.tags && lead.tags.length > 0 && (
                               <div className="flex gap-1 overflow-hidden">
                                 {lead.tags.map((tag, idx) => (
@@ -372,7 +368,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                         </div>
 
                         {lead.isUrgente && (
-                          <div className="mt-1 inline-flex items-center gap-1 text-red-500 font-black text-[10px] uppercase tracking-[0.2em] animate-pulse">
+                          <div className="mt-2 inline-flex items-center gap-1 text-red-500 font-black text-[13px] uppercase tracking-[0.2em]">
                             <span>✨</span> URGENTE
                           </div>
                         )}
