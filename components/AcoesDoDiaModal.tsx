@@ -52,7 +52,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
       label: 'RELEMBRAR',
       hours: 6,
       msg: 'Conseguiu dar uma olhada? 🙂',
-      color: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/30',
+      color: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-emerald-500/30',
       badgeColor: 'text-emerald-700',
       icon: <MessageCircle />
     },
@@ -61,8 +61,8 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
       label: 'AJUDAR DECISÃO',
       hours: 24,
       msg: 'Oi {nome}, ficou com alguma dúvida sobre a proposta? Se quiser, posso ajustar datas ou valores pra encaixar melhor pra você',
-      color: 'bg-gradient-to-r from-amber-400 to-orange-500 text-orange-950 shadow-orange-500/30',
-      badgeColor: 'text-orange-700',
+      color: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-500/30',
+      badgeColor: 'text-green-700',
       icon: <Handshake />
     },
     {
@@ -70,8 +70,8 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
       label: 'COBRAR CLIENTE',
       hours: 48,
       msg: 'Você ainda tem interesse nessa viagem ou prefere que eu te envie outras opções?',
-      color: 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/30',
-      badgeColor: 'text-rose-700',
+      color: 'bg-gradient-to-r from-emerald-600 to-green-700 text-white shadow-emerald-700/30',
+      badgeColor: 'text-emerald-800',
       icon: <Flame />
     }
   ];
