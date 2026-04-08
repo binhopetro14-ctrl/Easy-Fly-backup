@@ -172,7 +172,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white/90 dark:bg-slate-900/95 w-full max-w-[1200px] rounded-[2rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.3)] border border-white/20 dark:border-slate-800/50 overflow-hidden flex flex-col max-h-[92vh] backdrop-blur-3xl"
+          className={`relative bg-white/90 dark:bg-slate-900/95 w-full ${activeTab === 'proposta' ? 'max-w-[650px]' : 'max-w-[1200px]'} rounded-[2rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.3)] border border-white/20 dark:border-slate-800/50 overflow-hidden flex flex-col max-h-[92vh] backdrop-blur-3xl transition-all duration-500 ease-in-out`}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-800">
@@ -255,12 +255,12 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
           </div>
 
           {/* Content List */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
             {filtered.length > 0 ? (
               filtered.map((lead) => {
                 const route = getRouteInfo(lead);
                 return (
-                  <div key={lead.id} className="bg-white/50 dark:bg-slate-800/40 border border-white dark:border-slate-700/50 rounded-xl p-2.5 pb-2 md:p-3 md:pb-2 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col lg:flex-row gap-4 lg:gap-4.5 relative group backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <div key={lead.id} className="bg-white/50 dark:bg-slate-800/40 border border-white dark:border-slate-700/50 rounded-xl p-3 md:p-3.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col lg:flex-row gap-4 lg:gap-4.5 relative group backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/5">
 
                     {/* LADO ESQUERDO: INFOS DO LEAD */}
                     <div className="flex-[1.2] min-w-0">
@@ -278,7 +278,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                         </div>
                       </div>
 
-                      <div className="mt-1.5 flex flex-col gap-0.5">
+                      <div className="mt-2.5 flex flex-col gap-0.5">
                         {/* LINHA 1: ROTA + WHATSAPP */}
                         <div className="flex items-center gap-6">
                           {route && (
@@ -472,7 +472,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
           </div>
 
           {/* Footer */}
-          <div className="p-2.5 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-center">
+          <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-center">
             <button onClick={onClose} className="text-xs font-black uppercase tracking-[0.3em] text-[#19727d] dark:text-cyan-500 hover:text-cyan-600 transition-colors">
               Fechar painel de controle
             </button>
