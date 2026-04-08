@@ -132,7 +132,10 @@ export function CRMView({
   };
 
   const getColumnStats = (status: CRMStatus) => {
-    const colLeads = leads.filter((l: Lead) => l.status === status);
+    // Se for 'em_cotacao', incluímos os órfãos do status antigo para não sumirem do sistema
+    const colLeads = leads.filter((l: Lead) => 
+      l.status === status || (status === 'em_cotacao' && (l.status as string) === 'novo_contato')
+    );
     return {
       count: colLeads.length,
       totalValue: colLeads.reduce((sum: number, l: Lead) => sum + (l.value || 0), 0)
@@ -187,7 +190,15 @@ export function CRMView({
           updateData.slaStartAt = new Date().toISOString();
         }
 
-        await onUpdateLead(updateData);
+        try {
+          await onUpdateLead(updateData);
+        } catch (err: any) {
+          console.error("Erro ao mover lead:", err);
+          setNotification({ 
+            message: `Falha ao mover para ${newStatus}. Verifique se o banco de dados suporta este status.`, 
+            type: 'error' 
+          });
+        }
       }
     }
   };
@@ -324,7 +335,9 @@ export function CRMView({
         <div className="flex gap-4 min-w-full h-full pb-4">
           {COLUMNS.map((col) => {
             const { count, totalValue } = getColumnStats(col.id);
-            const columnLeads = filteredLeads.filter(l => l.status === col.id);
+            const columnLeads = filteredLeads.filter(l => 
+              l.status === col.id || (col.id === 'em_cotacao' && (l.status as string) === 'novo_contato')
+            );
 
             return (
               <div 
@@ -355,7 +368,7 @@ export function CRMView({
                     columnLeads.map((lead: Lead) => {
                       const route = getRouteInfo(lead);
                       const urgency = getUrgency(lead.slaStartAt, lead.createdAt);
-                      const stopBlinking = ['proposta_enviada', 'aprovado', 'perdido'].includes(lead.status);
+                      const stopBlinking = ['proposta_enviada', 'radar_oportunidades', 'aprovado', 'perdido'].includes(lead.status);
                       const finalAnimate = stopBlinking ? '' : urgency.animate;
                       let finalBorder = urgency.border;
                       let borderWidth = 'border-2';
