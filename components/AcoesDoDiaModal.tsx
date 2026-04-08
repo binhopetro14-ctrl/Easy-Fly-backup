@@ -414,57 +414,32 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
 
                               {/* CÍRCULO DE CONCLUSÃO */}
                               <div className="flex flex-col items-center gap-0.5 min-w-[45px]">
-                                {!stage.isCompleted ? (
-                                  <div className="relative">
-                                    <button
-                                      onClick={() => {
-                                        if (!stage.isAvailable) {
-                                          setLockedHint(`${lead.id}_${stage.id}`);
-                                          setTimeout(() => setLockedHint(null), 2000);
-                                        } else {
-                                          handleToggleFollowUp(lead, stage.id);
-                                        }
-                                      }}
-                                      className={`w-6 h-6 rounded-full border-[1px] flex items-center justify-center transition-all shadow-sm ${stage.isAvailable
-                                        ? 'border-emerald-500/50 text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white hover:scale-110 shadow-md shadow-emerald-500/10'
-                                        : 'border-slate-200 dark:border-slate-800 text-slate-200 dark:text-slate-800 cursor-not-allowed'
-                                        }`}
-                                    >
-                                      <CheckCircle2 className={`w-4 h-4 transition-transform group-hover:scale-110 ${stage.isAvailable ? 'opacity-100' : 'opacity-20'}`} />
-                                    </button>
-
-                                    <AnimatePresence>
-                                      {lockedHint === `${lead.id}_${stage.id}` && (
-                                        <motion.div
-                                          initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                                          animate={{ opacity: 1, y: -25, scale: 1 }}
-                                          exit={{ opacity: 0, scale: 0.8 }}
-                                          className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap bg-gray-800 text-white text-[7px] font-black py-0.5 px-1 rounded shadow-lg z-20"
-                                        >
-                                          INDISPONÍVEL
-                                        </motion.div>
-                                      )}
-                                    </AnimatePresence>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => handleToggleFollowUp(lead, stage.id)}
-                                    className="flex items-center gap-1 animate-in zoom-in duration-300 group/undo relative"
-                                    title="Clique para desmarcar"
-                                  >
-                                    <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-white shadow-md shadow-black/20 group-hover/undo:bg-red-500 transition-colors">
-                                      <span className="text-[9px] font-black group-hover/undo:hidden">{stage.completedBy}</span>
-                                      <X className="w-4 h-4 hidden group-hover/undo:block" />
-                                    </div>
-
-                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[6px] font-black px-1 py-0.5 rounded opacity-0 group-hover/undo:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase">
-                                      Desmarcar
-                                    </div>
-                                  </button>
+                                {(stage.isCompleted || stage.isAvailable) && (
+                                  <>
+                                    {!stage.isCompleted ? (
+                                      <button
+                                        onClick={() => handleToggleFollowUp(lead, stage.id)}
+                                        className="w-6 h-6 rounded-full border-[1px] border-emerald-500/50 text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white hover:scale-110 shadow-md shadow-emerald-500/10 flex items-center justify-center transition-all shadow-sm"
+                                      >
+                                        <CheckCircle2 className="w-4 h-4 transition-transform group-hover:scale-110" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleToggleFollowUp(lead, stage.id)}
+                                        className="flex items-center gap-1 animate-in zoom-in duration-300 group/undo relative"
+                                        title="Clique para desmarcar"
+                                      >
+                                        <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-white shadow-md shadow-black/20 group-hover/undo:bg-red-500 transition-colors">
+                                          <span className="text-[9px] font-black group-hover/undo:hidden">{stage.completedBy}</span>
+                                          <X className="w-4 h-4 hidden group-hover/undo:block" />
+                                        </div>
+                                      </button>
+                                    )}
+                                    <span className="text-[7px] font-black uppercase text-gray-400 tracking-tighter mt-0.5">
+                                      {stage.isCompleted ? 'Concluído' : 'Já contatei'}
+                                    </span>
+                                  </>
                                 )}
-                                <span className="text-[7px] font-black uppercase text-gray-400 tracking-tighter mt-0.5">
-                                  {stage.isCompleted ? 'Concluído' : 'Já contatei'}
-                                </span>
                               </div>
                             </div>
 
