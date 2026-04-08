@@ -307,10 +307,10 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                             {lead.emissor || 'Emissor não identificado'}
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
-                            <Clock className="w-3.5 h-3.5 opacity-60" />
-                            <span className="text-[12px] font-black uppercase tracking-widest whitespace-nowrap">
-                              {lead.totalHoursElapsed}H <span className="font-medium opacity-60 italic text-[11px]">SEM RESPOSTA</span>
+                          <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500">
+                            <Clock className="w-3 h-3 opacity-80" />
+                            <span className="text-[10.5px] font-black uppercase tracking-widest whitespace-nowrap">
+                              {lead.totalHoursElapsed}H <span className="font-medium opacity-60 italic text-[9px]">SEM RESPOSTA</span>
                             </span>
                           </div>
                         </div>
