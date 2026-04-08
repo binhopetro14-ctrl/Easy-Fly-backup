@@ -255,7 +255,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
           </div>
 
           {/* Content List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
             {filtered.length > 0 ? (
               filtered.map((lead) => {
                 const route = getRouteInfo(lead);
@@ -472,7 +472,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-center">
+          <div className="p-2.5 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-center">
             <button onClick={onClose} className="text-xs font-black uppercase tracking-[0.3em] text-[#19727d] dark:text-cyan-500 hover:text-cyan-600 transition-colors">
               Fechar painel de controle
             </button>
