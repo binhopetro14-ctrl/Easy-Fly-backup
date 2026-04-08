@@ -55,7 +55,7 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Sale, SaleItem } from '@/types';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 interface MetricasViewProps {
   sales: Sale[];

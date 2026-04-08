@@ -116,6 +116,8 @@ export const mapperService = {
       title: data.title || '',
       responded: data.responded || false,
       slaStartAt: data.sla_start_at || data.created_at,
+      propostaEnviadaAt: data.proposta_enviada_at,
+      followUpHistory: (Array.isArray(data.follow_up_history) && data.follow_up_history.length === 0) ? {} : (data.follow_up_history || {}),
       usd_rate: Number(data.usd_rate) || 0,
       eur_rate: Number(data.eur_rate) || 0,
       gbp_rate: Number(data.gbp_rate) || 0,
@@ -318,6 +320,8 @@ export const mapperService = {
       if (lead.title !== undefined) data.title = lead.title;
       if (lead.responded !== undefined) data.responded = lead.responded;
       if (lead.slaStartAt !== undefined) data.sla_start_at = lead.slaStartAt;
+      if (lead.propostaEnviadaAt !== undefined) data.proposta_enviada_at = lead.propostaEnviadaAt;
+      if (lead.followUpHistory !== undefined) data.follow_up_history = lead.followUpHistory;
       if (lead.usd_rate !== undefined) data.usd_rate = Number(lead.usd_rate) || 0;
       if (lead.eur_rate !== undefined) data.eur_rate = Number(lead.eur_rate) || 0;
       if (lead.gbp_rate !== undefined) data.gbp_rate = Number(lead.gbp_rate) || 0;

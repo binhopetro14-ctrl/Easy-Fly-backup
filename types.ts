@@ -149,6 +149,8 @@ export interface Lead {
   title?: string;
   responded?: boolean;
   slaStartAt?: string;
+  propostaEnviadaAt?: string;
+  followUpHistory?: Record<string, { completed: boolean; completedBy?: string; completedAt?: string }>;
   markup?: number;
   taxes?: number;
   markup_type?: 'percentage' | 'fixed';

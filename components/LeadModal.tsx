@@ -16,7 +16,7 @@ import {
 
 } from 'lucide-react';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 import { NumericFormat } from 'react-number-format';
 
@@ -925,7 +925,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                        <button onClick={() => handleCounter(c.id as any, -1)} className="w-[26px] h-[26px] rounded-lg bg-white dark:bg-slate-800 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm">-</button>
 
-                       <span className="text-sm font-black text-gray-800 dark:text-white min-w-[12px] text-center">{formData[c.id as keyof Lead] || 0}</span>
+                       <span className="text-sm font-black text-gray-800 dark:text-white min-w-[12px] text-center">{(formData as any)[c.id] || 0}</span>
 
                        <button onClick={() => handleCounter(c.id as any, 1)} className="w-[26px] h-[26px] rounded-lg bg-white dark:bg-slate-800 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-cyan-500 hover:bg-cyan-50 transition-all shadow-sm">+</button>
 

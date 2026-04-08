@@ -13,7 +13,7 @@ import {
   Snowflake, Bath, DoorOpen, Shirt, Wine, Palmtree, Tv, Gamepad2,
   Wind, Navigation, Cigarette, CigaretteOff, Sparkles, LayoutGrid, Heart, Images
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 
 const supabase = createClient(
@@ -1205,10 +1205,10 @@ function FlightLegCard({
                           desc: 'Abaixo do assento'
                         },
                         { 
-                          label: 'Mochila / Mão', 
+                          label: 'Mala de Mão', 
                           weight: isLatamGol ? '12kg' : '10kg',
                           val: segments[0]?.carryOn ?? 1,
-                          icon: <Backpack className="w-5 h-5" />,
+                          icon: <Luggage className="w-5 h-5" />,
                           desc: 'Bagageiro superior'
                         },
                         { 
@@ -2321,7 +2321,7 @@ export default function CotacaoPage() {
                      
                      let allowedInstallments = showAllInstallments 
                         ? INSTALLMENTS.filter(n => n <= maxInstallments)
-                        : INSTALLMENTS.filter(n => [6, 10].includes(n) && n <= maxInstallments);
+                        : INSTALLMENTS.filter(n => [6, 10, 12].includes(n) && n <= maxInstallments);
 
                      return allowedInstallments.map((n: number) => {
                        let totalValue = lead.value;

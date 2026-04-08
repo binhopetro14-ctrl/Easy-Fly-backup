@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Calendar, Tag, FileText, SlidersHorizontal, Upload,
   ArrowUpDown, X, LayoutGrid, RefreshCw, ArrowLeftRight, ArrowLeft
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Sale } from '@/types';
 
 interface SalesViewProps {
