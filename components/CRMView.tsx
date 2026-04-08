@@ -87,7 +87,7 @@ export function CRMView({
       color: 'text-amber-500', 
       bg: 'bg-amber-500', 
       border: 'border-amber-500', 
-      animate: 'animate-pulse-slow',
+      animate: '',
       label, 
       text: 'Atenção' 
     };
@@ -95,7 +95,7 @@ export function CRMView({
       color: 'text-red-500', 
       bg: 'bg-red-500', 
       border: 'border-red-500', 
-      animate: 'animate-pulse-fast',
+      animate: '',
       label, 
       text: 'Urgente' 
     };
@@ -132,10 +132,7 @@ export function CRMView({
   };
 
   const getColumnStats = (status: CRMStatus) => {
-    // Se for 'em_cotacao', incluímos os órfãos do status antigo para não sumirem do sistema
-    const colLeads = leads.filter((l: Lead) => 
-      l.status === status || (status === 'em_cotacao' && (l.status as string) === 'novo_contato')
-    );
+    const colLeads = leads.filter((l: Lead) => l.status === status);
     return {
       count: colLeads.length,
       totalValue: colLeads.reduce((sum: number, l: Lead) => sum + (l.value || 0), 0)
@@ -190,15 +187,7 @@ export function CRMView({
           updateData.slaStartAt = new Date().toISOString();
         }
 
-        try {
-          await onUpdateLead(updateData);
-        } catch (err: any) {
-          console.error("Erro ao mover lead:", err);
-          setNotification({ 
-            message: `Falha ao mover para ${newStatus}. Verifique se o banco de dados suporta este status.`, 
-            type: 'error' 
-          });
-        }
+        await onUpdateLead(updateData);
       }
     }
   };
@@ -226,14 +215,8 @@ export function CRMView({
   };
 
   const redLeadsCount = useMemo(() => {
-    return filteredLeads.filter((lead: Lead) => {
-      const stopBlinking = ['proposta_enviada', 'aprovado', 'perdido'].includes(lead.status as string);
-      if (stopBlinking) return false;
-      const startTime = new Date(lead.slaStartAt || lead.createdAt || new Date().toISOString());
-      const diff = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
-      return diff >= 360;
-    }).length;
-  }, [filteredLeads, now]);
+    return filteredLeads.filter((l: Lead) => l.status === 'em_cotacao').length;
+  }, [filteredLeads]);
 
   const followUpsCount = useMemo(() => {
     return leads.filter((l: Lead) => l.status === 'proposta_enviada' && !l.responded).length;
@@ -242,7 +225,6 @@ export function CRMView({
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] bg-[#f8fafc] dark:bg-slate-950 p-2 pt-1 pb-0 animate-in fade-in duration-500 relative">
       
-      {/* 0. NOTIFICAÇÃO PREMIUM */}
       <AnimatePresence>
         {notification && (
           <motion.div 
@@ -270,13 +252,11 @@ export function CRMView({
         )}
       </AnimatePresence>
 
-      {/* 1. HEADER DO CRM */}
       <div className="flex justify-between items-center gap-3 mb-2 shrink-0">
         <div className="flex items-center gap-4">
           {redLeadsCount > 0 ? (
             <div className="flex items-center justify-center gap-1.5 py-1.5 w-[450px] bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
               <span className="relative flex h-2 w-2 items-center justify-center">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
               <span className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">
@@ -330,14 +310,11 @@ export function CRMView({
         </div>
       </div>
 
-      {/* 2. KANBAN BOARD */}
       <div className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
         <div className="flex gap-4 min-w-full h-full pb-4">
           {COLUMNS.map((col) => {
             const { count, totalValue } = getColumnStats(col.id);
-            const columnLeads = filteredLeads.filter(l => 
-              l.status === col.id || (col.id === 'em_cotacao' && (l.status as string) === 'novo_contato')
-            );
+            const columnLeads = filteredLeads.filter(l => l.status === col.id);
 
             return (
               <div 
@@ -346,10 +323,8 @@ export function CRMView({
                 onDrop={(e) => handleDrop(e, col.id)}
                 className="flex-1 min-w-[300px] flex flex-col h-full rounded-2xl bg-gray-50/50 dark:bg-slate-900/40 border-2 border-gray-200 dark:border-slate-800 overflow-hidden relative"
               >
-                {/* Status Line (Top only) */}
                 <div className={`h-1.5 w-full ${col.headerBg} opacity-100`} />
                 
-                {/* Column Header */}
                 <div className="p-3 bg-white/50 dark:bg-slate-800/50 border-b border-gray-100/50 dark:border-slate-700/50 shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
@@ -362,7 +337,6 @@ export function CRMView({
                   </div>
                 </div>
 
-                {/* Column Body - STRETCH TO BOTTOM */}
                 <div className="flex-1 p-2 overflow-y-auto space-y-2.5 custom-scrollbar h-full">
                   {columnLeads.length > 0 ? (
                     columnLeads.map((lead: Lead) => {
@@ -387,7 +361,6 @@ export function CRMView({
                           onDragStart={(e) => handleDragStart(e as any, lead.id)}
                           className={`p-3 bg-white dark:bg-slate-800 rounded-xl ${borderWidth} ${finalBorder} ${finalAnimate} hover:brightness-95 transition-all cursor-grab active:cursor-grabbing group relative`}
                         >
-                           {/* SLA Badge OR Responded Toggle */}
                            <div className="absolute top-2 right-12 flex items-center gap-1.5 transition-opacity">
                               {lead.status === 'aprovado' ? (
                                 <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
@@ -402,22 +375,18 @@ export function CRMView({
                                  {lead.responded && <CheckCircle2 className="w-2 h-2" />}
                                  {lead.responded ? 'Respondido' : 'Marcar Resposta'}
                                </button>
-                             ) : (
-                               <>
-                                 <div className={`relative flex h-3 w-3 items-center justify-center`}>
-                                    {urgency.bg === 'bg-red-500' && !stopBlinking && (
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    )}
-                                    <div className={`relative inline-flex rounded-full h-3 w-3 ${urgency.bg} shadow-sm border border-white/40`} />
-                                 </div>
-                                 <span className={`text-[11px] font-black uppercase tracking-tighter ${urgency.color}`}>
-                                    {urgency.label}
-                                 </span>
-                               </>
-                             )}
-                          </div>
+                             ) : lead.status === 'radar_oportunidades' ? null : (
+                                <>
+                                  <div className={`relative flex h-3 w-3 items-center justify-center`}>
+                                     <div className={`relative inline-flex rounded-full h-3 w-3 ${urgency.bg} shadow-sm border border-white/40`} />
+                                  </div>
+                                  <span className={`text-[11px] font-black uppercase tracking-tighter ${urgency.color}`}>
+                                     {urgency.label}
+                                  </span>
+                                </>
+                              )}
+                           </div>
 
-                          {/* Botões de Ação */}
                           {canModifyLead(lead) && (
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                               <button 
@@ -436,12 +405,10 @@ export function CRMView({
                           )}
 
                           <div className="flex flex-col gap-1.5">
-                            {/* Linha 1: Título */}
                             <h4 className="font-black text-gray-900 dark:text-white text-[13px] leading-tight pr-10">
                               {lead.title || lead.name}
                             </h4>
                             
-                            {/* Linha 2: Cliente + Rota + DURAÇÃO */}
                             <div className="flex items-center gap-1.5 text-[9.5px] font-bold text-gray-400 uppercase tracking-tighter truncate">
                               <span className="shrink-0">{lead.name}</span>
                               {lead.duration && (
@@ -461,10 +428,8 @@ export function CRMView({
                               )}
                             </div>
 
-                            {/* Linha 3: Tags + Stats (Juntas) + Valor (Direita) */}
                             <div className="flex items-center justify-between gap-2 mt-1 pt-1.5 border-t border-gray-50 dark:border-slate-700/50">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                {/* Stats (Compactas) */}
                                 <div className="flex items-center gap-1.5 opacity-60 mr-1.5 border-r border-gray-100 pr-1.5">
                                   <div className="flex items-center gap-0.5">
                                     <User className="w-2.5 h-2.5 text-gray-400" />
@@ -484,7 +449,6 @@ export function CRMView({
                                   </div>
                                 </div>
 
-                                {/* Tags (Flexível) */}
                                 {lead.tags && lead.tags.length > 0 && (
                                   <div className="flex gap-0.5 overflow-hidden">
                                     {lead.tags.map((tag: string, idx: number) => (
@@ -496,7 +460,6 @@ export function CRMView({
                                 )}
                               </div>
 
-                              {/* Valor */}
                               {(lead.value || 0) > 0 && (
                                 <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 whitespace-nowrap">
                                   {formatCurrency(lead.value || 0)}
