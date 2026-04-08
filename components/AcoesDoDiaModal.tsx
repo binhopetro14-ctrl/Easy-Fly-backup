@@ -80,7 +80,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
   const followUps = useMemo(() => {
     const raw = leads.filter(l => {
       if (activeTab === 'proposta') {
-        return l.status === 'novo_contato' || l.status === 'em_cotacao';
+        return l.status === 'em_cotacao';
       }
       return l.status === 'proposta_enviada' && !l.responded;
     });
@@ -189,7 +189,7 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
             <div className="flex items-center gap-4">
               {/* Novo Badge Fixo de Orçamento (Lado Esquerdo) */}
               {(() => {
-                const count = leads.filter(l => l.status === 'novo_contato' || l.status === 'em_cotacao').length;
+                const count = leads.filter(l => l.status === 'em_cotacao').length;
                 if (count === 0) return null;
                 return (
                   <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-500/20 shadow-sm transition-all hover:scale-105">

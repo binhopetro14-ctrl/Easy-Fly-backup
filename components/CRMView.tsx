@@ -27,9 +27,9 @@ interface CRMViewProps {
 }
 
 const COLUMNS: { id: CRMStatus; title: string; color: string; borderColor: string; bgColor: string; headerBg: string }[] = [
-  { id: 'novo_contato', title: 'Novo Contato', color: 'text-purple-600', borderColor: 'border-purple-500', bgColor: 'bg-purple-50', headerBg: 'bg-purple-500' },
   { id: 'em_cotacao', title: 'Montando Proposta', color: 'text-blue-600', borderColor: 'border-blue-500', bgColor: 'bg-blue-50', headerBg: 'bg-blue-500' },
   { id: 'proposta_enviada', title: 'Proposta Enviada', color: 'text-orange-600', borderColor: 'border-orange-500', bgColor: 'bg-orange-50', headerBg: 'bg-orange-500' },
+  { id: 'radar_oportunidades', title: 'Radar de Oportunidades', color: 'text-cyan-600', borderColor: 'border-cyan-500', bgColor: 'bg-cyan-50', headerBg: 'bg-cyan-500' },
   { id: 'aprovado', title: 'Aprovado', color: 'text-green-600', borderColor: 'border-green-500', bgColor: 'bg-green-50', headerBg: 'bg-green-500' },
   { id: 'perdido', title: 'Perdido', color: 'text-red-600', borderColor: 'border-red-500', bgColor: 'bg-red-50', headerBg: 'bg-red-500' },
 ];

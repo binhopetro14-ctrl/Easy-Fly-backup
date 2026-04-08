@@ -125,7 +125,7 @@ export interface TeamMember {
   avatarUrl?: string;
 }
 
-export type CRMStatus = 'novo_contato' | 'em_cotacao' | 'proposta_enviada' | 'aprovado' | 'perdido';
+export type CRMStatus = 'em_cotacao' | 'proposta_enviada' | 'radar_oportunidades' | 'aprovado' | 'perdido';
 
 export interface Lead {
   id: string;
