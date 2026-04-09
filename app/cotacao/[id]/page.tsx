@@ -201,7 +201,7 @@ type ItemType = 'passagem' | 'hospedagem' | 'translado' | 'seguro' | 'carro' | '
 interface LeadItem {
   id: string;
   type: ItemType;
-  flightType?: 'ida' | 'ida_volta';
+  flightType?: 'ida' | 'ida_volta' | 'multi';
   origin?: string;
   destination?: string;
   departureDate?: string;
@@ -226,6 +226,7 @@ interface LeadItem {
   checkedBag23kg?: number;
   outboundSegments?: any[];
   inboundSegments?: any[];
+  multiLegs?: any[];
   returnDuration?: string;
   hotelName?: string;
   hotelAddress?: string;
@@ -629,7 +630,7 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLeafletReady, setLeafletReady] = useState(false);
   // Correção: Verificar se o voo principal sendo exibido é ida e volta
-  const isIdaVolta = flights[0]?.flightType === 'ida_volta';
+  const isIdaVolta = flights.some(f => f.flightType === 'ida_volta');
 
   useEffect(() => {
     if ((window as any).L) {
@@ -715,65 +716,109 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
 
     const allPoints: [number, number][] = [];
 
-    // --- IDA ---
-    if (outbound.length > 0) {
-      outbound.forEach((seg: any, idx: number) => {
-        const pStart = airportInfo[seg.origin]?.coords || [-15, -47];
-        const pEnd = airportInfo[seg.destination]?.coords || [-23, -46];
-        
-        allPoints.push(pStart);
-        if (idx === outbound.length - 1) allPoints.push(pEnd);
+    flights.forEach((flight, flightIdx) => {
+      const isIdaVoltaItem = flight.flightType === 'ida_volta';
+      const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
+      const inbound = Array.isArray(flight.inboundSegments) ? flight.inboundSegments : [];
 
-        // Draw Arc
-        const pts = getCurvePoints(pStart, pEnd, 0.15);
-        L.polyline(pts, {
-          color: '#0891b2',
-          weight: 3,
-          dashArray: '8, 8',
-          lineCap: 'round',
-          lineJoin: 'round'
-        }).addTo(map);
+      // --- IDA / TRECHOS ---
+      if (outbound.length > 0) {
+        outbound.forEach((seg: any, idx: number) => {
+          const pStart = airportInfo[seg.origin]?.coords;
+          const pEnd = airportInfo[seg.destination]?.coords;
+          
+          if (!pStart || !pEnd) return;
 
-        // Marker for each point in IDA
-        L.marker(pStart, { icon: createDot('#0891b2') }).addTo(map);
-        if (idx === outbound.length - 1) {
-          L.marker(pEnd, { icon: createDot('#0891b2') }).addTo(map);
-        }
-      });
-    }
+          allPoints.push(pStart);
+          if (idx === outbound.length - 1) allPoints.push(pEnd);
 
-    // --- VOLTA ---
-    const inbound = firstFlight.inboundSegments || [];
-    if (isIdaVolta && inbound.length > 0) {
-      inbound.forEach((seg: any, idx: number) => {
-        const pStart = airportInfo[seg.origin]?.coords || [-23, -46];
-        const pEnd = airportInfo[seg.destination]?.coords || [-15, -47];
-        
-        allPoints.push(pStart);
-        if (idx === inbound.length - 1) allPoints.push(pEnd);
+          // Draw Arc
+          const pts = getCurvePoints(pStart, pEnd, 0.15);
+          L.polyline(pts, {
+            color: '#0891b2',
+            weight: 3,
+            dashArray: '8, 8',
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(map);
 
-        // Draw Arc
-        const pts = getCurvePoints(pStart, pEnd, -0.1);
-        L.polyline(pts, {
-          color: '#9333ea',
-          weight: 2,
-          dashArray: '5, 10',
-          opacity: 0.8
-        }).addTo(map);
+          // Marker for each point in IDA
+          L.marker(pStart, { icon: createDot('#0891b2') }).addTo(map);
+          if (idx === outbound.length - 1) {
+            L.marker(pEnd, { icon: createDot('#0891b2') }).addTo(map);
+          }
+        });
+      }
+      // --- VOLTA ---
+      if (isIdaVoltaItem && inbound.length > 0) {
+        inbound.forEach((seg: any, idx: number) => {
+          const pStart = airportInfo[seg.origin]?.coords;
+          const pEnd = airportInfo[seg.destination]?.coords;
+          
+          if (!pStart || !pEnd) return;
 
-        // Marker for each point in VOLTA
-        L.marker(pStart, { icon: createDot('#9333ea') }).addTo(map);
-        if (idx === inbound.length - 1) {
-          L.marker(pEnd, { icon: createDot('#9333ea') }).addTo(map);
-        }
-      });
-    }
+          allPoints.push(pStart);
+          if (idx === inbound.length - 1) allPoints.push(pEnd);
+
+          // Draw Arc (Inverted for differentiation)
+          const pts = getCurvePoints(pStart, pEnd, -0.1);
+          L.polyline(pts, {
+            color: '#9333ea',
+            weight: 2,
+            dashArray: '5, 10',
+            opacity: 0.8
+          }).addTo(map);
+
+          // Marker for each point in VOLTA
+          L.marker(pStart, { icon: createDot('#9333ea') }).addTo(map);
+          if (idx === inbound.length - 1) {
+            L.marker(pEnd, { icon: createDot('#9333ea') }).addTo(map);
+          }
+        });
+      }
+
+      // --- MULTI-TRECHO ---
+      if (flight.flightType === 'multi' && Array.isArray(flight.multiLegs)) {
+        flight.multiLegs.forEach((leg: any) => {
+          const segments = Array.isArray(leg.segments) ? leg.segments : [];
+          segments.forEach((seg: any, idx: number) => {
+            const pStart = airportInfo[seg.origin]?.coords;
+            const pEnd = airportInfo[seg.destination]?.coords;
+            
+            if (!pStart || !pEnd) return;
+
+            allPoints.push(pStart);
+            if (idx === segments.length - 1) allPoints.push(pEnd);
+
+            // Draw Arc
+            const pts = getCurvePoints(pStart, pEnd, 0.15);
+            L.polyline(pts, {
+              color: '#0891b2',
+              weight: 3,
+              dashArray: '8, 8',
+              lineCap: 'round',
+              lineJoin: 'round'
+            }).addTo(map);
+
+            // Marker for each point
+            L.marker(pStart, { icon: createDot('#0891b2') }).addTo(map);
+            if (idx === segments.length - 1) {
+              L.marker(pEnd, { icon: createDot('#0891b2') }).addTo(map);
+            }
+          });
+        });
+      }
+    });
 
     if (allPoints.length > 0) {
-       const validPoints = allPoints.filter(p => !isNaN(p[0]) && !isNaN(p[1]));
+       const validPoints = allPoints.filter(p => p && Array.isArray(p) && p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]));
        if (validPoints.length > 0) {
-         const bounds = L.latLngBounds(validPoints);
-         map.fitBounds(bounds, { padding: [50, 50] });
+         try {
+           const bounds = L.latLngBounds(validPoints);
+           map.fitBounds(bounds, { padding: [50, 50] });
+         } catch (e) {
+           console.error("Erro ao ajustar limites do mapa", e);
+         }
        }
     }
 
@@ -1257,6 +1302,22 @@ function FlightLegCard({
 function FlightItemCard({ item, lead, airportInfo }: { item: LeadItem; lead: Lead; airportInfo: Record<string, any> }) {
   const outbound = item.outboundSegments || [];
   const inbound = item.inboundSegments || [];
+
+  if (item.flightType === 'multi' && Array.isArray(item.multiLegs)) {
+    return (
+      <div className="space-y-6">
+        {item.multiLegs.map((leg: any, idx: number) => (
+          <FlightLegCard 
+            key={leg.id || idx}
+            segments={leg.segments || []} 
+            type={leg.label || `Trecho ${idx + 1}`} 
+            lead={lead} 
+            airportInfo={airportInfo} 
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1920,9 +1981,15 @@ export default function CotacaoPage() {
         if (item.type !== 'passagem') return [];
         const outSegments = Array.isArray(item.outboundSegments) ? item.outboundSegments : [];
         const incSegments = Array.isArray(item.inboundSegments) ? item.inboundSegments : [];
+        const multiSegments = item.flightType === 'multi' && Array.isArray(item.multiLegs) 
+            ? item.multiLegs.flatMap((l: any) => l.segments || []) 
+            : [];
+            
         const out = outSegments.flatMap((s: any) => [s.origin, s.destination]);
         const inc = incSegments.flatMap((s: any) => [s.origin, s.destination]);
-        return [...out, ...inc];
+        const multi = multiSegments.flatMap((s: any) => [s.origin, s.destination]);
+        
+        return [...out, ...inc, ...multi];
       }).filter(iata => iata && typeof iata === 'string' && iata.length === 3) as string[]));
     } catch (e) {
       return [];
@@ -1947,13 +2014,28 @@ export default function CotacaoPage() {
       return d > 0 ? getDurationText(d) : null;
     }
 
-    if (String(flight.flightType) === 'ida') return 'Somente Ida';
+    const hasInbound = flights.some(f => f.flightType === 'ida_volta' && (f.inboundSegments?.length || 0) > 0);
+    const hasReturnLeg = flights.some(f => {
+      if (f.flightType === 'multi' && (f.multiLegs?.length || 0) > 1) return true;
+      return false;
+    });
+    const isRoundTrip = hasInbound || hasReturnLeg || flights.length > 2;
+
+    if (!isRoundTrip && String(flight.flightType) === 'ida' && flights.length === 1) return 'Somente Ida';
     
-    const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
-    const inbound = Array.isArray(flight.inboundSegments) ? flight.inboundSegments : [];
-    
-    const startStr = outbound[0]?.departureDate;
-    const endStr = inbound[inbound.length - 1]?.departureDate || inbound[inbound.length - 1]?.arrivalDate;
+    const allOutbound = flights.flatMap(f => Array.isArray(f.outboundSegments) ? f.outboundSegments : []);
+    const allInbound = flights.flatMap(f => Array.isArray(f.inboundSegments) ? f.inboundSegments : []);
+    const allMulti = flights.flatMap(f => f.flightType === 'multi' && Array.isArray(f.multiLegs) 
+      ? f.multiLegs.flatMap((l: any) => l.segments || []) 
+      : []);
+
+    const allSegments = [...allOutbound, ...allInbound, ...allMulti].filter(s => s.departureDate);
+    // Sort segments by date (if possible) or just pick first and last assuming lead order
+    const firstSeg = allSegments[0];
+    const lastSeg = allSegments[allSegments.length - 1];
+
+    const startStr = firstSeg?.departureDate;
+    const endStr = lastSeg?.arrivalDate || lastSeg?.departureDate;
     
     if (!startStr || !endStr) {
       const d = parseInt(lead?.duration || '0');

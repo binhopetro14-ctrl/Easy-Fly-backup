@@ -168,302 +168,208 @@ function DateInput({ value, onChange, className, placeholder }: {
 
 }
 
-function TrechoCard({ label, isReturn, currentItem, setCurrentItem, flightLookupLoading, flightLookupError, lookupFlight }: any) {
-
-  const segments = isReturn ? (currentItem.inboundSegments || []) : (currentItem.outboundSegments || []);
-
+function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, flightLookupError, lookupFlight, onRemove, canRemove }: any) {
   const updateSegment = (idx: number, data: any) => {
-
     const newSegs = segments.map((s: any, i: number) => i === idx ? { ...s, ...data } : s);
-
-    setCurrentItem((prev: any) => ({
-
-      ...prev,
-
-      [isReturn ? 'inboundSegments' : 'outboundSegments']: newSegs
-
-    }));
-
+    onSegmentsChange(newSegs);
   };
 
   const addSegment = () => {
-
     const lastSeg = segments[segments.length - 1];
-
     const newSeg = {
-
       origin: lastSeg?.destination || '',
-
       destination: '',
-
       flightNumber: '',
-
       departureDate: lastSeg?.arrivalDate || lastSeg?.departureDate || '',
-
       departureTime: '',
-
       arrivalDate: '',
-
       arrivalTime: '',
-
       airline: lastSeg?.airline || '',
-
       duration: '',
-
       flightClass: lastSeg?.flightClass || 'Econômica',
-
       personalItem: lastSeg?.personalItem ?? 1,
-
       carryOn: lastSeg?.carryOn ?? 1,
-
       checkedBag23kg: lastSeg?.checkedBag23kg ?? 0
-
     };
-
-    setCurrentItem((prev: any) => ({
-
-      ...prev,
-
-      [isReturn ? 'inboundSegments' : 'outboundSegments']: [...segments, newSeg]
-
-    }));
-
+    onSegmentsChange([...segments, newSeg]);
   };
 
   const removeSegment = (idx: number) => {
-
     if (segments.length <= 1) return;
-
-    setCurrentItem((prev: any) => ({
-
-      ...prev,
-
-      [isReturn ? 'inboundSegments' : 'outboundSegments']: segments.filter((_: any, i: number) => i !== idx)
-
-    }));
-
+    onSegmentsChange(segments.filter((_: any, i: number) => i !== idx));
   };
 
   const inp = "w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none text-[11px] font-bold text-gray-800 dark:text-white text-center focus:border-cyan-400 transition-colors";
-
   const sel = "w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none text-[11px] font-bold text-gray-800 dark:text-white appearance-none cursor-pointer text-center focus:border-cyan-400 transition-colors";
-
   const lbl = "block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-0.5 text-center";
 
   return (
-
     <div className="border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800/50 shadow-sm transition-all duration-300">
-
       <div className="px-4 py-2.5 bg-gray-50 dark:bg-slate-900/60 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
-
         <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">{label}</span>
-
-        {segments.length > 1 && (
-
-          <span className="text-[9px] font-black text-cyan-500 uppercase px-2 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 rounded-full border border-cyan-100 dark:border-cyan-500/20">{segments.length} Segmentos</span>
-
-        )}
-
+        <div className="flex items-center gap-2">
+          {segments.length > 1 && (
+            <span className="text-[9px] font-black text-cyan-500 uppercase px-2 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 rounded-full border border-cyan-100 dark:border-cyan-500/20">{segments.length} Segs</span>
+          )}
+          {canRemove && (
+            <button onClick={onRemove} className="p-1 hover:bg-red-50 rounded text-red-300 hover:text-red-500 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
-
       <div className="p-3 space-y-4">
-
         {segments.map((segment: any, idx: number) => (
-
           <div key={idx} className={`relative p-3 rounded-xl border-dashed border-2 ${idx > 0 ? 'border-gray-100 dark:border-slate-700/50 mt-2 bg-gray-50/30' : 'border-transparent'}`}>
-
             {idx > 0 && (
-
               <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-slate-700/50 pb-2">
-
                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Conexão {idx}</span>
-
                  <button onClick={() => removeSegment(idx)} className="p-1 hover:bg-red-50 rounded text-red-300 hover:text-red-500 transition-colors"><Trash2 className="w-3 h-3" /></button>
-
               </div>
-
             )}
 
             <div className="flex justify-center -mt-4 mb-3 px-4 relative z-10">
-
               <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-lg shadow-cyan-500/5">
-
                 <div className="space-y-0.5">
-
                    <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">Data</label>
-
                    <DateInput className="w-24 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black text-center" value={segment.departureDate || ''} onChange={v => updateSegment(idx, { departureDate: v })} />
-
                 </div>
-
                 <div className="space-y-0.5">
-
                    <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">Nº Voo</label>
-
                    <input className="w-20 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-center" value={segment.flightNumber || ''} onChange={e => updateSegment(idx, { flightNumber: e.target.value.toUpperCase() })} />
-
                 </div>
-
                 <div className="pt-2.5">
-
-                   <button type="button" onClick={() => lookupFlight(segment.flightNumber, segment.departureDate, !!isReturn, idx)} disabled={flightLookupLoading} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
-
+                   <button type="button" onClick={() => lookupFlight(segment.flightNumber, segment.departureDate, false, idx, onSegmentsChange)} disabled={flightLookupLoading} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
                      {flightLookupLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-
                    </button>
-
                 </div>
-
               </div>
-
             </div>
 
             {flightLookupError && (
-
               <div className="flex justify-center -mt-2 mb-3">
-
-                <p className="text-[9px] font-black text-red-500 bg-red-50 px-4 py-1.5 rounded-full border border-red-100 animate-in fade-in slide-in-from-top-1 duration-300">âš ï¸ {flightLookupError}</p>
-
+                <p className="text-[9px] font-black text-red-500 bg-red-50 px-4 py-1.5 rounded-full border border-red-100 animate-in fade-in slide-in-from-top-1 duration-300">⚠️ {flightLookupError}</p>
               </div>
-
             )}
 
             <div className="space-y-3">
-
               <div className="grid grid-cols-2 gap-3">
-
                 <div className="space-y-1"><label className={lbl}>Origem</label><input className={inp} placeholder="ORG" value={segment.origin || ''} onChange={e => updateSegment(idx, { origin: e.target.value.toUpperCase() })} /></div>
-
                 <div className="space-y-1"><label className={lbl}>Destino</label><input className={inp} placeholder="DST" value={segment.destination || ''} onChange={e => updateSegment(idx, { destination: e.target.value.toUpperCase() })} /></div>
-
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-
                 <div className="space-y-1">
-
                   <label className={lbl}>📅 Partida</label>
-
                   <div className="flex gap-1.5"><DateInput className={inp} value={segment.departureDate || ''} onChange={v => updateSegment(idx, { departureDate: v })} /><input type="time" className={`${inp} w-24`} value={segment.departureTime || ''} onChange={e => updateSegment(idx, { departureTime: e.target.value })} /></div>
-
                 </div>
-
                 <div className="space-y-1">
-
                   <label className={lbl}>📅 Chegada</label>
-
                   <div className="flex gap-1.5"><DateInput className={inp} value={segment.arrivalDate || ''} onChange={v => updateSegment(idx, { arrivalDate: v })} /><input type="time" className={`${inp} w-24`} value={segment.arrivalTime || ''} onChange={e => updateSegment(idx, { arrivalTime: e.target.value })} /></div>
-
                 </div>
-
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-
                  <div className="space-y-1"><label className={lbl}>Duração</label><input className={inp} placeholder="--" value={segment.duration || ''} onChange={e => updateSegment(idx, { duration: e.target.value })} /></div>
-
                  <div className="space-y-1">
-
                     <label className={lbl}>Cia Aérea</label>
-
                     <select className={sel} value={segment.airline || ''} onChange={e => updateSegment(idx, { airline: e.target.value })}>
-
                       <option value="">Selecione</option>{AIRLINES.map(a => <option key={a}>{a}</option>)}
-
                     </select>
-
                  </div>
-
                  <div className="space-y-1">
-
                     <label className={lbl}>Classe</label>
-
                     <select className={sel} value={segment.flightClass || 'Econômica'} onChange={e => updateSegment(idx, { flightClass: e.target.value })}>
-
                       <option>Econômica</option><option>Premium Economy</option><option>Executiva</option><option>Primeira Classe</option>
-
                     </select>
-
                  </div>
-
               </div>
 
               <div className="flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/40 p-2 rounded-xl border border-gray-100 dark:border-slate-700/50">
-
                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Bagagens:</span>
-
                 <div className="flex gap-4">
-
                   {[
-
                     { key: 'personalItem', label: 'Item Pes.' },
-
                     { key: 'carryOn', label: 'C. Mão' },
-
                     { key: 'checkedBag23kg', label: '23kg' }
-
                   ].map(bag => (
-
                     <div key={bag.key} className="flex items-center gap-1.5">
-
                       <button type="button" onClick={() => updateSegment(idx, { [bag.key]: Math.max(0, (segment[bag.key] || 0) - 1) })} className="w-5 h-5 rounded-md bg-white border border-gray-200 flex items-center justify-center font-black text-xs hover:bg-red-50 hover:text-red-500 transition-all">-</button>
-
                       <div className="flex flex-col items-center min-w-[12px]">
-
                         <span className="text-[10px] font-black text-gray-700 dark:text-white leading-none">{segment[bag.key] ?? (bag.key === 'checkedBag23kg' ? 0 : 1)}</span>
-
                         <span className="text-[7px] font-bold text-gray-400 uppercase leading-none mt-0.5">{bag.label}</span>
-
                       </div>
-
                       <button type="button" onClick={() => updateSegment(idx, { [bag.key]: (segment[bag.key] || 0) + 1 })} className="w-5 h-5 rounded-md bg-white border border-gray-200 flex items-center justify-center font-black text-xs hover:bg-cyan-50 hover:text-cyan-500 transition-all">+</button>
-
                     </div>
-
                   ))}
-
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         ))}
-
         <button type="button" onClick={addSegment} className="w-full py-2 border-2 border-dashed border-gray-200 hover:border-cyan-300 rounded-xl text-[10px] font-black text-gray-400 hover:text-cyan-500 transition-all flex items-center justify-center gap-2 bg-gray-50/50 hover:bg-cyan-50 group">
-
           <Clock className="w-3.5 h-3.5" /> ADICIONAR CONEXÃO
-
         </button>
-
       </div>
-
     </div>
-
   );
-
 }
 
 function PassagemForm(props: any) {
 
-  const toggleFlightType = (type: 'ida' | 'ida_volta') => {
+  const toggleFlightType = (type: 'ida' | 'ida_volta' | 'multi') => {
+    props.setCurrentItem((prev: any) => {
+      const base = { ...prev, flightType: type };
+      
+      if (type === 'ida') {
+        return { ...base, inboundSegments: [] };
+      }
+      
+      if (type === 'ida_volta') {
+        const inbound = (prev.inboundSegments?.length > 0) 
+            ? prev.inboundSegments 
+            : [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }];
+        return { ...base, inboundSegments: inbound };
+      }
 
+      if (type === 'multi') {
+        const legs = (prev.multiLegs?.length > 0)
+            ? prev.multiLegs
+            : [
+                { id: '1', label: 'Trecho 1', segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }] },
+                { id: '2', label: 'Trecho 2', segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }] }
+              ];
+        return { ...base, multiLegs: legs };
+      }
+
+      return base;
+    });
+  };
+
+  const addMultiLeg = () => {
+    props.setCurrentItem((prev: any) => {
+      const nextIdx = (prev.multiLegs?.length || 0) + 1;
+      const newLeg = {
+        id: Math.random().toString(36).substr(2, 9),
+        label: `Trecho ${nextIdx}`,
+        segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }]
+      };
+      return { ...prev, multiLegs: [...(prev.multiLegs || []), newLeg] };
+    });
+  };
+
+  const removeMultiLeg = (legId: string) => {
     props.setCurrentItem((prev: any) => ({
-
       ...prev,
-
-      flightType: type,
-
-      inboundSegments: type === 'ida_volta' 
-
-        ? (prev.inboundSegments?.length > 0 ? prev.inboundSegments : [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }])
-
-        : []
-
+      multiLegs: (prev.multiLegs || []).filter((l: any) => l.id !== legId)
     }));
+  };
 
+  const updateMultiLegSegments = (legId: string, segments: any[]) => {
+    props.setCurrentItem((prev: any) => ({
+      ...prev,
+      multiLegs: (prev.multiLegs || []).map((l: any) => l.id === legId ? { ...l, segments } : l)
+    }));
   };
 
   return (
@@ -476,11 +382,46 @@ function PassagemForm(props: any) {
 
         <button type="button" onClick={() => toggleFlightType('ida_volta')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'ida_volta' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Ida e Volta</button>
 
+        <button type="button" onClick={() => toggleFlightType('multi')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'multi' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Multi-trecho</button>
+
       </div>
 
-      <TrechoCard label="Trecho 1 — Ida" {...props} />
-
-      {props.currentItem.flightType === 'ida_volta' && <TrechoCard label="Trecho 2 — Volta" isReturn {...props} />}
+      {props.currentItem.flightType === 'multi' ? (
+        <div className="space-y-4">
+          {(props.currentItem.multiLegs || []).map((leg: any, idx: number) => (
+            <TrechoCard 
+              key={leg.id}
+              label={leg.label || `Trecho ${idx + 1}`}
+              segments={leg.segments}
+              onSegmentsChange={(segs: any[]) => updateMultiLegSegments(leg.id, segs)}
+              canRemove={props.currentItem.multiLegs.length > 1}
+              onRemove={() => removeMultiLeg(leg.id)}
+              {...props}
+              lookupFlight={(fn: any, dt: any, isRet: any, segIdx: any, onSegChange: any) => props.lookupFlight(fn, dt, isRet, segIdx, onSegChange, leg.id)}
+            />
+          ))}
+          <button type="button" onClick={addMultiLeg} className="w-full py-3 border-2 border-dashed border-cyan-200 hover:border-cyan-400 rounded-2xl text-[11px] font-black text-cyan-500 hover:bg-cyan-50 transition-all flex items-center justify-center gap-2">
+            <Plus className="w-4 h-4" /> ADICIONAR OUTRO TRECHO
+          </button>
+        </div>
+      ) : (
+        <>
+          <TrechoCard 
+            label="Trecho 1 — Ida" 
+            segments={props.currentItem.outboundSegments || []}
+            onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, outboundSegments: segs }))}
+            {...props}
+          />
+          {props.currentItem.flightType === 'ida_volta' && (
+            <TrechoCard 
+              label="Trecho 2 — Volta" 
+              segments={props.currentItem.inboundSegments || []}
+              onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, inboundSegments: segs }))}
+              {...props}
+            />
+          )}
+        </>
+      )}
 
     </div>
 
@@ -632,56 +573,67 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
   };
 
-  const lookupFlight = async (fn: string, dt: string, isReturn: boolean, idx: number) => {
-
+  const lookupFlight = async (fn: string, dt: string, isReturn: boolean, idx: number, onSegmentsChange?: (segs: any[]) => void, legId?: string) => {
     if (!fn || !dt) return;
-
     setFlightLookupLoading(true);
-
     setFlightLookupError(null);
-
     try {
-
       const res = await apiFetch(`/api/lookup-flight?flight=${encodeURIComponent(fn)}&date=${dt}`);
-
       const data = await res.json();
-
       if (!res.ok) { setFlightLookupError(data.error); return; }
+      
+      let airline = data.airline || '';
+      const found = AIRLINES.find(a => airline.toLowerCase().includes(a.toLowerCase()));
+      if (found) airline = found;
 
-      const key = isReturn ? 'inboundSegments' : 'outboundSegments';
+      const flightData = { ...data, airline, flightNumber: fn };
 
-      setCurrentItem((prev: any) => {
-
-        const segs = [...(prev[key] || [])];
-
-        // Automação: Tentar encontrar a cia aérea na lista ou usar a vinda da API
-
-        let airline = data.airline || '';
-
-        const found = AIRLINES.find(a => airline.toLowerCase().includes(a.toLowerCase()));
-
-        if (found) airline = found;
-
-        segs[idx] = { ...segs[idx], ...data, airline, flightNumber: fn };
-
-        return { ...prev, [key]: segs };
-
-      });
-
+      if (onSegmentsChange) {
+        // If we are using the refactored TrechoCard with callback
+        setCurrentItem((prev: any) => {
+           if (prev.flightType === 'multi' && legId) {
+             const newLegs = (prev.multiLegs || []).map((l: any) => {
+               if (l.id === legId) {
+                 const newSegs = [...l.segments];
+                 newSegs[idx] = { ...newSegs[idx], ...flightData };
+                 return { ...l, segments: newSegs };
+               }
+               return l;
+             });
+             return { ...prev, multiLegs: newLegs };
+           } else {
+             const key = isReturn ? 'inboundSegments' : 'outboundSegments';
+             const segs = [...(prev[key] || [])];
+             segs[idx] = { ...segs[idx], ...flightData };
+             return { ...prev, [key]: segs };
+           }
+        });
+      }
     } catch (e) { setFlightLookupError('Erro na busca'); } finally { setFlightLookupLoading(false); }
-
   };
 
   const handleAddItem = () => {
 
-    const desc = currentItem.type === 'passagem' 
-      ? (currentItem.outboundSegments?.[0]?.origin + ' → ' + currentItem.outboundSegments?.[currentItem.outboundSegments.length-1]?.destination) 
-      : (currentItem.type === 'hospedagem' ? (currentItem.hotelName || 'Hospedagem') : 
-        (currentItem.type === 'translado' ? (
-          (currentItem.transfer_in && currentItem.transfer_out) ? 'Translado (In/Out)' :
-          currentItem.transfer_in ? 'Translado (In)' :
-          currentItem.transfer_out ? 'Translado (Out)' : 'Translado'
-        ) : (currentItem.type === 'seguro' ? 'Seguro Viagem' : 'Carro')));
+    let desc = '';
+    if (currentItem.type === 'passagem') {
+      if (currentItem.flightType === 'multi') {
+        const first = currentItem.multiLegs?.[0]?.segments?.[0]?.origin || '?';
+        const last = currentItem.multiLegs?.[currentItem.multiLegs.length - 1]?.segments?.[currentItem.multiLegs?.[currentItem.multiLegs.length - 1]?.segments?.length - 1]?.destination || '?';
+        desc = `Multi-trecho: ${first} → ... → ${last}`;
+      } else {
+        desc = (currentItem.outboundSegments?.[0]?.origin + ' → ' + currentItem.outboundSegments?.[currentItem.outboundSegments.length-1]?.destination);
+      }
+    } else if (currentItem.type === 'hospedagem') {
+      desc = (currentItem.hotelName || 'Hospedagem');
+    } else if (currentItem.type === 'translado') {
+      desc = (currentItem.transfer_in && currentItem.transfer_out) ? 'Translado (In/Out)' :
+             currentItem.transfer_in ? 'Translado (In)' :
+             currentItem.transfer_out ? 'Translado (Out)' : 'Translado';
+    } else if (currentItem.type === 'seguro') {
+      desc = 'Seguro Viagem';
+    } else {
+      desc = 'Carro';
+    }
 
     const hotelMetaData = currentItem.type === 'hospedagem' ? {
 
