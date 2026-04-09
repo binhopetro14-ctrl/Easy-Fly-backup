@@ -595,7 +595,7 @@ function useAirportResolver(initialAirports: string[]) {
 }
 
 
-const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string, arrDate?: string) => {
+const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string, arrDate?: string, origin?: string, destination?: string) => {
   if (!depTime || !arrTime) return null;
   try {
     const parse = (t: string, d?: string) => {
@@ -610,9 +610,19 @@ const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string,
       return new Date(2000, 0, 1, h, m).getTime();
     };
 
-    const start = parse(depTime, depDate);
-    const end = parse(arrTime, arrDate);
+    let start = parse(depTime, depDate);
+    let end = parse(arrTime, arrDate);
     
+    // AJUSTE DE FUSO HORÁRIO (NORONHA - FEN)
+    // Fernando de Noronha é UTC-2, o resto do Brasil (Brasiia) é UTC-3
+    if (origin === 'FEN' && destination !== 'FEN') {
+      // Saindo de Noronha: O voo "ganha" 1 hora no relógio local, então a duração real é +1h do que a diferença nominal
+      start -= 60 * 60 * 1000;
+    } else if (origin !== 'FEN' && destination === 'FEN') {
+      // Chegando em Noronha: O voo "perde" 1 hora no relógio local, então a duração real é -1h do que a diferença nominal
+      start += 60 * 60 * 1000;
+    }
+
     let diffMs = end - start;
     if (!depDate && diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
     
@@ -1038,7 +1048,7 @@ function FlightLegCard({
                           segments.forEach((seg, idx) => {
                             let sDuration = seg.duration;
                             if (!sDuration) {
-                              sDuration = calculateDuration(seg.departureTime, seg.arrivalTime, seg.departureDate, seg.arrivalDate) || '';
+                              sDuration = calculateDuration(seg.departureTime, seg.arrivalTime, seg.departureDate, seg.arrivalDate, seg.origin, seg.destination) || '';
                             }
                             const sNum = getNums(sDuration);
                             if (sNum.length >= 2) {
@@ -1065,7 +1075,7 @@ function FlightLegCard({
                         // 2. Single segment or fallback for length 1
                         if (segments.length === 1) {
                           const s = segments[0];
-                          const dStr = s.duration || calculateDuration(s.departureTime, s.arrivalTime, s.departureDate, s.arrivalDate);
+                          const dStr = s.duration || calculateDuration(s.departureTime, s.arrivalTime, s.departureDate, s.arrivalDate, s.origin, s.destination);
                           if (dStr) {
                             const nums = getNums(dStr);
                             if (nums.length >= 2) {
@@ -1159,7 +1169,7 @@ function FlightLegCard({
                                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100/50">
                                        <Clock className="w-3.5 h-3.5 text-slate-400" />
                                        <span className="text-xs font-black text-slate-600 uppercase tracking-tighter">
-                                          Duração: {seg.duration || calculateDuration(seg.departureTime, seg.arrivalTime, seg.departureDate, seg.arrivalDate) || '--'}
+                                          Duração: {seg.duration || calculateDuration(seg.departureTime, seg.arrivalTime, seg.departureDate, seg.arrivalDate, seg.origin, seg.destination) || '--'}
                                        </span>
                                     </div>
                                  </div>
