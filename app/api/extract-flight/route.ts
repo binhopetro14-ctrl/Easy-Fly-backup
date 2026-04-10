@@ -1,4 +1,9 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Configurações para o Vercel
+export const maxDuration = 60; // Aumentar para 60 segundos (Hobby limit)
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -9,6 +14,12 @@ export async function POST(req: Request) {
 
     const base64Data = image.split(',')[1] || image;
     const apiKey = process.env.GOOGLE_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json({ error: 'GOOGLE_API_KEY não configurada' }, { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     const prompt = `
       Analise esta imagem de um itinerário de voo e extraia os dados dos trechos.
@@ -29,54 +40,60 @@ export async function POST(req: Request) {
           }
         ]
       }
-      Se houver conexões, liste cada trecho separadamente.
-      Identifique onde começa a volta e marque 'isReturn: true' a partir desse trecho.
+      Regras:
+      1. Se houver conexões, liste cada trecho separadamente.
+      2. Identifique onde começa a volta e marque 'isReturn: true' a partir desse trecho.
+      3. Seja extremamente preciso com horários e códigos IATA.
     `;
 
+    // Lista de modelos a tentar, priorizando o solicitado pelo usuário e os estáveis
     const modelsToTry = [
-      'gemini-3-flash-preview',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-flash',
+      'gemini-3-flash-preview', // Solicitado pelo usuário como funcional
+      'gemini-2.0-flash-exp',    // Experimental rápido
+      'gemini-1.5-flash',        // Estável e rápido
+      'gemini-1.5-flash-latest'
     ];
 
     let lastError = '';
 
     for (const modelName of modelsToTry) {
       try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: 'image/png', data: base64Data } }] }],
-              generationConfig: { responseMimeType: 'application/json' },
-            }),
-          }
-        );
+        console.log(`[extract-flight] Tentando modelo: ${modelName}`);
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: { responseMimeType: 'application/json' }
+        });
 
-        if (response.ok) {
-          const data = await response.json();
-          const textOutput = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (textOutput) {
-            return NextResponse.json(JSON.parse(textOutput));
+        const result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              mimeType: 'image/png',
+              data: base64Data
+            }
           }
-        } else {
-          const errData = await response.json();
-          lastError = errData.error?.message || response.statusText;
-          // Se for erro de quota ou sobrecarga, tenta o próximo modelo
-          continue;
+        ]);
+
+        const textOutput = result.response.text();
+        if (textOutput) {
+          console.log(`[extract-flight] Sucesso com modelo: ${modelName}`);
+          return NextResponse.json(JSON.parse(textOutput));
         }
       } catch (e: any) {
+        console.warn(`[extract-flight] Erro no modelo ${modelName}:`, e.message);
         lastError = e.message;
+        // Continua para o próximo modelo se este falhar
         continue;
       }
     }
 
-    throw new Error(`Todos os modelos de IA estão sobrecarregados. Último erro: ${lastError}`);
+    throw new Error(`Falha em todos os modelos. Último erro: ${lastError}`);
 
   } catch (err: any) {
     console.error('[extract-flight ERROR]', err);
-    return NextResponse.json({ error: 'Erro ao processar imagem: ' + err.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Erro ao processar imagem: ' + err.message,
+      details: err.stack 
+    }, { status: 500 });
   }
 }

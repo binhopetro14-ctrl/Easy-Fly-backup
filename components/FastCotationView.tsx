@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Plane, Backpack, Luggage, Clock, CheckCircle2, Copy, Download,
   CheckCircle, Plus, Trash2, ArrowRight, User, Users, Baby,
-  MapPin, ChevronDown, ChevronUp, Zap, Check
+  MapPin, ChevronDown, ChevronUp, Zap, Check, MessageSquare, Minus
 } from 'lucide-react';
 import { toBlob } from 'html-to-image';
 import Image from 'next/image';
@@ -59,6 +59,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
   // Editable states
   const [travelClass, setTravelClass] = useState('Econômica');
   const [consultantName, setConsultantName] = useState('');
+  const [leadManualName, setLeadManualName] = useState('');
   const [quotationDate, setQuotationDate] = useState(new Date().toLocaleDateString('pt-BR'));
 
   const [flights, setFlights] = useState<FlightLeg[]>([
@@ -75,11 +76,41 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
   const [price6x, setPrice6x] = useState('997');
   const [price12x, setPrice12x] = useState('526');
 
-  const [inclusions, setInclusions] = useState([
-    { icon: <Backpack className="w-8 h-8 text-cyan-500" />, label: '1 Mochila 5kg', checked: true },
-    { icon: <Luggage className="w-8 h-8 text-cyan-500" />, label: '1 Mala de mão 10kg', checked: true },
-    { icon: <Luggage className="w-8 h-8 text-cyan-500" />, label: '0 Mala despachada 23kg', checked: true },
-  ]);
+  const [baggageState, setBaggageState] = useState({
+    mochila: { enabled: true, qty: 1, weight: 10, label: 'Mochila' },
+    mao: { enabled: true, qty: 1, weight: 12, label: 'Mala de mão' },
+    despachada: { enabled: false, qty: 0, weight: 23, label: 'Mala despachada' }
+  });
+
+  const inclusions = useMemo(() => {
+    const items = [];
+    if (baggageState.mochila.enabled) {
+      items.push({ 
+        icon: <Backpack className="w-8 h-8 text-cyan-500" />, 
+        label: `${baggageState.mochila.qty} ${baggageState.mochila.label} ${baggageState.mochila.weight}kg` 
+      });
+    }
+    if (baggageState.mao.enabled) {
+      items.push({ 
+        icon: <Luggage className="w-8 h-8 text-cyan-500" />, 
+        label: `${baggageState.mao.qty} ${baggageState.mao.label} ${baggageState.mao.weight}kg` 
+      });
+    }
+    if (baggageState.despachada.enabled) {
+      items.push({ 
+        icon: <Luggage className="w-8 h-8 text-cyan-500" />, 
+        label: `${baggageState.despachada.qty} ${baggageState.despachada.label} ${baggageState.despachada.weight}kg` 
+      });
+    }
+    return items;
+  }, [baggageState]);
+
+  const updateBaggage = (key: keyof typeof baggageState, field: string, value: any) => {
+    setBaggageState(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: value }
+    }));
+  };
 
   const mainRoute = useMemo(() => {
     const validFlights = flights.filter(f => f.date && f.origin && f.destination);
@@ -140,72 +171,86 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
     setExtractionStatus('loading');
     setNotification({ message: 'Lendo imagem com IA... Aguarde.', type: 'success' });
     
+    // Controlador para timeout do fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 segundos de timeout no front
+
     try {
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const base64 = await base64Promise;
+      
+      const response = await fetch('/api/extract-flight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMessage = 'Erro no servidor';
+        try {
+          const json = JSON.parse(text);
+          errorMessage = json.error || errorMessage;
+        } catch {
+          // Se não for JSON, é provavelmente a página de erro do Vercel
+          if (response.status === 504) errorMessage = 'Timeout: O Vercel demorou muito para responder. Tente novamente com uma imagem menor.';
+          else errorMessage = `Erro ${response.status}: O servidor não respondeu corretamente.`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      if (data.flights && data.flights.length > 0) {
+        const newFlights = data.flights.map((f: any) => ({
+          ...f,
+          class: travelClass
+        }));
         
-        const response = await fetch('/api/extract-flight', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64 }),
+        while (newFlights.length < 5) {
+          newFlights.push({ date: '', origin: '', departure: '', arrival: '', destination: '', airline: '', class: travelClass });
+        }
+        
+        setFlights(newFlights);
+        
+        // Lógica de Bagagem Padrão baseada na Cia Aérea
+        const allAirlines = data.flights.map((f: any) => (f.airline || '').toUpperCase());
+        const isLatamOrGol = allAirlines.some((name: string) => name.includes('LATAM') || name.includes('GOL'));
+
+        setBaggageState({
+          mochila: { enabled: true, qty: 1, weight: isLatamOrGol ? 10 : 5, label: 'Mochila' },
+          mao: { enabled: true, qty: 1, weight: isLatamOrGol ? 12 : 10, label: 'Mala de mão' },
+          despachada: { enabled: false, qty: 0, weight: 23, label: 'Mala despachada' }
         });
-        
-        const data = await response.json();
-        
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        
-        if (data.flights && data.flights.length > 0) {
-          const newFlights = data.flights.map((f: any) => ({
-            ...f,
-            class: travelClass
-          }));
-          
-          while (newFlights.length < 5) {
-            newFlights.push({ date: '', origin: '', departure: '', arrival: '', destination: '', airline: '', class: travelClass });
-          }
-          
-          setFlights(newFlights);
-          
-          // Lógica de Bagagem Padrão baseada na Cia Aérea (Percorrendo todos os trechos)
-          const allAirlines = data.flights.map((f: any) => (f.airline || '').toUpperCase());
-          const isLatamOrGol = allAirlines.some((name: string) => name.includes('LATAM') || name.includes('GOL'));
 
-          const newInclusions = [
-            { 
-              icon: <Backpack className="w-8 h-8 text-cyan-500" />, 
-              label: isLatamOrGol ? '1 MOCHILA 10KG' : '1 MOCHILA 5KG', 
-              checked: true 
-            },
-            { 
-              icon: <Luggage className="w-8 h-8 text-cyan-500" />, 
-              label: isLatamOrGol ? '1 MALA DE MÃO 12KG' : '1 MALA DE MÃO 10KG', 
-              checked: true 
-            },
-            { 
-              icon: <Luggage className="w-8 h-8 text-cyan-500" />, 
-              label: '0 MALA DESPACHADA 23KG', 
-              checked: true 
-            },
-          ];
-          setInclusions(newInclusions);
-
-          setExtractionStatus('success');
-          setNotification({ message: 'Dados e bagagens atualizados!', type: 'success' });
-          
-          // Volta ao estado original após 5 segundos
-          setTimeout(() => setExtractionStatus('idle'), 5000);
-        }
-      };
-      reader.readAsDataURL(file);
+        setExtractionStatus('success');
+        setNotification({ message: 'Dados e bagagens atualizados!', type: 'success' });
+        
+        setTimeout(() => setExtractionStatus('idle'), 5000);
+      } else {
+        throw new Error('Nenhum dado de voo identificado na imagem.');
+      }
     } catch (err: any) {
       console.error('Erro na extração:', err);
       setExtractionStatus('idle');
-      setNotification({ message: 'Falha ao extrair dados: ' + err.message, type: 'error' });
+      const message = err.name === 'AbortError' ? 'A requisição demorou muito e foi cancelada.' : err.message;
+      setNotification({ message: 'Falha ao extrair dados: ' + message, type: 'error' });
     } finally {
       setIsExtracting(false);
+      clearTimeout(timeoutId);
     }
   };
 
@@ -233,6 +278,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
 
     const lead = leads.find(l => l.id === leadId);
     if (lead) {
+      setLeadManualName(lead.name || '');
       if (lead.items && lead.items.length > 0) {
         const flightItem = lead.items.find(item => item.type === 'passagem');
         if (flightItem) {
@@ -303,33 +349,52 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
   const handleCopyImage = async () => {
     if (!proposalRef.current) return;
     setIsCopying(true);
+    
+    // Garante que a janela tenha foco no início do gesto do usuário
+    window.focus();
+
     try {
-      const blob = await toBlob(proposalRef.current, {
+      const options = {
         cacheBust: true,
         backgroundColor: '#ffffff',
         pixelRatio: 2,
         // @ts-ignore
         skipFonts: true,
         fontEmbedCSS: '',
-      });
+      };
 
-      if (blob) {
-        try {
-          // Garante foco para evitar erro de 'Document is not focused'
-          window.focus();
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]);
-          setNotification({ message: 'Imagem copiada para a área de transferência!', type: 'success' });
-        } catch (clipboardErr) {
-          console.error('Erro ao escrever no clipboard:', clipboardErr);
-          // Fallback se o clipboard falhar por foco
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `cotacao.png`;
-          a.click();
-          setNotification({ message: 'Erro ao copiar (sem foco). Download iniciado automaticamente.', type: 'warning' });
+      // Usamos o padrão de passar a Promise diretamente para o ClipboardItem.
+      // Isso é mais robusto em navegadores modernos pois mantém a ativação do usuário
+      // enquanto a imagem é processada.
+      try {
+        const blobPromise = toBlob(proposalRef.current, options);
+        const data = [new ClipboardItem({ 'image/png': blobPromise as Promise<Blob> })];
+        await navigator.clipboard.write(data);
+        setNotification({ message: 'Imagem copiada para a área de transferência!', type: 'success' });
+      } catch (clipboardErr: any) {
+        console.warn('Falha no método de Promise do Clipboard, tentando fallback...', clipboardErr);
+        
+        // Fallback: Tenta gerar o blob primeiro e depois escrever (método antigo)
+        const blob = await toBlob(proposalRef.current, options);
+        if (blob) {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            setNotification({ message: 'Imagem copiada para a área de transferência!', type: 'success' });
+          } catch (finalErr: any) {
+            // Se ainda assim falhar por foco, oferecemos o download automático
+            if (finalErr.name === 'NotAllowedError' || finalErr.message.includes('focus')) {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `cotacao.png`;
+              a.click();
+              setNotification({ message: 'Sem foco no navegador: Download iniciado.', type: 'warning' });
+            } else {
+              throw finalErr;
+            }
+          }
         }
       }
     } catch (err) {
@@ -363,6 +428,49 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
     } catch (err) {
       console.error('Erro ao baixar imagem:', err);
     }
+  };
+
+  const generatedMessage = useMemo(() => {
+    const origin = mainRoute?.origin || 'ORIGEM';
+    const destination = mainRoute?.destination || 'DESTINO';
+    const nome = leadManualName || '[nome]';
+
+    // Datas únicas
+    const uniqueDates = Array.from(new Set(flights.filter(f => f.date).map(f => f.date))).join(' à ');
+    const datas = uniqueDates || '[DATAS DO VOO]';
+
+    // Bagagens e Inclusões
+    const bagagensTexto = inclusions
+      .map(item => `☑️${item.label}`)
+      .join('\n');
+
+    const isIdaEVolta = flights.some(f => f.isReturn);
+
+    return `Olá, ${nome}! Tudo bem? 😊
+Conforme conversamos, encontrei uma opção de voo para sua viagem:
+
+*Proposta de viagem*
+*${origin}✈️ ${destination}*
+\`${datas}\`
+
+${isIdaEVolta ? '☑️Passagem ida e volta\n' : ''}${bagagensTexto}
+☑️Suporte Jurídico contra imprevisto
+☑️Acompanhamento durante toda viagem
+
+*R$${parseFloat(pricePerPerson || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} à vista por pessoa*
+\`R$${parseFloat(price6x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em 6x sem juros no cartão\`
+\`R$${parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em 12x sem juros no cartão\`
+
+Te enviei todos os detalhes na imagem acima 👆
+
+⚠️ Os valores estão sujeitos a alteração a qualquer momento, de acordo com a disponibilidade da companhia aérea.
+
+Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que tudo ocorra bem e com tranquilidade ✈️`;
+  }, [mainRoute, leadManualName, flights, pricePerPerson, price6x, price12x, paymentMethod, inclusions]);
+
+  const handleCopyText = () => {
+    navigator.clipboard.writeText(generatedMessage);
+    setNotification({ message: 'Texto copiado para a área de transferência!', type: 'success' });
   };
 
   const groupedFlights = useMemo(() => {
@@ -459,6 +567,16 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
                 />
               </div>
               <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Nome lead</label>
+                <input
+                  type="text"
+                  value={leadManualName}
+                  onChange={(e) => setLeadManualName(e.target.value)}
+                  placeholder="Nome do cliente"
+                  className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-cyan-500/20"
+                />
+              </div>
+              <div className="col-span-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Data</label>
                 <input
                   type="text"
@@ -579,7 +697,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
           <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pricing</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold text-gray-400 mb-1 block">Valor PIX</label>
+              <label className="text-[10px] font-bold text-gray-400 mb-1 block">Valor à vista</label>
               <NumericFormat
                 value={pricePerPerson}
                 onValueChange={(values) => setPricePerPerson(values.value)}
@@ -592,43 +710,114 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-400 mb-1 block">Método</label>
-              <input
-                type="text"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+              <label className="text-[10px] font-bold text-gray-400 mb-1 block">Parcelamento</label>
+              <select
+                value={feesType}
+                onChange={(e) => setFeesType(e.target.value as any)}
                 className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-cyan-500/20"
-              />
+              >
+                <option value="with_interest">Com juros</option>
+                <option value="interest_free">Sem juros</option>
+              </select>
             </div>
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block">Parcelamento</label>
-            <select
-              value={feesType}
-              onChange={(e) => setFeesType(e.target.value as any)}
-              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-cyan-500/20"
-            >
-              <option value="with_interest">Com juros</option>
-              <option value="interest_free">Sem juros</option>
-            </select>
           </div>
         </div>
 
-        <div className="flex gap-2 pt-4">
+        {/* Bagagens Sidebar */}
+        <div>
+          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Bagagem</h3>
+          <div className="space-y-2">
+            {(Object.entries(baggageState) as [keyof typeof baggageState, any][]).map(([key, data]) => (
+              <div key={key} className={`p-2 rounded-xl border transition-all duration-300 ${
+                data.enabled 
+                  ? 'bg-white dark:bg-slate-800/50 border-cyan-100 dark:border-cyan-900/30' 
+                  : 'bg-gray-50/50 dark:bg-slate-900/10 border-gray-100 dark:border-slate-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`p-1 rounded-lg ${data.enabled ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-500' : 'bg-gray-100 dark:bg-slate-800 text-gray-400'}`}>
+                      {key === 'mochila' ? <Backpack className="w-3 h-3" /> : <Luggage className="w-3 h-3" />}
+                    </div>
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${data.enabled ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400'}`}>
+                      {data.label}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => updateBaggage(key, 'enabled', !data.enabled)}
+                    className={`w-7 h-4 rounded-full relative transition-all duration-300 ${data.enabled ? 'bg-cyan-500' : 'bg-gray-200 dark:bg-slate-700'}`}
+                  >
+                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 ${data.enabled ? 'right-0.5' : 'left-0.5'}`} />
+                  </button>
+                </div>
+                
+                {data.enabled && (
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-50 dark:border-slate-700/50 animate-in fade-in duration-300">
+                    {/* Qtd compact */}
+                    <div className="flex items-center bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg overflow-hidden flex-1">
+                      <button 
+                        onClick={() => updateBaggage(key, 'qty', Math.max(0, data.qty - 1))} 
+                        className="p-1 hover:text-cyan-500 transition-colors"
+                      >
+                        <Minus className="w-2.5 h-2.5" />
+                      </button>
+                      <span className="flex-1 text-center text-[9px] font-black text-gray-700 dark:text-gray-200">{data.qty}x</span>
+                      <button 
+                        onClick={() => updateBaggage(key, 'qty', data.qty + 1)} 
+                        className="p-1 hover:text-cyan-500 transition-colors"
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+
+                    {/* Peso compact */}
+                    <div className="flex items-center bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg overflow-hidden flex-[1.5]">
+                      <button 
+                        onClick={() => updateBaggage(key, 'weight', Math.max(0, data.weight - 1))} 
+                        className="p-1 hover:text-cyan-500 transition-colors"
+                      >
+                        <Minus className="w-2.5 h-2.5" />
+                      </button>
+                      <span className="flex-1 text-center text-[9px] font-black text-gray-700 dark:text-gray-200">{data.weight}kg</span>
+                      <button 
+                        onClick={() => updateBaggage(key, 'weight', data.weight + 1)} 
+                        className="p-1 hover:text-cyan-500 transition-colors"
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 pt-4">
           <button
             onClick={handleCopyImage}
             disabled={isCopying}
-            className="flex-1 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-300 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+            className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-300 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
           >
             {isCopying ? <Clock className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
             {isCopying ? 'Capturando...' : 'Copiar Imagem'}
           </button>
           <button
-            onClick={handleDownloadImage}
-            className="p-3 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-slate-700 transition-colors"
+            onClick={handleCopyText}
+            className="w-full bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 border border-slate-600"
           >
-            <Download className="w-4 h-4" />
+            <MessageSquare className="w-4 h-4" />
+            Copiar Texto
           </button>
+
+          {/* Preview do Texto */}
+          <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <Clock className="w-3 h-3" /> Preview da mensagem
+            </p>
+            <div className="text-[11px] text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
+              {generatedMessage}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -681,14 +870,14 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
                     <div className="h-[2px] w-12 sm:w-16 bg-gradient-to-r from-cyan-500 to-transparent"></div>
                   </div>
                   {mainRoute && (
-                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-1 duration-500">
-                      <span className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em]">
+                    <div className="flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-500">
+                      <span className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">
                         {mainRoute.origin}
                       </span>
-                      <div className="relative w-12 h-5 opacity-80">
-                        <Image src="/aviaoparacinza.png" alt="Para" layout="fill" objectFit="contain" />
+                      <div className="relative w-14 h-6 opacity-80">
+                        <Image src="/aviaoparacinza.png" alt="Para" layout="fill" objectFit="contain" unoptimized />
                       </div>
-                      <span className="text-sm font-bold text-gray-400 uppercase tracking-[0.2em]">
+                      <span className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">
                         {mainRoute.destination}
                       </span>
                     </div>
@@ -702,7 +891,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
               {/* Info Direita */}
               <div className="flex flex-col items-end justify-center gap-1">
                 <div className="relative w-36 h-12">
-                  <Image src="/cadastur.png" alt="Cadastur" layout="fill" objectFit="contain" priority />
+                  <Image src="/cadastur.png" alt="Cadastur" layout="fill" objectFit="contain" priority unoptimized />
                 </div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-4">CNPJ: 45.480.207-0001-49</p>
                 <div className="text-right space-y-0.5 mt-2">
@@ -733,7 +922,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
                             VOO DE IDA
                           </span>
                           <div className="relative w-6 h-6 z-10 drop-shadow-md shrink-0">
-                            <Image src="/aviaocimabranco.png" alt="Avião Ida" layout="fill" objectFit="contain" />
+                            <Image src="/aviaocimabranco.png" alt="Avião Ida" layout="fill" objectFit="contain" unoptimized />
                           </div>
                         </div>
                         {/* Trailing Lines */}
@@ -759,7 +948,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
                             VOO DE VOLTA
                           </span>
                           <div className="relative w-6 h-6 z-10 drop-shadow-md shrink-0">
-                            <Image src="/aviaobaixobranco.png" alt="Avião Volta" layout="fill" objectFit="contain" />
+                            <Image src="/aviaobaixobranco.png" alt="Avião Volta" layout="fill" objectFit="contain" unoptimized />
                           </div>
                         </div>
                       </div>
@@ -818,6 +1007,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
                                        alt="Avião"
                                        layout="fill"
                                        objectFit="contain"
+                                       unoptimized={true}
                                      />
                                    </div>
                                  </div>
@@ -898,7 +1088,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
                   <div className="flex justify-between items-center text-white">
                     <span className="text-3xl font-black italic">R$ {parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-xl font-bold uppercase tracking-tight">
-                      {feesType === 'interest_free' ? 'EM 10X SEM JUROS' : 'EM 12X COM JUROS'}
+                      {feesType === 'interest_free' ? 'EM 10X SEM JUROS' : 'EM 12X SEM JUROS'}
                     </span>
                   </div>
                 </div>
@@ -922,8 +1112,8 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
 
             {/* Banner Cheap Find */}
             <div className="mx-8 bg-cyan-500 py-4 px-6 rounded-sm mb-8 text-center shadow-lg shadow-cyan-500/10">
-              <p className="text-white text-2xl font-black uppercase italic tracking-tighter">
-                Encontrou mais barato? Fale conosco antes de fechar !
+              <p className="text-white text-lg font-black uppercase italic tracking-tighter">
+                Encontrou mais barato? Fale conosco e garanta a melhor opção!
               </p>
             </div>
 
