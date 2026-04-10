@@ -185,9 +185,14 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
 
       const base64 = await base64Promise;
       
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch('/api/extract-flight', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ image: base64 }),
         signal: controller.signal
       });
