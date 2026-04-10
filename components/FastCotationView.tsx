@@ -898,7 +898,7 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
                   <div className="flex justify-between items-center text-white">
                     <span className="text-3xl font-black italic">R$ {parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-xl font-bold uppercase tracking-tight">
-                      EM 12X SEM JUROS
+                      {feesType === 'interest_free' ? 'EM 10X SEM JUROS' : 'EM 12X COM JUROS'}
                     </span>
                   </div>
                 </div>
