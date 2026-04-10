@@ -55,6 +55,7 @@ import { SuppliersView } from '@/components/SuppliersView';
 import { UsersView } from '@/components/UsersView';
 import { useLeads } from '@/hooks/useLeads';
 import { CRMView } from '@/components/CRMView';
+import { FastCotationView } from '@/components/FastCotationView';
 import { LeadModal } from '@/components/LeadModal';
 import { FinanceiroView } from '@/components/OtherViews';
 import { MetricasView } from '@/components/MetricasView';
@@ -77,7 +78,7 @@ import { useSales } from '@/hooks/useSales';
 import { useSuppliers } from '@/hooks/useSuppliers';
 
 // <--- 'usuarios' adicionado ao tipo View
-type View = 'dashboard' | 'crm' | 'vendas' | 'clientes' | 'financeiro-controle' | 'financeiro-contas' | 'fornecedores' | 'metricas' | 'usuarios' | 'calendario';
+type View = 'dashboard' | 'crm' | 'fast-cotation' | 'vendas' | 'clientes' | 'financeiro-controle' | 'financeiro-contas' | 'fornecedores' | 'metricas' | 'usuarios' | 'calendario';
 
 export default function Page() {
   const { theme, toggleTheme, mounted } = useTheme();
@@ -119,6 +120,7 @@ export default function Page() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCRMExpanded, setIsCRMExpanded] = useState(false);
   const [isFinanceiroExpanded, setIsFinanceiroExpanded] = useState(false);
   const [showValues, setShowValues] = useState(true);
 
@@ -707,7 +709,18 @@ export default function Page() {
           <SidebarItem icon={<BarChart3 className="w-5 h-5" />} label="Métricas" active={activeView === 'metricas'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('metricas')} />
 
           <SidebarSection label="Gestão" collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
-          <SidebarItem icon={<Target className="w-5 h-5" />} label="CRM" active={activeView === 'crm'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('crm')} />
+          <SidebarItem 
+            icon={<Target className="w-5 h-5" />} 
+            label="CRM" 
+            active={activeView === 'crm' || activeView === 'fast-cotation'} 
+            collapsed={isSidebarCollapsed && !isMobileMenuOpen} 
+            isExpanded={isCRMExpanded}
+            onExpand={() => setIsCRMExpanded(!isCRMExpanded)}
+            subItems={[
+              { label: 'Funil de Vendas', active: activeView === 'crm', onClick: () => handleViewChange('crm') },
+              { label: 'Cotação rápida', active: activeView === 'fast-cotation', onClick: () => handleViewChange('fast-cotation') }
+            ]}
+          />
           <SidebarItem icon={<ShoppingCart className="w-5 h-5" />} label="Vendas" active={activeView === 'vendas'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('vendas')} />
           <SidebarItem icon={<Users className="w-5 h-5" />} label="Clientes" active={activeView === 'clientes'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('clientes')} />
           <SidebarItem 
@@ -821,6 +834,11 @@ export default function Page() {
                   onAddLead={openAddLead}
                   onEditLead={openEditLead}
                   onDeleteLead={handleDeleteLead}
+                />
+              ) : activeView === 'fast-cotation' ? (
+                <FastCotationView 
+                  leads={leads}
+                  currentUser={currentUser}
                 />
               ) : activeView === 'financeiro-controle' || activeView === 'financeiro-contas' ? (
                 <FinanceiroView subView={activeView === 'financeiro-controle' ? 'controle' : 'contas'} />
