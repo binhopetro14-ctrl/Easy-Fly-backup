@@ -451,9 +451,10 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
       .join('\n');
 
     const isIdaEVolta = flights.some(f => f.isReturn);
+    const labelParcelamento = feesType === 'interest_free' ? '10x' : '12x';
 
     return `Olá, ${nome}! Tudo bem? 😊
-Conforme conversamos, encontrei uma opção de voo para sua viagem:
+Conforme conversamos, encontrei uma ótima opção de voo para sua viagem:
 
 *Proposta de viagem*
 *${origin}✈️ ${destination}*
@@ -465,14 +466,14 @@ ${isIdaEVolta ? '☑️Passagem ida e volta\n' : ''}${bagagensTexto}
 
 *R$${parseFloat(pricePerPerson || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} à vista por pessoa*
 \`R$${parseFloat(price6x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em 6x sem juros no cartão\`
-\`R$${parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em 12x sem juros no cartão\`
+\`R$${parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em ${labelParcelamento} sem juros no cartão\`
 
-Te enviei todos os detalhes na imagem acima 👆
+*Te enviei todos os detalhes na imagem acima 👆*
 
 ⚠️ Os valores estão sujeitos a alteração a qualquer momento, de acordo com a disponibilidade da companhia aérea.
 
 Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que tudo ocorra bem e com tranquilidade ✈️`;
-  }, [mainRoute, leadManualName, flights, pricePerPerson, price6x, price12x, paymentMethod, inclusions]);
+  }, [mainRoute, leadManualName, flights, pricePerPerson, price6x, price12x, paymentMethod, inclusions, feesType]);
 
   const handleCopyText = () => {
     navigator.clipboard.writeText(generatedMessage);
