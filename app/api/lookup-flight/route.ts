@@ -12,6 +12,11 @@ const AIRLINE_NAMES: Record<string, string> = {
   CM: 'Copa Airlines', AM: 'Aeromexico', AC: 'Air Canada',
 };
 
+// Overrides de nomes de aeroportos para corrigir erros de APIs externas
+const AIRPORT_OVERRIDES: Record<string, { name: string; city: string }> = {
+  BFS: { name: 'Belfast International Airport', city: 'Belfast' },
+};
+
 function parseLocalTime(dateTimeStr?: string): string {
   if (!dateTimeStr) return '';
   // Format: "2024-03-15 09:00+03:00" or "2024-03-15T09:00:00+03:00"
@@ -149,11 +154,24 @@ export async function GET(request: Request) {
     const airlineCode = info.airline?.iata || '';
     const airlineName = info.airline?.name || AIRLINE_NAMES[airlineCode] || airlineCode;
 
+    const originIata = d.airport?.iata || '';
+    const destIata = a.airport?.iata || '';
+
+    let originName = d.airport?.name || d.airport?.shortName || '';
+    let destinationName = a.airport?.name || a.airport?.shortName || '';
+
+    if (AIRPORT_OVERRIDES[originIata]) {
+      originName = AIRPORT_OVERRIDES[originIata].name;
+    }
+    if (AIRPORT_OVERRIDES[destIata]) {
+      destinationName = AIRPORT_OVERRIDES[destIata].name;
+    }
+
     return NextResponse.json({
-      origin: d.airport?.iata || '',
-      destination: a.airport?.iata || '',
-      originName: d.airport?.name || d.airport?.shortName || '',
-      destinationName: a.airport?.name || a.airport?.shortName || '',
+      origin: originIata,
+      destination: destIata,
+      originName,
+      destinationName,
       airline: airlineName,
       departureDate,
       departureTime,

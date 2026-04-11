@@ -63,6 +63,7 @@ export async function POST(req: Request) {
       1. Se houver conexões, liste cada trecho separadamente.
       2. Identifique onde começa a volta e marque 'isReturn: true' a partir desse trecho.
       3. Seja extremamente preciso com horários e códigos IATA.
+      4. IMPORTANTE: O código BFS refere-se a Belfast International Airport na Irlanda do Norte.
     `;
 
     // Lista de modelos a tentar, priorizando o solicitado pelo usuário e os estáveis
@@ -96,7 +97,25 @@ export async function POST(req: Request) {
         const textOutput = result.response.text();
         if (textOutput) {
           console.log(`[extract-flight] Sucesso com modelo: ${modelName}`);
-          return NextResponse.json(JSON.parse(textOutput));
+          const parsed = JSON.parse(textOutput);
+          
+          // Post-processing mapping para correções conhecidas
+          if (parsed.flights) {
+            parsed.flights = parsed.flights.map((f: any) => {
+              // Correção BFS - Belfast
+              if (f.origin && (f.origin.includes('BFS') || (f.originAirport && f.originAirport.includes('Boedeker')))) {
+                f.origin = 'Belfast (BFS)';
+                f.originAirport = 'Belfast International Airport';
+              }
+              if (f.destination && (f.destination.includes('BFS') || (f.destinationAirport && f.destinationAirport.includes('Boedeker')))) {
+                f.destination = 'Belfast (BFS)';
+                f.destinationAirport = 'Belfast International Airport';
+              }
+              return f;
+            });
+          }
+
+          return NextResponse.json(parsed);
         }
       } catch (e: any) {
         console.warn(`[extract-flight] Erro no modelo ${modelName}:`, e.message);
