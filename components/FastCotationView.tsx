@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { NumericFormat } from 'react-number-format';
 import { Lead, TeamMember } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 const INTEREST_RATES: Record<number, number> = {
   1: 3.46,
