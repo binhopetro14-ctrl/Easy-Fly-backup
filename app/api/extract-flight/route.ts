@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
+import { normalizeFlightLeg } from '@/lib/airport-utils';
 
 // Configurações para o Vercel
 export const maxDuration = 60; // Aumentar para 60 segundos (Hobby limit)
@@ -101,18 +102,7 @@ export async function POST(req: Request) {
           
           // Post-processing mapping para correções conhecidas
           if (parsed.flights) {
-            parsed.flights = parsed.flights.map((f: any) => {
-              // Correção BFS - Belfast
-              if (f.origin && (f.origin.includes('BFS') || (f.originAirport && f.originAirport.includes('Boedeker')))) {
-                f.origin = 'Belfast (BFS)';
-                f.originAirport = 'Belfast International Airport';
-              }
-              if (f.destination && (f.destination.includes('BFS') || (f.destinationAirport && f.destinationAirport.includes('Boedeker')))) {
-                f.destination = 'Belfast (BFS)';
-                f.destinationAirport = 'Belfast International Airport';
-              }
-              return f;
-            });
+            parsed.flights = parsed.flights.map((f: any) => normalizeFlightLeg(f));
           }
 
           return NextResponse.json(parsed);

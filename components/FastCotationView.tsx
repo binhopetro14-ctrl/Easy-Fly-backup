@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { NumericFormat } from 'react-number-format';
 import { Lead, TeamMember } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { normalizeFlightLeg } from '@/lib/airport-utils';
 
 const INTEREST_RATES: Record<number, number> = {
   1: 3.46,
@@ -337,6 +338,10 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
     } else {
       newFlights[index] = { ...newFlights[index], [field]: value };
     }
+    
+    // Normaliza o trecho (correções de aeroportos como BFS)
+    newFlights[index] = normalizeFlightLeg(newFlights[index]);
+    
     setFlights(newFlights);
   };
 
