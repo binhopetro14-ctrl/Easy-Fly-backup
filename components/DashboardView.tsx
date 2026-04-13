@@ -63,6 +63,11 @@ export function DashboardView({
   showValues,
   onToggleValues
 }: DashboardViewProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const fmt = (value: number) => showValues
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
     : '••••••';
@@ -237,13 +242,17 @@ export function DashboardView({
               saleId: sale.id
             });
             // Check-in (24h antes)
-            const boardingDateTime = parseISO(fullDepartureStr);
             const checkInDateTime = new Date(boardingDateTime.getTime() - 24 * 60 * 60 * 1000);
+            
+            // Gerar ISO local manualmente para evitar o checkout em UTC do toISOString()
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            const localCheckInISO = `${checkInDateTime.getFullYear()}-${pad(checkInDateTime.getMonth() + 1)}-${pad(checkInDateTime.getDate())}T${pad(checkInDateTime.getHours())}:${pad(checkInDateTime.getMinutes())}`;
+
             autoEvents.push({
               id: `sale-checkin-${sale.id}-${idx}`,
               title: `Check-in: ${item.passengerName || sale.customerName || 'Passageiro'} - ${item.origin || ''}/${item.destination || ''}`,
               type: 'Check-in',
-              startDate: checkInDateTime.toISOString(),
+              startDate: localCheckInISO,
               isAuto: true,
               saleId: sale.id
             });
@@ -273,8 +282,11 @@ export function DashboardView({
   }, [allEvents]);
   const formatEventDate = (dateStr: string) => {
     try {
+      if (!isMounted) return { day: '--', month: '---', time: '--:--' };
+      
       const date = parseISO(dateStr);
       if (isNaN(date.getTime())) return { day: '--', month: '---', time: '--:--' };
+      
       const day = date.getDate().toString().padStart(2, '0');
       const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
       const hour = date.getHours().toString().padStart(2, '0');
@@ -309,6 +321,14 @@ export function DashboardView({
   };
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
+    // Se for apenas data YYYY-MM-DD, tratamos como string pura para evitar bugs de fuso horário
+    if (dateString.length === 10 && dateString.includes('-')) {
+      const portions = dateString.split('-');
+      if (portions[0].length === 4) {
+        return `${portions[2]}/${portions[1]}/${portions[0]}`;
+      }
+    }
+
     try {
       const dateObj = parseISO(dateString);
       if (isNaN(dateObj.getTime())) return '-';

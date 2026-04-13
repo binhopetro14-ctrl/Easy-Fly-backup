@@ -154,20 +154,22 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
     }
   }, [notification]);
 
+  const maxInstallments = (feesType === 'interest_free' && baggageState.despachada.enabled) ? 10 : 12;
+
   useEffect(() => {
     const cleanVal = parseFloat(pricePerPerson);
     if (!isNaN(cleanVal)) {
       if (feesType === 'with_interest') {
         const val6x = cleanVal * (1 + (INTEREST_RATES[6] || 0) / 100);
-        const val12x = cleanVal * (1 + (INTEREST_RATES[12] || 0) / 100);
+        const valMax = cleanVal * (1 + (INTEREST_RATES[maxInstallments] || 0) / 100);
         setPrice6x(val6x.toFixed(2));
-        setPrice12x(val12x.toFixed(2));
+        setPrice12x(valMax.toFixed(2));
       } else {
         setPrice6x(cleanVal.toFixed(2));
         setPrice12x(cleanVal.toFixed(2));
       }
     }
-  }, [pricePerPerson, feesType]);
+  }, [pricePerPerson, feesType, maxInstallments]);
 
   const handlePasteImage = async (file: File) => {
     setIsExtracting(true);
@@ -457,9 +459,14 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
     const destination = mainRoute?.destination || 'DESTINO';
     const nome = leadManualName || '[nome]';
 
-    // Datas únicas
-    const uniqueDates = Array.from(new Set(flights.filter(f => f.date).map(f => f.date))).join(' à ');
-    const datas = uniqueDates || '[DATAS DO VOO]';
+    // Datas de início da ida e volta
+    const departureDate = flights.find(f => !f.isReturn && f.date)?.date;
+    const returnDate = flights.find(f => f.isReturn && f.date)?.date;
+    
+    let datas = departureDate || '[DATAS DO VOO]';
+    if (returnDate && returnDate !== departureDate) {
+      datas += ` à ${returnDate}`;
+    }
 
     // Bagagens e Inclusões
     const bagagensTexto = inclusions
@@ -481,7 +488,7 @@ ${isIdaEVolta ? '☑️Passagem ida e volta\n' : ''}${bagagensTexto}
 
 *R$${parseFloat(pricePerPerson || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} à vista por pessoa*
 \`R$${parseFloat(price6x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em 6x sem juros no cartão\`
-\`R$${parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em 12x sem juros no cartão\`
+\`R$${parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} em ${maxInstallments}x sem juros no cartão\`
 
 *Te enviei todos os detalhes na imagem acima 👆*
 
@@ -1110,7 +1117,7 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                   <div className="flex justify-between items-center text-white">
                     <span className="text-3xl font-black italic">R$ {parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-xl font-bold uppercase tracking-tight">
-                      {feesType === 'interest_free' ? 'EM 10X SEM JUROS' : 'EM 12X SEM JUROS'}
+                      {`EM ${maxInstallments}X SEM JUROS`}
                     </span>
                   </div>
                 </div>
