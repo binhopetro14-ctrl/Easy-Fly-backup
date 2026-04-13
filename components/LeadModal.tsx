@@ -168,7 +168,7 @@ function DateInput({ value, onChange, className, placeholder }: {
 
 }
 
-function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, flightLookupError, lookupFlight, onRemove, canRemove }: any) {
+function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, flightLookupError, lookupFlight, onRemove, canRemove, isReturn }: any) {
   const updateSegment = (idx: number, data: any) => {
     const newSegs = segments.map((s: any, i: number) => i === idx ? { ...s, ...data } : s);
     onSegmentsChange(newSegs);
@@ -239,7 +239,7 @@ function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, fl
                    <input className="w-20 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-center" value={segment.flightNumber || ''} onChange={e => updateSegment(idx, { flightNumber: e.target.value.toUpperCase() })} />
                 </div>
                 <div className="pt-2.5">
-                   <button type="button" onClick={() => lookupFlight(segment.flightNumber, segment.departureDate, false, idx, onSegmentsChange)} disabled={flightLookupLoading} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
+                   <button type="button" onClick={() => lookupFlight(segment.flightNumber, segment.departureDate, isReturn || false, idx, onSegmentsChange)} disabled={flightLookupLoading} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
                      {flightLookupLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                    </button>
                 </div>
@@ -410,6 +410,7 @@ function PassagemForm(props: any) {
             label="Trecho 1 — Ida" 
             segments={props.currentItem.outboundSegments || []}
             onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, outboundSegments: segs }))}
+            isReturn={false}
             {...props}
           />
           {props.currentItem.flightType === 'ida_volta' && (
@@ -417,6 +418,7 @@ function PassagemForm(props: any) {
               label="Trecho 2 — Volta" 
               segments={props.currentItem.inboundSegments || []}
               onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, inboundSegments: segs }))}
+              isReturn={true}
               {...props}
             />
           )}
