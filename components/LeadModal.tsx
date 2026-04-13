@@ -408,18 +408,18 @@ function PassagemForm(props: any) {
         <>
           <TrechoCard 
             label="Trecho 1 — Ida" 
+            {...props}
             segments={props.currentItem.outboundSegments || []}
             onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, outboundSegments: segs }))}
             isReturn={false}
-            {...props}
           />
           {props.currentItem.flightType === 'ida_volta' && (
             <TrechoCard 
               label="Trecho 2 — Volta" 
+              {...props}
               segments={props.currentItem.inboundSegments || []}
               onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, inboundSegments: segs }))}
               isReturn={true}
-              {...props}
             />
           )}
         </>
