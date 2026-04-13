@@ -168,7 +168,26 @@ function DateInput({ value, onChange, className, placeholder }: {
 
 }
 
-function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, flightLookupError, lookupFlight, onRemove, canRemove, isReturn = false }: any) {
+function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, setFlightLookupLoading, flightLookupError, setFlightLookupError, lookupFlight, onRemove, canRemove }: any) {
+  const handleLookup = async (idx: number) => {
+    const segment = segments[idx];
+    if (!segment.flightNumber || !segment.departureDate) return;
+    
+    setFlightLookupLoading(true);
+    setFlightLookupError(null);
+    try {
+      const flightData = await lookupFlight(segment.flightNumber, segment.departureDate);
+      if (flightData) {
+        const newSegs = segments.map((s: any, i: number) => i === idx ? { ...s, ...flightData, flightNumber: segment.flightNumber } : s);
+        onSegmentsChange(newSegs);
+      }
+    } catch (e: any) {
+      setFlightLookupError(e.message || 'Erro na busca');
+    } finally {
+      setFlightLookupLoading(false);
+    }
+  };
+
   const updateSegment = (idx: number, data: any) => {
     const newSegs = segments.map((s: any, i: number) => i === idx ? { ...s, ...data } : s);
     onSegmentsChange(newSegs);
@@ -239,7 +258,7 @@ function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, fl
                    <input className="w-20 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-center" value={segment.flightNumber || ''} onChange={e => updateSegment(idx, { flightNumber: e.target.value.toUpperCase() })} />
                 </div>
                 <div className="pt-2.5">
-                   <button type="button" onClick={() => lookupFlight(segment.flightNumber, segment.departureDate, isReturn, idx, onSegmentsChange)} disabled={flightLookupLoading} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
+                   <button type="button" onClick={() => handleLookup(idx)} disabled={flightLookupLoading} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
                      {flightLookupLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                    </button>
                 </div>
@@ -397,7 +416,7 @@ function PassagemForm(props: any) {
               canRemove={props.currentItem.multiLegs.length > 1}
               onRemove={() => removeMultiLeg(leg.id)}
               {...props}
-              lookupFlight={(fn: any, dt: any, isRet: any, segIdx: any, onSegChange: any) => props.lookupFlight(fn, dt, isRet, segIdx, onSegChange, leg.id)}
+              lookupFlight={props.lookupFlight}
             />
           ))}
           <button type="button" onClick={addMultiLeg} className="w-full py-3 border-2 border-dashed border-cyan-200 hover:border-cyan-400 rounded-2xl text-[11px] font-black text-cyan-500 hover:bg-cyan-50 transition-all flex items-center justify-center gap-2">
@@ -411,7 +430,6 @@ function PassagemForm(props: any) {
             {...props}
             segments={props.currentItem.outboundSegments || []}
             onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, outboundSegments: segs }))}
-            isReturn={false}
           />
           {props.currentItem.flightType === 'ida_volta' && (
             <TrechoCard 
@@ -419,7 +437,6 @@ function PassagemForm(props: any) {
               {...props}
               segments={props.currentItem.inboundSegments || []}
               onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, inboundSegments: segs }))}
-              isReturn={true}
             />
           )}
         </>
@@ -575,43 +592,21 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
   };
 
-  const lookupFlight = async (fn: string, dt: string, isReturn: boolean, idx: number, onSegmentsChange?: (segs: any[]) => void, legId?: string) => {
-    if (!fn || !dt) return;
-    setFlightLookupLoading(true);
-    setFlightLookupError(null);
+  const lookupFlight = async (fn: string, dt: string) => {
+    if (!fn || !dt) return null;
     try {
       const res = await apiFetch(`/api/lookup-flight?flight=${encodeURIComponent(fn)}&date=${dt}`);
       const data = await res.json();
-      if (!res.ok) { setFlightLookupError(data.error); return; }
+      if (!res.ok) throw new Error(data.error);
       
       let airline = data.airline || '';
       const found = AIRLINES.find(a => airline.toLowerCase().includes(a.toLowerCase()));
       if (found) airline = found;
 
-      const flightData = { ...data, airline, flightNumber: fn };
-
-      if (onSegmentsChange) {
-        // If we are using the refactored TrechoCard with callback
-        setCurrentItem((prev: any) => {
-           if (prev.flightType === 'multi' && legId) {
-             const newLegs = (prev.multiLegs || []).map((l: any) => {
-               if (l.id === legId) {
-                 const newSegs = [...l.segments];
-                 newSegs[idx] = { ...newSegs[idx], ...flightData };
-                 return { ...l, segments: newSegs };
-               }
-               return l;
-             });
-             return { ...prev, multiLegs: newLegs };
-           } else {
-             const key = isReturn ? 'inboundSegments' : 'outboundSegments';
-             const segs = [...(prev[key] || [])];
-             segs[idx] = { ...segs[idx], ...flightData };
-             return { ...prev, [key]: segs };
-           }
-        });
-      }
-    } catch (e) { setFlightLookupError('Erro na busca'); } finally { setFlightLookupLoading(false); }
+      return { ...data, airline };
+    } catch (e: any) { 
+      throw e;
+    }
   };
 
   const handleAddItem = () => {
@@ -977,9 +972,9 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                   setCurrentItem={setCurrentItem} 
 
                   flightLookupLoading={flightLookupLoading} 
-
+                  setFlightLookupLoading={setFlightLookupLoading}
                   flightLookupError={flightLookupError} 
-
+                  setFlightLookupError={setFlightLookupError}
                   lookupFlight={lookupFlight} 
 
                 />
