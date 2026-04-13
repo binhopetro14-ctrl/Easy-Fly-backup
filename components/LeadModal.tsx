@@ -1425,7 +1425,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                           </div>
                           <div className="text-center">
                              <p className={`text-[11px] font-black uppercase tracking-widest leading-none mb-1 ${currentItem.transfer_in ? 'text-white' : 'text-slate-800 dark:text-white'}`}>Aeroporto → Hotel</p>
-                             <p className={`text-[9px] font-bold uppercase tracking-tight ${currentItem.transfer_in ? 'text-cyan-100' : 'text-slate-400'}`}>Translado "In" (Chegada)</p>
+                             <p className={`text-[9px] font-bold uppercase tracking-tight ${currentItem.transfer_in ? 'text-cyan-100' : 'text-slate-400'}`}>Translado &quot;In&quot; (Chegada)</p>
                           </div>
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${currentItem.transfer_in ? 'bg-white border-white' : 'border-slate-200'}`}>
                              {currentItem.transfer_in && <CheckCircle className="w-3.5 h-3.5 text-cyan-500" />}
@@ -1442,7 +1442,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                           </div>
                           <div className="text-center">
                              <p className={`text-[11px] font-black uppercase tracking-widest leading-none mb-1 ${currentItem.transfer_out ? 'text-white' : 'text-slate-800 dark:text-white'}`}>Hotel → Aeroporto</p>
-                             <p className={`text-[9px] font-bold uppercase tracking-tight ${currentItem.transfer_out ? 'text-purple-100' : 'text-slate-400'}`}>Translado "Out" (Partida)</p>
+                             <p className={`text-[9px] font-bold uppercase tracking-tight ${currentItem.transfer_out ? 'text-purple-100' : 'text-slate-400'}`}>Translado &quot;Out&quot; (Partida)</p>
                           </div>
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${currentItem.transfer_out ? 'bg-white border-white' : 'border-slate-200'}`}>
                              {currentItem.transfer_out && <CheckCircle className="w-3.5 h-3.5 text-purple-500" />}
