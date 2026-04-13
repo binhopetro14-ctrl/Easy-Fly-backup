@@ -53,24 +53,33 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sale, CalendarEvent, CalendarEventType, TeamMember } from '@/types';
+import { Sale, CalendarEvent, CalendarEventType, TeamMember, Customer } from '@/types';
 import { calendarService } from '@/services/supabaseService';
 
 interface CalendarViewProps {
   sales: Sale[];
+  customers: Customer[];
   manualEvents: CalendarEvent[];
   onRefresh: () => void;
   currentUser?: TeamMember | null;
+  onViewCustomer?: (customer: Customer) => void;
 }
 
 // --- Helper Func ---
 const parseSafeDate = (dateStr: string | undefined): Date => {
   if (!dateStr) return new Date();
+  
+  // Se for apenas data (YYYY-MM-DD), acrescenta o horário local (meia-noite) 
+  // para evitar que o JS interprete como UTC e desloque o fuso (ex: para 21h do dia anterior)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(`${dateStr}T00:00:00`);
+  }
+  
   const normalized = dateStr.includes(' ') ? dateStr.replace(' ', 'T') : dateStr;
   return new Date(normalized);
 };
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents, onRefresh, currentUser }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ sales, customers, manualEvents, onRefresh, currentUser, onViewCustomer }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('month');
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
@@ -89,37 +98,36 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
       sale.items?.forEach((item, idx) => {
         const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
         if (item.type === 'passagem' && item.departureDate) {
-          const depDate = parseSafeDate(item.departureDate);
+          const boardingTimeStr = item.boardingTime || '00:00';
+          const fullDepartureStr = `${item.departureDate}T${boardingTimeStr}`;
+          
+          // Evento de Embarque
           events.push({
             id: `sale-dep-${sale.id}-${idx}`,
             title: `Embarque: ${item.origin} ✈️ ${item.destination}${passengerLabel}`,
             type: 'Embarque',
-            startDate: item.departureDate,
+            startDate: fullDepartureStr,
             userName: sale.emissor || 'Sistema',
             isAuto: true,
+            saleId: sale.id,
             originalData: sale
           });
-          const checkInDate = subDays(depDate, 1);
-          events.push({
-            id: `sale-checkin-${sale.id}-${idx}`,
-            title: `Realizar Check-in: ${item.origin} ➔ ${item.destination}${passengerLabel}`,
-            type: 'Check-in',
-            startDate: format(checkInDate, "yyyy-MM-dd'T'HH:mm:ss"),
-            userName: sale.emissor || 'Sistema',
-            isAuto: true,
-            originalData: sale
-          });
-        }
-        if (item.type === 'hospedagem' && item.checkIn) {
-          events.push({
-            id: `sale-hotel-${sale.id}-${idx}`,
-            title: `Check-in Hotel: ${item.hotelName || 'Hospedagem'}${passengerLabel}`,
-            type: 'Hospedagem',
-            startDate: item.checkIn,
-            userName: sale.emissor || 'Sistema',
-            isAuto: true,
-            originalData: sale
-          });
+
+          // Evento de Check-in (24h antes)
+          try {
+            const boardingDateTime = parseSafeDate(fullDepartureStr);
+            const checkInDateTime = new Date(boardingDateTime.getTime() - 24 * 60 * 60 * 1000);
+            events.push({
+              id: `sale-checkin-${sale.id}-${idx}`,
+              title: `Check-in: ${item.passengerName || sale.customerName || 'Passageiro'} - ${item.origin || ''}/${item.destination || ''}`,
+              type: 'Check-in',
+              startDate: checkInDateTime.toISOString(),
+              userName: sale.emissor || 'Sistema',
+              isAuto: true,
+              saleId: sale.id,
+              originalData: sale
+            });
+          } catch (e) { /* ignore */ }
         }
       });
     });
@@ -127,7 +135,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
   }, [sales]);
 
   const allEvents = useMemo(() => {
-    return [...autoEvents, ...manualEvents].filter(event => 
+    // Filtra autoEvents se já existir um evento manual/do banco vinculado à mesma venda e tipo
+    const filteredAutoEvents = autoEvents.filter(autoEv => {
+      const hasDuplicate = manualEvents.some(manEv => 
+        manEv.saleId === autoEv.saleId && 
+        manEv.type === autoEv.type &&
+        // Se for check-in ou embarque, tenta ser mais específico para não esconder múltiplos voos da mesma venda
+        (autoEv.type === 'Check-in' || autoEv.type === 'Embarque' 
+          ? (manEv.title.includes(autoEv.title) || autoEv.title.includes(manEv.title))
+          : true)
+      );
+      return !hasDuplicate;
+    });
+
+    return [...filteredAutoEvents, ...manualEvents].filter(event => 
       activeFilters.includes(event.type as CalendarEventType) &&
       (event.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
        event.description?.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -152,10 +173,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
   // --- HELPERS DE ESTILO ---
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Check-in': return 'bg-orange-500';
+      case 'Check-in': return 'bg-purple-600';
       case 'Embarque': return 'bg-sky-500';
-      case 'Hospedagem': return 'bg-green-500';
-      case 'Follow-up': return 'bg-purple-600';
+      case 'Hospedagem': return 'bg-purple-500';
+      case 'Follow-up': return 'bg-teal-600';
       case 'Tarefa': return 'bg-blue-600';
       case 'Reunião': return 'bg-indigo-600';
       case 'Aniversariante': return 'bg-pink-600';
@@ -166,9 +187,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
 
   const getEventStyle = (type: string) => {
     switch (type) {
-      case 'Check-in': return 'bg-orange-50 text-orange-700 border-orange-400';
+      case 'Check-in': return 'bg-purple-50 text-purple-700 border-purple-400';
       case 'Embarque': return 'bg-blue-50 text-blue-700 border-blue-400';
-      case 'Hospedagem': return 'bg-purple-50 text-purple-700 border-purple-400';
+      case 'Hospedagem': return 'bg-green-50 text-green-700 border-green-400';
       case 'Aniversariante': return 'bg-pink-50 text-pink-700 border-pink-400';
       case 'Tarefa': return 'bg-gray-100 text-gray-700 border-gray-400';
       case 'Follow-up': return 'bg-teal-50 text-teal-700 border-teal-400';
@@ -180,9 +201,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
 
   const getIconForType = (type: string) => {
     switch (type) {
-      case 'Check-in': return <CheckCircle2 size={16} className="text-orange-500" />;
+      case 'Check-in': return <CheckCircle2 size={16} className="text-purple-600" />;
       case 'Embarque': return <Plane size={16} className="text-blue-500" />;
-      case 'Hospedagem': return <Hotel size={16} className="text-purple-500" />;
+      case 'Hospedagem': return <Hotel size={16} className="text-green-500" />;
       case 'Aniversariante': return <User size={16} className="text-pink-500" />;
       case 'Tarefa': return <Clock size={16} className="text-gray-500" />;
       case 'Follow-up': return <Flag size={16} className="text-teal-500" />;
@@ -561,6 +582,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, manualEvents,
             event={selectedEvent} 
             onClose={() => setSelectedEvent(null)}
             currentUser={currentUser}
+            customers={customers}
+            sales={sales}
+            onViewCustomer={onViewCustomer}
             onEdit={(event) => {
               setEditingEvent(event);
               setSelectedEvent(null);
@@ -669,12 +693,15 @@ const EventModal = ({ onClose, onSave, initialData }: {
   );
 };
 
-const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser }: { 
+const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser, customers, sales, onViewCustomer }: { 
   event: any, 
   onClose: () => void, 
   onDelete: (id: string) => void,
   onEdit: (event: any) => void,
-  currentUser?: TeamMember | null
+  currentUser?: TeamMember | null,
+  customers: Customer[],
+  sales: Sale[],
+  onViewCustomer?: (customer: Customer) => void
 }) => {
   const canModify = !event.isAuto && (
     currentUser?.role === 'Administrador' || 
@@ -684,6 +711,10 @@ const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser }: {
 
   // Fallback para eventos antigos ou específicos do Cleber
   const displayName = event.userName || (event.isAuto ? 'Sistema' : 'Cleber Andrade');
+
+  // Determinar o cliente associado
+  const associatedSale = event.saleId ? sales.find(s => s.id === event.saleId) : event.originalData;
+  const customer = associatedSale?.customerId ? customers.find(c => c.id === associatedSale.customerId) : null;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -742,6 +773,18 @@ const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser }: {
                 >
                   Editar
                 </button>
+                {customer && (
+                  <button 
+                    onClick={() => {
+                      onClose();
+                      onViewCustomer?.(customer);
+                    }} 
+                    className="flex-1 bg-white dark:bg-slate-800 border-2 border-[#1a5b65] text-[#1a5b65] dark:text-cyan-400 py-3 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                  >
+                    <User size={18} />
+                    Cliente
+                  </button>
+                )}
                 <button 
                   onClick={() => onDelete(event.id)}
                   className="w-14 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 py-3 rounded-2xl font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-all flex items-center justify-center border border-transparent dark:border-red-900/50"
@@ -756,9 +799,23 @@ const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser }: {
                </button>
             )}
             {event.isAuto && (
-               <button onClick={onClose} className="w-full bg-[#1a5b65] text-white py-4 rounded-2xl font-bold shadow-lg shadow-teal-900/10 hover:bg-[#154a52] transition-all">
-                 Entendido
-               </button>
+               <div className="flex gap-3 w-full">
+                 {customer && (
+                   <button 
+                     onClick={() => {
+                       onClose();
+                       onViewCustomer?.(customer);
+                     }} 
+                     className="flex-1 bg-white dark:bg-slate-800 border-2 border-[#1a5b65] text-[#1a5b65] dark:text-cyan-400 py-4 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                   >
+                     <User size={18} />
+                     Ver Cliente
+                   </button>
+                 )}
+                 <button onClick={onClose} className="flex-1 bg-[#1a5b65] text-white py-4 rounded-2xl font-bold shadow-lg shadow-teal-900/10 hover:bg-[#154a52] transition-all">
+                   Entendido
+                 </button>
+               </div>
             )}
           </div>
         </div>
@@ -769,9 +826,9 @@ const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser }: {
 
 const getDetailsBg = (type: string) => {
   switch (type) {
-    case 'Check-in': return 'bg-orange-600';
+    case 'Check-in': return 'bg-purple-600';
     case 'Embarque': return 'bg-blue-600';
-    case 'Hospedagem': return 'bg-purple-600';
+    case 'Hospedagem': return 'bg-green-600';
     case 'Aniversariante': return 'bg-pink-600';
     case 'Tarefa': return 'bg-gray-700';
     case 'Reunião': return 'bg-indigo-700';
@@ -783,9 +840,9 @@ const getDetailsBg = (type: string) => {
 
 const getBadgeStyle = (type: string) => {
   switch (type) {
-    case 'Check-in': return 'bg-orange-100 text-orange-700';
+    case 'Check-in': return 'bg-purple-100 text-purple-700';
     case 'Embarque': return 'bg-blue-100 text-blue-700';
-    case 'Hospedagem': return 'bg-purple-100 text-purple-700';
+    case 'Hospedagem': return 'bg-green-100 text-green-700';
     case 'Aniversariante': return 'bg-pink-100 text-pink-700';
     case 'Tarefa': return 'bg-gray-100 text-gray-700';
     case 'Reunião': return 'bg-indigo-100 text-indigo-700';
@@ -797,9 +854,9 @@ const getBadgeStyle = (type: string) => {
 
 const getIconForTypeDetails = (type: string) => {
   switch (type) {
-    case 'Check-in': return <CheckCircle2 size={32} className="text-orange-500" />;
+    case 'Check-in': return <CheckCircle2 size={32} className="text-purple-600" />;
     case 'Embarque': return <Plane size={32} className="text-blue-500" />;
-    case 'Hospedagem': return <Hotel size={32} className="text-purple-500" />;
+    case 'Hospedagem': return <Hotel size={32} className="text-green-500" />;
     case 'Aniversariante': return <User size={32} className="text-pink-500" />;
     case 'Tarefa': return <Clock size={32} className="text-gray-500" />;
     case 'Follow-up': return <Flag size={32} className="text-teal-500" />;

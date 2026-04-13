@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember, CustomerDocument, CustomerPassenger } from '../types';
 
 import { mapperService } from './mapperService';
 
@@ -29,7 +29,11 @@ export const customerService = {
   getAll: async (): Promise<Customer[]> => {
     const { data, error } = await supabase
       .from('customers')
-      .select('*')
+      .select(`
+        *,
+        customer_documents(*),
+        customer_passengers(*)
+      `)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -78,6 +82,50 @@ export const customerService = {
       console.error('Supabase Error (delete customer):', extractError(error));
       throw new Error(error.message || 'Erro ao deletar cliente');
     }
+  },
+
+  // Documentos do Cliente
+  saveDocument: async (doc: Partial<CustomerDocument>): Promise<CustomerDocument> => {
+    const payload = mapperService.toSupabase.document(doc);
+    if (!payload.id) delete payload.id;
+
+    const { data, error } = await supabase
+      .from('customer_documents')
+      .upsert(payload)
+      .select();
+
+    if (error) throw new Error(`Erro ao salvar documento: ${error.message}`);
+    return mapperService.fromSupabase.document(data[0]);
+  },
+
+  deleteDocument: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('customer_documents')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(`Erro ao deletar documento: ${error.message}`);
+  },
+
+  // Passageiros do Cliente
+  savePassenger: async (p: Partial<CustomerPassenger>): Promise<CustomerPassenger> => {
+    const payload = mapperService.toSupabase.passenger(p);
+    if (!payload.id) delete payload.id;
+
+    const { data, error } = await supabase
+      .from('customer_passengers')
+      .upsert(payload)
+      .select();
+
+    if (error) throw new Error(`Erro ao salvar passageiro: ${error.message}`);
+    return mapperService.fromSupabase.passenger(data[0]);
+  },
+
+  deletePassenger: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('customer_passengers')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(`Erro ao deletar passageiro: ${error.message}`);
   }
 };
 
@@ -282,6 +330,38 @@ export const saleService = {
         customer_name: sale.customerName || '',
         group_name: sale.groupName || ''
       };
+
+      // --- AUTOMAÇÃO DE CHECK-IN NO CALENDÁRIO ---
+      try {
+        const flightItems = items.filter(item => item.type === 'passagem' && item.departureDate && item.boardingTime);
+        
+        // Remove eventos de check-in antigos para reconstruir (evita duplicidade)
+        await supabase
+          .from('calendar_events')
+          .delete()
+          .eq('sale_id', savedSale.id)
+          .eq('type', 'Check-in');
+
+        for (const flightItem of flightItems) {
+          try {
+            const boardingDateTime = new Date(`${flightItem.departureDate}T${flightItem.boardingTime}`);
+            const checkInDateTime = new Date(boardingDateTime.getTime() - 24 * 60 * 60 * 1000);
+            
+            await calendarService.save({
+              title: `Check-in: ${flightItem.passengerName || sale.customerName || 'Passageiro'} - ${flightItem.origin || ''}/${flightItem.destination || ''}`,
+              type: 'Check-in',
+              startDate: checkInDateTime.toISOString(),
+              saleId: savedSale.id,
+              description: `Venda #${savedSale.order_number || savedSale.id.slice(0, 8)} | Localizador: ${flightItem.locator || 'N/A'}`
+            });
+          } catch (itemErr) {
+            console.error('Erro ao salvar item de check-in individual:', itemErr);
+          }
+        }
+      } catch (calErr) {
+        console.error('Erro ao processar automação de check-in:', calErr);
+      }
+
       return mapperService.fromSupabase.sale(saleDataWithNames, savedItems);
     }
 

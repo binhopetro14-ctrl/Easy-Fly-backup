@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { syncService } from '../services/syncService';
 import { Cloud, CloudOff, RefreshCw, LogIn, User } from 'lucide-react';
@@ -18,20 +18,20 @@ export const SupabaseSyncHandler: React.FC<Props> = ({ onRefresh, collapsed }) =
   const [session, setSession] = useState<any>(null);
   const [teamMember, setTeamMember] = useState<any>(null);
 
+  const fetchTeamMember = useCallback(async (email: string) => {
+    const { data } = await supabase.from('team_members').select('*').eq('email', email).single();
+    if (data) setTeamMember(data);
+  }, []);
+
+  const checkConnection = useCallback(async () => {
+    setIsSyncing(true);
+    const connected = await syncService.checkConnection();
+    setIsConnected(connected);
+    if (connected) await onRefresh();
+    setIsSyncing(false);
+  }, [onRefresh]);
+
   useEffect(() => {
-    const fetchTeamMember = async (email: string) => {
-      const { data } = await supabase.from('team_members').select('*').eq('email', email).single();
-      if (data) setTeamMember(data);
-    };
-
-    const checkConnection = async () => {
-      setIsSyncing(true);
-      const connected = await syncService.checkConnection();
-      setIsConnected(connected);
-      if (connected) await onRefresh();
-      setIsSyncing(false);
-    };
-
     checkConnection();
     
     supabase.auth.getSession().then(({ data: { session } }) => {

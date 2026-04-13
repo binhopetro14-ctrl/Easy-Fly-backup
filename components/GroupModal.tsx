@@ -25,20 +25,18 @@ export function GroupModal({
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => {
-        if (group) {
-          setFormData({
-            name: group.name,
-            memberIds: [...group.memberIds]
-          });
-        } else {
-          setFormData({
-            name: '',
-            memberIds: []
-          });
-        }
-        setIsAddingMember(false);
-      }, 0);
+      if (group) {
+        setFormData({
+          name: group.name || '',
+          memberIds: [...(group.memberIds || [])]
+        });
+      } else {
+        setFormData({
+          name: '',
+          memberIds: []
+        });
+      }
+      setIsAddingMember(false);
     }
   }, [group, isOpen]);
 

@@ -6,10 +6,11 @@ import {
   UserPlus, Plane, DollarSign, CreditCard,
   Upload, ChevronDown, ArrowUpDown
 } from 'lucide-react';
-import { Customer, Group } from '@/types';
+import { Customer, Group, Sale } from '@/types';
 
 interface CustomersViewProps {
   customers: Customer[];
+  sales: Sale[];
   groups: Group[];
   onAddCustomer: () => void;
   onEditCustomer: (customer: Customer) => void;
@@ -23,6 +24,7 @@ interface CustomersViewProps {
 
 export function CustomersView({
   customers,
+  sales,
   onAddCustomer,
   onEditCustomer,
   onDeleteCustomer,
@@ -35,22 +37,36 @@ export function CustomersView({
     const hoje = new Date();
     const trintaDiasAtras = new Date(hoje.setDate(hoje.getDate() - 30));
 
+    // Apenas vendas que não estão canceladas
+    const validSales = sales.filter(s => s.saleStatus !== 'Cancelado');
+
     return {
       total: customers.length,
       novos: customers.filter(c => new Date(c.createdAt) >= trintaDiasAtras).length,
-      emissoes: 0,
-      faturamento: 0,
-      emAberto: 0
+      emissoes: validSales.length,
+      faturamento: validSales.reduce((acc, s) => acc + (s.totalValue || 0), 0),
+      emAberto: validSales
+        .filter(s => s.saleStatus !== 'Recebido')
+        .reduce((acc, s) => acc + (s.totalValue || 0), 0)
     };
-  }, [customers]);
+  }, [customers, sales]);
 
   const filteredCustomers = useMemo(() => {
-    return customers.filter(c =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm) ||
-      (c.cpfCnpj && c.cpfCnpj.includes(searchTerm))
-    );
-  }, [customers, searchTerm]);
+    return customers
+      .filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.phone.includes(searchTerm) ||
+        (c.cpfCnpj && c.cpfCnpj.includes(searchTerm))
+      )
+      .map(customer => {
+        const customerSales = sales.filter(s => s.customerId === customer.id && s.saleStatus !== 'Cancelado');
+        return {
+          ...customer,
+          emissoesCount: customerSales.length,
+          faturamentoTotal: customerSales.reduce((acc, s) => acc + (s.totalValue || 0), 0)
+        };
+      });
+  }, [customers, searchTerm, sales]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -83,7 +99,7 @@ export function CustomersView({
           </button>
           <button
             onClick={onAddCustomer}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#19727d] hover:bg-[#15616a] rounded-lg transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" /> Novo Cliente
           </button>
@@ -116,8 +132,8 @@ export function CustomersView({
                     </button>
                   </td>
                   <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{customer.phone}</td>
-                  <td className="px-6 py-3 text-sm text-center dark:text-gray-300">0</td>
-                  <td className="px-6 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">R$ 0,00</td>
+                  <td className="px-6 py-3 text-sm text-center font-bold text-gray-700 dark:text-gray-300">{(customer as any).emissoesCount}</td>
+                  <td className="px-6 py-3 text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency((customer as any).faturamentoTotal)}</td>
                   <td className="px-6 py-3 text-center">
                     <span className={`text-sm font-bold ${
                       customer.passportExpiry && customer.passportExpiry.startsWith(new Date().getFullYear().toString())

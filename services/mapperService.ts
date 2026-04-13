@@ -1,4 +1,4 @@
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember, CustomerDocument, CustomerPassenger } from '../types';
 
 
 export const mapperService = {
@@ -22,7 +22,30 @@ export const mapperService = {
         neighborhood: '', city: '', state: ''
       },
       createdAt: data.created_at,
-      emissor: data.emissor
+      emissor: data.emissor,
+      documents: data.customer_documents ? data.customer_documents.map(mapperService.fromSupabase.document) : [],
+      passengers: data.customer_passengers ? data.customer_passengers.map(mapperService.fromSupabase.passenger) : []
+    }),
+    document: (data: any): CustomerDocument => ({
+      id: data.id,
+      customerId: data.customer_id,
+      name: data.name,
+      url: data.url,
+      type: data.type,
+      createdAt: data.created_at
+    }),
+    passenger: (data: any): CustomerPassenger => ({
+      id: data.id,
+      customerId: data.customer_id,
+      name: data.name,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      email: data.email,
+      phone: data.phone,
+      passportNumber: data.passport_number,
+      passportExpiry: data.passport_expiry,
+      birthDate: data.birth_date,
+      createdAt: data.created_at
     }),
     group: (data: any): Group => ({
       id: data.id,
@@ -83,7 +106,8 @@ export const mapperService = {
         passengerName: item.passenger_name, // FIX: was 'passenger_name' (snake_case)
         saleModel: item.sale_model,         // FIX: was 'sale_model' (snake_case)
         ticket_url: item.ticket_url,
-        ticket_url2: item.ticket_url2
+        ticket_url2: item.ticket_url2,
+        boardingTime: item.boarding_time
       }))
     }),
     supplier: (data: any): Supplier => ({
@@ -182,6 +206,7 @@ export const mapperService = {
       endDate: data.end_date,
       description: data.description,
       userId: data.user_id,
+      saleId: data.sale_id,
       isAllDay: data.is_all_day,
       createdAt: data.created_at
     }),
@@ -221,6 +246,31 @@ export const mapperService = {
         emissor: customer.emissor
       };
       if (customer.id) data.id = customer.id;
+      return data;
+    },
+    document: (doc: Partial<CustomerDocument>) => {
+      const data: any = {
+        customer_id: doc.customerId,
+        name: doc.name,
+        url: doc.url,
+        type: doc.type
+      };
+      if (doc.id) data.id = doc.id;
+      return data;
+    },
+    passenger: (p: Partial<CustomerPassenger>) => {
+      const data: any = {
+        customer_id: p.customerId,
+        name: p.name,
+        first_name: p.firstName,
+        last_name: p.lastName,
+        email: p.email,
+        phone: p.phone,
+        passport_number: p.passportNumber,
+        passport_expiry: p.passportExpiry,
+        birth_date: p.birthDate
+      };
+      if (p.id) data.id = p.id;
       return data;
     },
     group: (group: Partial<Group>) => {
@@ -281,7 +331,8 @@ export const mapperService = {
         passenger_name: item.passengerName,
         sale_model: item.saleModel,
         ticket_url: item.ticket_url,
-        ticket_url2: item.ticket_url2
+        ticket_url2: item.ticket_url2,
+        boarding_time: item.boardingTime
       };
       if (item.id && !item.id.startsWith('temp_')) data.id = item.id;
       return data;
@@ -391,7 +442,8 @@ export const mapperService = {
         end_date: event.endDate ? new Date(event.endDate).toISOString() : undefined,
         description: event.description,
         is_all_day: event.isAllDay,
-        user_id: event.userId
+        user_id: event.userId,
+        sale_id: event.saleId
       };
       if (event.id) data.id = event.id;
       return data;

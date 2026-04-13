@@ -164,7 +164,7 @@ export function MyProfileModal({ isOpen, onClose, userEmail }: MyProfileModalPro
 
                     <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 dark:border-slate-700/50">
                         <button onClick={onClose} disabled={isLoading} className="px-6 py-2.5 text-sm font-bold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">Cancelar</button>
-                        <button onClick={handleSave} disabled={isLoading} className="px-8 py-2.5 bg-[#8B5CF6] text-white rounded-xl text-sm font-bold hover:bg-[#7C3AED] shadow-lg shadow-purple-200 dark:shadow-purple-900/20 transition-all">{isLoading ? 'Salvando...' : 'Salvar Perfil'}</button>
+                        <button onClick={handleSave} disabled={isLoading} className="px-8 py-2.5 bg-[#19727d] text-white rounded-xl text-sm font-bold hover:bg-[#145d66] shadow-lg shadow-[#19727d]/20 transition-all active:scale-95">{isLoading ? 'Salvando...' : 'Salvar Perfil'}</button>
                     </div>
                 </div>
             </div>

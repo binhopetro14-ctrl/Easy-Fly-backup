@@ -130,7 +130,7 @@ export function CashFlowControlView({
               onClick={() => setActiveTab('pagar')}
               className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                 activeTab === 'pagar' 
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                  ? 'bg-[#19727d] text-white shadow-lg shadow-[#19727d]/20' 
                   : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
@@ -140,7 +140,7 @@ export function CashFlowControlView({
               onClick={() => setActiveTab('receber')}
               className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                 activeTab === 'receber' 
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                  ? 'bg-[#19727d] text-white shadow-lg shadow-[#19727d]/20' 
                   : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
@@ -152,15 +152,15 @@ export function CashFlowControlView({
             {/* Calendário/Período Selector Compact V3 (Reduced 40%) */}
             <div className="flex items-center gap-0.5 p-0.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-gray-100 dark:border-slate-800 rounded-xl shadow-lg shadow-gray-200/10 dark:shadow-none transition-all">
               <div className="flex items-center gap-2 pl-2 pr-1 py-1">
-                <div className="p-1 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg shadow-inner-sm">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" strokeWidth={2.5} />
+                <div className="p-1 bg-[#19727d]/10 rounded-lg shadow-inner-sm">
+                  <Calendar className="w-3.5 h-3.5 text-[#19727d]" strokeWidth={2.5} />
                 </div>
                 <div className="flex items-center gap-1.5">
                   <select 
                     value={monthFilter}
                     onChange={(e) => setMonthFilter(Number(e.target.value))}
                     disabled={showAllMonths}
-                    className={`bg-transparent text-[10px] font-black text-gray-800 dark:text-white uppercase tracking-tight outline-none cursor-pointer appearance-none hover:text-indigo-600 transition-colors ${showAllMonths ? 'opacity-30' : ''}`}
+                    className={`bg-transparent text-[10px] font-black text-gray-800 dark:text-white uppercase tracking-tight outline-none cursor-pointer appearance-none hover:text-[#19727d] transition-colors ${showAllMonths ? 'opacity-30' : ''}`}
                   >
                     {months.map((m, i) => <option key={i} value={i} className="dark:bg-slate-950">{m}</option>)}
                   </select>
@@ -169,7 +169,7 @@ export function CashFlowControlView({
                     value={yearFilter}
                     onChange={(e) => setYearFilter(Number(e.target.value))}
                     disabled={showAllMonths}
-                    className={`bg-transparent text-[10px] font-black text-gray-800 dark:text-white uppercase tracking-tight outline-none cursor-pointer appearance-none hover:text-indigo-600 transition-colors ${showAllMonths ? 'opacity-30' : ''}`}
+                    className={`bg-transparent text-[10px] font-black text-gray-800 dark:text-white uppercase tracking-tight outline-none cursor-pointer appearance-none hover:text-[#19727d] transition-colors ${showAllMonths ? 'opacity-30' : ''}`}
                   >
                     {years.map(y => <option key={y} value={y} className="dark:bg-slate-950">{y}</option>)}
                   </select>
@@ -182,8 +182,8 @@ export function CashFlowControlView({
                 onClick={() => setShowAllMonths(!showAllMonths)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all font-black text-[9px] uppercase tracking-widest ${
                   showAllMonths 
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md shadow-cyan-500/20' 
-                    : 'text-gray-400 dark:text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800'
+                    ? 'bg-[#19727d] text-white shadow-md shadow-[#19727d]/20' 
+                    : 'text-gray-400 dark:text-gray-500 hover:text-[#19727d] hover:bg-[#19727d]/10 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className={`p-1 rounded-md transition-colors ${showAllMonths ? 'bg-white/20' : 'bg-gray-100 dark:bg-slate-800'}`}>
@@ -205,16 +205,16 @@ export function CashFlowControlView({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-1">
             <div className="relative flex-1 max-w-md group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#19727d] transition-colors" />
               <input 
                 type="text" 
                 placeholder="Buscar registros..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl pl-11 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl pl-11 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#19727d]/10 transition-all"
               />
             </div>
-            <div className="bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 rounded-full text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+            <div className="bg-[#19727d]/10 dark:bg-[#19727d]/20 px-3 py-1.5 rounded-full text-[10px] font-bold text-[#19727d] dark:text-[#19727d]">
               {filteredTransactions.length} Resultados
             </div>
           </div>
@@ -224,7 +224,7 @@ export function CashFlowControlView({
               onClick={() => setShowOnlyMonthly(!showOnlyMonthly)}
               className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-sm border ${
                 showOnlyMonthly 
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-500/20' 
+                  ? 'bg-[#19727d] text-white border-[#19727d] shadow-[#19727d]/20' 
                   : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800'
               }`}
             >
@@ -240,7 +240,7 @@ export function CashFlowControlView({
             </button>
             <button 
               onClick={onAddTransaction}
-              className="px-6 py-2.5 bg-[#6366F1] hover:bg-[#4F46E5] text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+              className="px-6 py-2.5 bg-[#19727d] hover:bg-[#15616a] text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#19727d]/20 transition-all active:scale-95"
             >
               <Plus className="w-5 h-5" />
               Nova conta
@@ -253,8 +253,8 @@ export function CashFlowControlView({
           <StatCard 
             label="Total" 
             value={stats.total} 
-            icon={<Wallet className="w-6 h-6 text-indigo-500" />} 
-            bg="bg-indigo-50 dark:bg-indigo-950/20"
+            icon={<Wallet className="w-6 h-6 text-[#19727d]" />} 
+            bg="bg-[#19727d]/10 dark:bg-[#19727d]/20"
             color="text-gray-900 dark:text-white"
           />
           <StatCard 
@@ -290,7 +290,7 @@ export function CashFlowControlView({
                 <select 
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="appearance-none bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-4 pr-10 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 outline-none focus:ring-2 focus:ring-indigo-500/10 cursor-pointer min-w-[220px]"
+                  className="appearance-none bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-4 pr-10 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#19727d]/10 cursor-pointer min-w-[220px]"
                 >
                   <option value="all">Todas as categorias</option>
                   {categories.map(cat => (
@@ -364,8 +364,8 @@ export function CashFlowControlView({
                           }}
                           className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
                             actionMenuOpen === t.id 
-                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 rotate-90' 
-                              : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/10'
+                              ? 'bg-[#19727d] text-white shadow-lg shadow-[#19727d]/20 rotate-90' 
+                              : 'text-gray-400 hover:text-[#19727d] hover:bg-[#19727d]/10 dark:hover:bg-indigo-900/10'
                           }`}
                         >
                           <MoreVertical className="w-5 h-5" />
@@ -387,9 +387,9 @@ export function CashFlowControlView({
                                       onEditTransaction(t);
                                       setActionMenuOpen(null);
                                     }}
-                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-black text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all uppercase tracking-wide group"
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-black text-gray-600 dark:text-gray-300 hover:bg-[#19727d]/10 hover:text-[#19727d] dark:hover:text-[#19727d] transition-all uppercase tracking-wide group"
                                   >
-                                    <div className="p-1.5 bg-gray-50 dark:bg-slate-800 rounded-lg group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 transition-colors">
+                                    <div className="p-1.5 bg-gray-50 dark:bg-slate-800 rounded-lg group-hover:bg-[#19727d]/20 transition-colors">
                                       <Edit className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
                                     </div>
                                     Editar
@@ -442,7 +442,7 @@ export function CashFlowControlView({
                   onClick={() => setCurrentPage(i + 1)}
                   className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
                     currentPage === i + 1 
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+                      ? 'bg-[#19727d] text-white shadow-lg shadow-[#19727d]/20' 
                       : 'border border-gray-200 dark:border-slate-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -471,7 +471,7 @@ export function CashFlowControlView({
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="appearance-none bg-slate-50 dark:bg-slate-800 border bg-white dark:border-slate-800 rounded-xl pl-4 pr-10 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 outline-none focus:ring-2 focus:ring-indigo-500/10 cursor-pointer"
+                  className="appearance-none bg-slate-50 dark:bg-slate-800 border bg-white dark:border-slate-800 rounded-xl pl-4 pr-10 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#19727d]/10 cursor-pointer"
                 >
                   <option value={5}>5 itens por página</option>
                   <option value={10}>10 itens por página</option>

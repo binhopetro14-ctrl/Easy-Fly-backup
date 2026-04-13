@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState } from 'react';
 import {
   AreaChart,
@@ -11,10 +10,10 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { 
-  format, 
-  parseISO, 
-  subDays 
+import {
+  format,
+  parseISO,
+  subDays
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -38,8 +37,6 @@ import { motion } from 'motion/react';
 import { Sale, TeamMember, CalendarEvent } from '@/types';
 import { HeaderButton, StatCard } from './UI';
 import Image from 'next/image';
-
-
 interface DashboardViewProps {
   sales: Sale[];
   onAddCustomer: () => void;
@@ -53,7 +50,6 @@ interface DashboardViewProps {
   showValues: boolean;
   onToggleValues: () => void;
 }
-
 export function DashboardView({
   sales,
   onAddCustomer,
@@ -70,46 +66,39 @@ export function DashboardView({
   const fmt = (value: number) => showValues
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
     : '••••••';
-
   const recentSales = [...sales].sort((a, b) => {
     const dateA = new Date(a.saleDate || a.createdAt).getTime();
     const dateB = new Date(b.saleDate || b.createdAt).getTime();
     return dateB - dateA;
   }).slice(0, 5);
-
   const currentMonthSalesData = React.useMemo(() => {
     const now = new Date();
     const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
     const currentUserName = `${currentUser?.name} ${currentUser?.lastName || ''}`.trim();
-
     let totalFaturamento = 0;
     let totalComissao = 0;
     let count = 0;
-
     sales.forEach(sale => {
       // Se não for admin/gerente, filtra apenas vendas do emissor logado
       if (!isAdminOrManager && sale.emissor !== currentUserName) return;
-
       sale.items?.forEach(item => {
         if (!item.emissionDate) return;
         const emissionDate = parseISO(item.emissionDate);
-        
+
         if (emissionDate.getMonth() === now.getMonth() && emissionDate.getFullYear() === now.getFullYear()) {
           totalFaturamento += (item.valuePaidByCustomer || 0);
-          
+
           const itemCost = item.emissionValue || 0;
           const itemCommission = item.additionalCosts || 0;
           const itemProfit = itemCommission > 0 ? itemCommission : ((item.valuePaidByCustomer || 0) - itemCost);
-          
+
           totalComissao += itemProfit;
           count++;
         }
       });
     });
-
     return { totalFaturamento, totalComissao, count };
   }, [sales, currentUser]);
-
   const previousMonthSalesData = React.useMemo(() => {
     const now = new Date();
     const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
@@ -117,53 +106,45 @@ export function DashboardView({
     const todayDay = now.getDate();
     const isAdminOrManager = currentUser?.role === 'Administrador' || currentUser?.role === 'Gerente';
     const currentUserName = `${currentUser?.name} ${currentUser?.lastName || ''}`.trim();
-
     let totalFaturamento = 0;
     let totalComissao = 0;
     let count = 0;
-
     sales.forEach(sale => {
       if (!isAdminOrManager && sale.emissor !== currentUserName) return;
-
       sale.items?.forEach(item => {
         if (!item.emissionDate) return;
         const emissionDate = parseISO(item.emissionDate);
-
         const isPrevMonth = emissionDate.getMonth() === prevMonth && emissionDate.getFullYear() === prevYear;
         if (isPrevMonth && emissionDate.getDate() <= todayDay) {
           totalFaturamento += (item.valuePaidByCustomer || 0);
-          
+
           const itemCost = item.emissionValue || 0;
           const itemCommission = item.additionalCosts || 0;
           const itemProfit = itemCommission > 0 ? itemCommission : ((item.valuePaidByCustomer || 0) - itemCost);
-          
+
           totalComissao += itemProfit;
           count++;
         }
       });
     });
-
     return { totalFaturamento, totalComissao, count };
   }, [sales, currentUser]);
-
   const renderTrend = (current: number, previous: number) => {
     if (previous === 0) return <span className="text-[12px] text-gray-400 font-medium italic">novo período</span>;
     const percent = ((current - previous) / previous) * 100;
     const isNegative = percent < 0;
     const formattedPercent = Math.abs(percent).toFixed(1);
-    
+
     return (
       <div className="flex items-center gap-1.5">
-        <span className={`px-1.5 py-0.5 rounded-lg font-black text-[11px] ${
-          isNegative ? 'text-red-500 bg-red-50 dark:bg-red-500/10' : 'text-[#19727d] bg-[#19727d]/10'
-        }`}>
+        <span className={`px-1.5 py-0.5 rounded-lg font-black text-[11px] ${isNegative ? 'text-red-500 bg-red-50 dark:bg-red-500/10' : 'text-[#19727d] bg-[#19727d]/10'
+          }`}>
           {isNegative ? '-' : '+'}{formattedPercent}%
         </span>
         <span className="text-[11px] text-gray-400 dark:text-gray-500 font-bold lowercase tracking-tight">vs mês passado</span>
       </div>
     );
   };
-
   const chartData = React.useMemo(() => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const data = months.map(month => ({
@@ -175,43 +156,36 @@ export function DashboardView({
     }));
     const now = new Date();
     const currentYear = now.getFullYear();
-
     sales.forEach(sale => {
       const saleDate = new Date(sale.saleDate || sale.createdAt);
       if (saleDate.getFullYear() === currentYear) {
         const monthIndex = saleDate.getMonth();
         const commissions = sale.items?.reduce((sum, item) => sum + (item.additionalCosts || 0), 0) || 0;
         const profit = commissions > 0 ? commissions : (sale.totalValue - sale.totalCost);
-
         data[monthIndex].Faturamento += (sale.totalValue || 0);
         data[monthIndex].Comissão += profit;
       }
     });
-
     // Acumular valores para visão geral acumulativa (Running Total)
     let accumFaturamento = 0;
     let accumComissao = 0;
-    
+
     data.forEach(d => {
       // Preservar valores mensais individuais para o Tooltip
       d.FaturamentoMensal = d.Faturamento;
       d.ComissaoMensal = d.Comissão;
-
       accumFaturamento += d.Faturamento;
       accumComissao += d.Comissão;
-      
+
       // Valores acumulados para a linha do gráfico
       d.Faturamento = accumFaturamento;
       d.Comissão = accumComissao;
     });
-
     return data;
   }, [sales]);
-
   const sellerRanking = React.useMemo(() => {
     const rankingMap: Record<string, { name: string, totalValue: number, count: number, avatarUrl?: string }> = {};
     const now = new Date();
-
     sales.filter(sale => {
       const saleDate = new Date(sale.saleDate || sale.createdAt);
       return saleDate.getMonth() === now.getMonth() &&
@@ -224,73 +198,72 @@ export function DashboardView({
           const fullName = `${m.name} ${m.lastName || ''}`.trim();
           return fullName.toLowerCase() === emissor.toLowerCase() || m.name.toLowerCase() === emissor.toLowerCase();
         });
-        
-        rankingMap[emissor] = { 
-          name: emissor, 
-          totalValue: 0, 
+
+        rankingMap[emissor] = {
+          name: emissor,
+          totalValue: 0,
           count: 0,
-          avatarUrl: member?.avatarUrl 
+          avatarUrl: member?.avatarUrl
         };
       }
       rankingMap[emissor].totalValue += (sale.totalValue || 0);
       rankingMap[emissor].count += 1;
     });
-
     return Object.values(rankingMap)
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
   }, [sales, teamMembers]);
-
   const allEvents = React.useMemo(() => {
-    const events: any[] = [...(calendarEvents || [])];
-    
-    // GERAÇÃO DE EVENTOS AUTOMÁTICOS (Réplica simplificada da lógica do CalendarView)
+    const manualEvents = calendarEvents || [];
+    const autoEvents: any[] = [];
+
+    // GERAÇÃO DE EVENTOS AUTOMÁTICOS
     sales.forEach(sale => {
       sale.items?.forEach((item, idx) => {
         const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
-        
-          // Vôos
+
         if (item.type === 'passagem' && item.departureDate) {
           try {
-            const depDate = parseISO(item.departureDate);
-            
+            const boardingTimeStr = item.boardingTime || '00:00';
+            const fullDepartureStr = `${item.departureDate}T${boardingTimeStr}`;
+
             // Embarque
-            events.push({
+            autoEvents.push({
               id: `sale-dep-${sale.id}-${idx}`,
               title: `Embarque: ${item.origin} ✈️ ${item.destination}${passengerLabel}`,
               type: 'Embarque',
-              startDate: item.departureDate,
-              isAuto: true
+              startDate: fullDepartureStr,
+              isAuto: true,
+              saleId: sale.id
             });
-            
             // Check-in (24h antes)
-            const checkInDate = subDays(depDate, 1);
-            events.push({
+            const boardingDateTime = parseISO(fullDepartureStr);
+            const checkInDateTime = new Date(boardingDateTime.getTime() - 24 * 60 * 60 * 1000);
+            autoEvents.push({
               id: `sale-checkin-${sale.id}-${idx}`,
-              title: `Realizar Check-in: ${item.origin} ➔ ${item.destination}${passengerLabel}`,
+              title: `Check-in: ${item.passengerName || sale.customerName || 'Passageiro'} - ${item.origin || ''}/${item.destination || ''}`,
               type: 'Check-in',
-              startDate: format(checkInDate, "yyyy-MM-dd'T'HH:mm:ss"),
-              isAuto: true
+              startDate: checkInDateTime.toISOString(),
+              isAuto: true,
+              saleId: sale.id
             });
           } catch (e) { /* ignore error */ }
         }
-        
-        // Hotel
-        if (item.type === 'hospedagem' && item.checkIn) {
-          events.push({
-            id: `sale-hotel-${sale.id}-${idx}`,
-            title: `Check-in Hotel: ${item.hotelName || 'Hospedagem'}${passengerLabel}`,
-            type: 'Hospedagem',
-            startDate: item.checkIn,
-            isAuto: true
-          });
-        }
       });
     });
-
-    return events;
+    // Filtra autoEvents se já existir um evento manual/do banco vinculado à mesma venda e tipo
+    const filteredAutoEvents = autoEvents.filter(autoEv => {
+      const hasDuplicate = manualEvents.some(manEv =>
+        manEv.saleId === autoEv.saleId &&
+        manEv.type === autoEv.type &&
+        (autoEv.type === 'Check-in' || autoEv.type === 'Embarque'
+          ? (manEv.title.includes(autoEv.title) || autoEv.title.includes(manEv.title))
+          : true)
+      );
+      return !hasDuplicate;
+    });
+    return [...manualEvents, ...filteredAutoEvents];
   }, [sales, calendarEvents]);
-
   const upcomingEvents = React.useMemo(() => {
     const now = new Date();
     const futureEvents = allEvents
@@ -298,12 +271,10 @@ export function DashboardView({
       .sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime());
     return futureEvents.slice(0, 5);
   }, [allEvents]);
-
   const formatEventDate = (dateStr: string) => {
     try {
       const date = parseISO(dateStr);
       if (isNaN(date.getTime())) return { day: '--', month: '---', time: '--:--' };
-
       const day = date.getDate().toString().padStart(2, '0');
       const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
       const hour = date.getHours().toString().padStart(2, '0');
@@ -313,7 +284,18 @@ export function DashboardView({
       return { day: '--', month: '---', time: '--:--' };
     }
   };
-
+  const getBadgeStyles = (type: string) => {
+    switch (type) {
+      case 'Check-in':
+        return "bg-purple-50 dark:bg-purple-500/10 text-[#19727d] dark:text-purple-400 border-purple-100 dark:border-purple-900/20";
+      case 'Embarque':
+        return "bg-[#19727d]/10 dark:bg-[#19727d]/100/10 text-[#19727d] dark:text-[#19727d] border-[#19727d]/20 dark:border-cyan-900/20";
+      case 'Tarefa':
+        return "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/20";
+      default:
+        return "bg-gray-50 dark:bg-gray-500/10 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-900/20";
+    }
+  };
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Recebido': return 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400';
@@ -325,7 +307,6 @@ export function DashboardView({
       default: return 'bg-gray-100 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300';
     }
   };
-
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
     try {
@@ -336,7 +317,6 @@ export function DashboardView({
       return '-';
     }
   };
-
   const StatusSelect = ({
     value,
     onChange,
@@ -350,7 +330,7 @@ export function DashboardView({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border-none focus:ring-2 focus:ring-cyan-500/20 cursor-pointer transition-all ${getStatusColor(value)} ${disabled ? 'opacity-70 cursor-not-allowed' : ''}`}
+      className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border-none focus:ring-2 focus:ring-[#19727d]/20 cursor-pointer transition-all ${getStatusColor(value)} ${disabled ? 'opacity-70 cursor-not-allowed' : ''}`}
     >
       <option value="Recebido">Recebido</option>
       <option value="Parcial">Parcial</option>
@@ -360,7 +340,6 @@ export function DashboardView({
       <option value="Pago">Pago</option>
     </select>
   );
-
   return (
     <div className="space-y-4 md:space-y-6 w-full pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
@@ -381,8 +360,7 @@ export function DashboardView({
           <HeaderButton icon={<Wand2 className="w-4 h-4" />} label="Fazer cotação" onClick={onAddLead} primary />
         </div>
       </div>
-
-      <div className="bg-[#f8fafc]/50 dark:bg-slate-800/40 p-4 md:p-6 rounded-2xl border border-cyan-100/50 dark:border-cyan-900/20 w-full hover:shadow-md transition-shadow">
+      <div className="bg-[#f8fafc]/50 dark:bg-slate-800/40 p-4 md:p-6 rounded-2xl border border-[#19727d]/20 dark:border-[#19727d]/10 w-full hover:shadow-md transition-shadow">
         <div className="flex flex-col lg:flex-row gap-4 md:gap-8 w-full">
           {/* Widget de Meta do Mês Integrado */}
           {(() => {
@@ -390,18 +368,16 @@ export function DashboardView({
             const currentFaturamento = currentMonthSalesData.totalFaturamento;
             const progressPercent = Math.round(Math.min(100, (currentFaturamento / goalValue) * 100));
             const remainingValue = Math.max(0, goalValue - currentFaturamento);
-
             const getMotivationalMessage = (percent: number) => {
               if (percent >= 100) return "Parabéns! Meta batida 🚀";
               if (percent >= 70) return "Falta pouco! Você está quase lá.";
               if (percent >= 30) return "Bom progresso! Continue assim.";
               return "Você está começando, bora acelerar as vendas!";
             };
-
             return (
               <div className="lg:w-[45%] flex flex-col justify-center relative overflow-hidden group min-h-[160px]">
                 <div className="flex items-center gap-3 mb-4 relative z-10">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/60 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-sm border border-white/50 dark:border-white/5">
+                  <div className="w-10 h-10 rounded-xl bg-[#19727d]/10 dark:bg-[#19727d]/20 flex items-center justify-center text-[#19727d] dark:text-[#19727d] shadow-sm border border-white/50 dark:border-white/10">
                     <Luggage className="w-5 h-5" />
                   </div>
                   <div className="flex flex-baseline gap-2">
@@ -409,21 +385,19 @@ export function DashboardView({
                     <span className="text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">R$ 50.000</span>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-4 mb-4 relative z-10">
                   <div className="flex-1 h-3.5 bg-white/50 dark:bg-slate-700/50 rounded-full overflow-hidden border border-white dark:border-slate-600 shadow-inner">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${progressPercent}%` }}
                       transition={{ duration: 1.5, ease: "easeOut" }}
-                      className="h-full bg-cyan-500 shadow-lg shadow-cyan-500/20"
+                      className="h-full bg-[#19727d] shadow-lg shadow-[#19727d]/20"
                     />
                   </div>
                   <span className="text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     {progressPercent}%
                   </span>
                 </div>
-
                 <div className="relative z-10 space-y-1">
                   <p className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
                     {progressPercent >= 100
@@ -437,39 +411,36 @@ export function DashboardView({
                     </p>
                   </div>
                 </div>
-
-                <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-cyan-50/20 dark:from-cyan-900/5 to-transparent pointer-events-none" />
+                <div className="absolute top-0 right-0 w-100 h-full bg-gradient-to-l from-[#19727d]/2 dark:from-[#19727d]/10 to-transparent pointer-events-none" />
               </div>
             );
           })()}
-
           {/* Mini Stat Cards à Direita */}
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard
               label="Reservas do Mês"
               value={currentMonthSalesData.count.toString()}
               description={renderTrend(currentMonthSalesData.count, previousMonthSalesData.count)}
-              icon={<Calendar className="w-5 h-5 text-cyan-500" />}
-              iconBg="bg-cyan-50"
+              icon={<Calendar className="w-5 h-5 text-[#19727d]" />}
+              iconBg="bg-[#19727d]/10"
             />
             <StatCard
               label="Faturamento do Mês"
               value={fmt(currentMonthSalesData.totalFaturamento)}
               description={renderTrend(currentMonthSalesData.totalFaturamento, previousMonthSalesData.totalFaturamento)}
-              icon={<DollarSign className="w-5 h-5 text-cyan-500" />}
-              iconBg="bg-cyan-50"
+              icon={<DollarSign className="w-5 h-5 text-[#19727d]" />}
+              iconBg="bg-[#19727d]/10"
             />
             <StatCard
               label="Comissão do Mês"
               value={fmt(currentMonthSalesData.totalComissao)}
               description={renderTrend(currentMonthSalesData.totalComissao, previousMonthSalesData.totalComissao)}
-              icon={<TrendingUp className="w-5 h-5 text-cyan-500" />}
-              iconBg="bg-cyan-50"
+              icon={<TrendingUp className="w-5 h-5 text-[#19727d]" />}
+              iconBg="bg-[#19727d]/10"
             />
           </div>
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 text-gray-950 dark:text-white">
           <h2 className="text-lg font-black tracking-tight mb-6 dark:text-white uppercase leading-none">Evolução de Fluxo</h2>
@@ -483,8 +454,8 @@ export function DashboardView({
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorFaturamento" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.01} />
+                    <stop offset="5%" stopColor="#19727d" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#19727d" stopOpacity={0.01} />
                   </linearGradient>
                   <linearGradient id="colorComissão" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#64748B" stopOpacity={0.15} />
@@ -506,7 +477,7 @@ export function DashboardView({
                   tickFormatter={(value) => showValues ? `R$${Math.floor(value / 1000)}k` : '••k'}
                 />
                 <Tooltip
-                  cursor={{ stroke: '#06B6D4', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  cursor={{ stroke: '#19727d', strokeWidth: 1, strokeDasharray: '4 4' }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length && showValues) {
                       return (
@@ -521,11 +492,11 @@ export function DashboardView({
                                 <span className="text-[10px] font-black text-gray-950 dark:text-gray-100">{fmt(payload[0].payload.FaturamentoMensal)}</span>
                               </div>
                               <div className="flex items-center justify-between gap-4">
-                                <span className="text-[9px] font-bold text-cyan-500 uppercase">Faturamento (Acum.)</span>
-                                <span className="text-[10px] font-black text-cyan-600 dark:text-cyan-400">{fmt(payload[0].payload.Faturamento)}</span>
+                                <span className="text-[9px] font-bold text-[#19727d] uppercase">Faturamento (Acum.)</span>
+                                <span className="text-[10px] font-black text-[#19727d] dark:text-[#19727d]">{fmt(payload[0].payload.Faturamento)}</span>
                               </div>
                             </div>
-                            
+
                             <div className="pt-0.5">
                               <div className="flex items-center justify-between gap-4">
                                 <span className="text-[9px] font-bold text-gray-400 uppercase">Comissão (Mês)</span>
@@ -563,17 +534,16 @@ export function DashboardView({
                 <Area
                   type="monotone"
                   dataKey="Faturamento"
-                  stroke="#06B6D4"
+                  stroke="#19727d"
                   strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorFaturamento)"
-                  activeDot={{ r: 6, fill: '#FFFFFF', stroke: '#06B6D4', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#FFFFFF', stroke: '#19727d', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-
         <div className="bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50">
           <div className="flex items-center gap-2 mb-6">
             <Trophy className="w-5 h-5 text-orange-400" />
@@ -584,37 +554,36 @@ export function DashboardView({
               sellerRanking.map((seller, index) => {
                 const goal = 50000;
                 const progress = Math.round(Math.min(100, (seller.totalValue / goal) * 100));
-
                 return (
                   <div key={seller.name} className="flex flex-col gap-3 group">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           {seller.avatarUrl ? (
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-cyan-100 dark:border-slate-700 shadow-sm">
-                              <Image 
-                                src={seller.avatarUrl} 
-                                alt={seller.name} 
-                                width={48} 
-                                height={48} 
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#19727d]/20 dark:border-slate-700 shadow-sm">
+                              <Image
+                                src={seller.avatarUrl}
+                                alt={seller.name}
+                                width={48}
+                                height={48}
                                 className="w-full h-full object-cover"
                               />
                             </div>
                           ) : (
                             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shadow-sm border-2
-                              ${index === 0 ? 'bg-orange-50 text-orange-500 border-orange-100' : 
+                              ${index === 0 ? 'bg-orange-50 text-orange-500 border-orange-100' :
                                 index === 1 ? 'bg-gray-50 text-gray-500 border-gray-100' :
-                                index === 2 ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                'bg-slate-50 text-slate-400 border-slate-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'}
+                                  index === 2 ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                    'bg-slate-50 text-slate-400 border-slate-100 dark:bg-slate-800 dark:text-gray-500 dark:border-slate-700'}
                             `}>
                               {seller.name.charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-sm border border-white
-                            ${index === 0 ? 'bg-orange-400 text-white' : 
+                            ${index === 0 ? 'bg-orange-400 text-white' :
                               index === 1 ? 'bg-gray-400 text-white' :
-                              index === 2 ? 'bg-amber-600 text-white' :
-                              'bg-slate-400 text-white'}
+                                index === 2 ? 'bg-amber-600 text-white' :
+                                  'bg-slate-400 text-white'}
                           `}>
                             {index + 1}
                           </div>
@@ -632,7 +601,7 @@ export function DashboardView({
                         <p className="text-sm font-black text-gray-900 dark:text-gray-100 tracking-tight">
                           {fmt(seller.totalValue)}
                         </p>
-                        <p className="text-[9px] font-bold text-[#06B6D4] dark:text-cyan-400 uppercase mt-0.5">
+                        <p className="text-[9px] font-bold text-[#19727d] dark:text-[#19727d] uppercase mt-0.5">
                           {progress}% de R$ 50.000
                         </p>
                       </div>
@@ -643,7 +612,7 @@ export function DashboardView({
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 1, ease: "easeOut", delay: index * 0.1 }}
-                        style={{ backgroundColor: '#06B6D4' }}
+                        style={{ backgroundColor: '#19727d' }}
                         className="h-full shadow-sm"
                       />
                     </div>
@@ -658,7 +627,6 @@ export function DashboardView({
           </div>
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 min-h-[200px]">
           <h2 className="text-lg font-bold mb-4 dark:text-white uppercase tracking-tight leading-none">Reservas Recentes</h2>
@@ -693,14 +661,14 @@ export function DashboardView({
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
                             {Array.from(new Set(sale.items?.map(i => i.type).filter(Boolean) || [])).map(t => (
-                              <span key={t} className="px-2 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[10px] font-bold rounded-lg uppercase tracking-tight whitespace-nowrap">
+                              <span key={t} className="px-2 py-0.5 bg-[#19727d]/10 dark:bg-[#19727d]/20 text-[#19727d] dark:text-[#19727d] text-[10px] font-bold rounded-lg uppercase tracking-tight whitespace-nowrap">
                                 {t === 'passagem' ? '✈️' : t === 'hospedagem' ? '🏨' : t === 'seguro' ? '🛡️' : t === 'aluguel' ? '🚗' : '➕'} {t}
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 bg-gray-50 dark:bg-slate-800/50 text-[#19727d] dark:text-blue-400 font-black text-[9px] uppercase tracking-wider rounded-md border border-gray-100 dark:border-slate-700/50">
+                          <span className="px-2 py-0.5 bg-gray-50 dark:bg-slate-800/50 text-[#19727d] dark:text-[#19727d] font-black text-[9px] uppercase tracking-wider rounded-md border border-gray-100 dark:border-slate-700/50">
                             {sale.emissor || '-'}
                           </span>
                         </td>
@@ -717,7 +685,6 @@ export function DashboardView({
                   </tbody>
                 </table>
               </div>
-
               <div className="md:hidden space-y-3">
                 {recentSales.map((sale) => (
                   <div key={sale.id} className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-700/50 space-y-2">
@@ -743,7 +710,6 @@ export function DashboardView({
             </div>
           )}
         </div>
-
         {/* Card do Calendário - Posicionado à direita (conforme "AQUI" na imagem) */}
         <div className="bg-white dark:bg-[#1e293b] p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 h-fit">
           <div className="flex items-center justify-between mb-6">
@@ -751,29 +717,29 @@ export function DashboardView({
               <Calendar className="w-5 h-5 text-[#19727d]" />
               <h2 className="text-lg font-bold dark:text-white">Próximos Eventos</h2>
             </div>
-            <button 
+            <button
               onClick={() => setActiveView('calendario')}
               className="text-[10px] font-black text-[#19727d] uppercase tracking-widest hover:underline"
             >
               Ver Agenda
             </button>
           </div>
- 
+
           {upcomingEvents.length > 0 ? (
             <div className="space-y-4">
               <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
                 {upcomingEvents.map((event, idx) => (
                   <div key={event.id || idx} className="flex gap-3 group/item">
                     {/* Bloco de Data Minimalista e Compacto */}
-                    <div className="flex flex-col items-center justify-center w-10 h-10 bg-[#19727d]/5 dark:bg-[#19727d]/10 rounded-lg border border-[#19727d]/10 dark:border-[#19727d]/20 shadow-sm flex-shrink-0">
-                      <span className="text-[10px] font-black text-[#19727d] dark:text-cyan-400 leading-none">
+                    <div className="flex flex-col items-center justify-center w-10 h-10 bg-[#19727d]/10 dark:bg-[#19727d]/20 rounded-lg border border-[#19727d]/10 dark:border-[#19727d]/30 shadow-sm flex-shrink-0">
+                      <span className="text-[10px] font-black text-[#19727d] leading-none">
                         {formatEventDate(event.startDate).day}
                       </span>
-                      <span className="text-[8px] font-bold text-[#19727d] dark:text-cyan-300 uppercase leading-none opacity-80 mt-0.5">
+                      <span className="text-[8px] font-bold text-[#19727d] uppercase leading-none opacity-80 mt-0.5">
                         {formatEventDate(event.startDate).month}
                       </span>
                     </div>
- 
+
                     <div className="flex-1 min-w-0 py-0.5">
                       <h3 className="text-[12px] font-bold text-gray-900 dark:text-gray-100 uppercase tracking-tight truncate leading-tight mb-0.5 group-hover/item:text-[#19727d] transition-colors" title={event.title}>
                         {event.title}
@@ -785,7 +751,7 @@ export function DashboardView({
                             {formatEventDate(event.startDate).time}
                           </span>
                         </div>
-                        <span className="px-1.5 py-0.5 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[8px] font-black rounded uppercase border border-cyan-100 dark:border-cyan-900/20 tracking-wider">
+                        <span className={`px-1.5 py-0.5 ${getBadgeStyles(event.type)} text-[8px] font-black rounded uppercase border tracking-wider`}>
                           {event.type}
                         </span>
                       </div>
@@ -793,9 +759,9 @@ export function DashboardView({
                   </div>
                 ))}
               </div>
- 
+
               <div className="pt-4 border-t border-gray-100 dark:border-slate-700 mt-2">
-                <button 
+                <button
                   onClick={() => setActiveView('calendario')}
                   className="flex items-center justify-between w-full group"
                 >

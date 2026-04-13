@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { correctAirportName } from '@/lib/airport-utils';
 import { 
   Hotel, 
   Plane, 
@@ -641,7 +642,9 @@ export default function BudgetPage() {
                              </div>
                              <div>
                                 <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1.5">Voo {flight.flightNumber}</p>
-                                <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-tight">{flight.departure} → {flight.destination}</h3>
+                                <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-tight">
+                                  {correctAirportName('', flight.departure || '')} → {correctAirportName('', flight.destination || '')}
+                                </h3>
                              </div>
                           </div>
                           <div className="text-right">

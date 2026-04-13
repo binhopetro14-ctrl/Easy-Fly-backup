@@ -1,38 +1,26 @@
-export interface FlightLeg {
-  date: string;
-  origin: string;
-  departure: string;
-  arrival: string;
-  destination: string;
-  airline: string;
-  class: string;
-  isReturn?: boolean;
-  duration?: string;
-  departureTime?: string;
-  arrivalTime?: string;
-  originAirport?: string;
-  destinationAirport?: string;
+export const AIRPORT_NAME_MAP: Record<string, string> = {
+  'BFS': 'Aeroporto Internacional de Belfast (Capital da Irlanda do Norte)',
+};
+
+/**
+ * Corrige o nome de um aeroporto com base no seu código IATA.
+ * Se houver um mapeamento para o código, retorna o nome correto.
+ * Caso contrário, tenta extrair o código do nome atual ou retorna o nome original.
+ */
+export function correctAirportName(code: string, currentName: string = ''): string {
+  const normalizedCode = code.toUpperCase().trim();
+  
+  if (AIRPORT_NAME_MAP[normalizedCode]) {
+    return AIRPORT_NAME_MAP[normalizedCode];
+  }
+
+  return currentName;
 }
 
-export function normalizeFlightLeg(leg: FlightLeg): FlightLeg {
-  const newLeg = { ...leg };
-
-  // BFS Correction - Belfast International Airport (Northern Ireland)
-  const isBFS = (val: string = '', name: string = '') => {
-    const v = val.toUpperCase();
-    const n = name.toUpperCase();
-    return v.includes('BFS') || n.includes('BOEDEKER') || n.includes('CHILDRESS');
-  };
-
-  if (isBFS(newLeg.origin, newLeg.originAirport)) {
-    newLeg.origin = 'Belfast (BFS)';
-    newLeg.originAirport = 'Belfast International Airport, Irlanda do Norte';
-  }
-
-  if (isBFS(newLeg.destination, newLeg.destinationAirport)) {
-    newLeg.destination = 'Belfast (BFS)';
-    newLeg.destinationAirport = 'Belfast International Airport, Irlanda do Norte';
-  }
-
-  return newLeg;
+/**
+ * Tenta inferir o código IATA de uma string como "Belfast (BFS)" ou apenas "BFS"
+ */
+export function extractIataCode(input: string): string | null {
+  const match = input.match(/\(([A-Z]{3})\)/) || input.match(/^([A-Z]{3})$/);
+  return match ? match[1] : null;
 }

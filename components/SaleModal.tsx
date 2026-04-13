@@ -3400,6 +3400,42 @@ export function SaleModal({
 
 
 
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Horário de embarque</label>
+
+
+
+                    <input 
+
+
+
+                      type="time" 
+
+
+
+                      className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white rounded-xl text-sm outline-none"
+
+
+
+                      value={currentItem.boardingTime || ''}
+
+
+
+                      onChange={e => setCurrentItem(prev => ({ ...prev, boardingTime: e.target.value }))}
+
+
+
+                    />
+
+
+
+                  </div>
+
+
+
+                  <div className="space-y-1">
+
+
+
                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400">Retorno</label>
 
 

@@ -56,8 +56,8 @@ export function SupplierModal({
       >
         <div className="p-6 border-b border-gray-100 dark:border-slate-700/50 flex items-center justify-between bg-white dark:bg-[#1e293b] sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-cyan-50 dark:bg-cyan-500/10 rounded-2xl flex items-center justify-center">
-              <Truck className="w-5 h-5 text-cyan-600" />
+            <div className="w-10 h-10 bg-[#19727d]/10 dark:bg-[#19727d]/20 rounded-2xl flex items-center justify-center text-[#19727d]">
+              <Truck className="w-5 h-5" />
             </div>
             <h3 className="text-xl font-black text-gray-900 dark:text-gray-200 uppercase tracking-tight">
               {supplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}
@@ -74,7 +74,7 @@ export function SupplierModal({
             <input 
               type="text" 
               required
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm font-medium text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 focus:border-[#19727d] transition-all text-sm font-medium text-gray-900 dark:text-white"
               placeholder="Nome do fornecedor"
               value={formData.name}
               onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -86,7 +86,7 @@ export function SupplierModal({
               <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">CNPJ</label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm font-medium text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 focus:border-[#19727d] transition-all text-sm font-medium text-gray-900 dark:text-white"
                 placeholder="00.000.000/0000-00"
                 value={formData.cnpj}
                 onChange={e => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
@@ -96,7 +96,7 @@ export function SupplierModal({
               <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Telefone</label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm font-medium text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 focus:border-[#19727d] transition-all text-sm font-medium text-gray-900 dark:text-white"
                 placeholder="(00) 00000-0000"
                 value={formData.phone}
                 onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
@@ -108,7 +108,7 @@ export function SupplierModal({
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">E-mail</label>
             <input 
               type="email" 
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm font-medium text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 focus:border-[#19727d] transition-all text-sm font-medium text-gray-900 dark:text-white"
               placeholder="contato@fornecedor.com"
               value={formData.email}
               onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -119,7 +119,7 @@ export function SupplierModal({
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Endereço</label>
             <input 
               type="text" 
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm font-medium text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 focus:border-[#19727d] transition-all text-sm font-medium text-gray-900 dark:text-white"
               placeholder="Rua, número, cidade..."
               value={formData.address}
               onChange={e => setFormData(prev => ({ ...prev, address: e.target.value }))}
@@ -129,7 +129,7 @@ export function SupplierModal({
           <div className="space-y-1">
             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descrição</label>
             <textarea 
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all text-sm font-medium text-gray-900 dark:text-white min-h-[100px]"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 focus:border-[#19727d] transition-all text-sm font-medium text-gray-900 dark:text-white min-h-[100px]"
               placeholder="Observações sobre o fornecedor..."
               value={formData.description}
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -146,7 +146,7 @@ export function SupplierModal({
             </button>
             <button 
               type="submit"
-              className="px-8 py-2.5 bg-[#06B6D4] text-white font-bold rounded-xl hover:bg-[#0891B2] shadow-lg shadow-cyan-500/20 transition-all"
+              className="px-8 py-2.5 bg-[#19727d] text-white font-bold rounded-xl hover:bg-[#145d66] shadow-lg shadow-[#19727d]/20 transition-all active:scale-95"
             >
               Salvar
             </button>

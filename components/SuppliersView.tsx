@@ -14,7 +14,7 @@ import {
   Upload,
   ChevronDown
 } from 'lucide-react';
-import { Supplier } from '@/types';
+import { Supplier, Sale } from '@/types';
 
 interface SuppliersViewProps {
   suppliers: Supplier[];
@@ -22,6 +22,7 @@ interface SuppliersViewProps {
   onEditSupplier: (supplier: Supplier) => void;
   onDeleteSupplier: (supplier: Supplier) => void;
   currentUser: any;
+  sales: Sale[];
 }
 
 export function SuppliersView({
@@ -29,21 +30,60 @@ export function SuppliersView({
   onAddSupplier,
   onEditSupplier,
   onDeleteSupplier,
-  currentUser
+  currentUser,
+  sales
 }: SuppliersViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
 
   // --- Lógica de CRUD & Cálculos (Derivados do Supabase) ---
   const stats = useMemo(() => {
+    const totalEmissoes = sales.reduce((acc, sale) => {
+      const supplierItems = sale.items.filter(item => 
+        suppliers.some(s => s.name === item.vendor || s.id === item.vendor)
+      );
+      return acc + supplierItems.length;
+    }, 0);
+
+    const totalGasto = sales.reduce((acc, sale) => {
+      const supplierItems = sale.items.filter(item => 
+        suppliers.some(s => s.name === item.vendor || s.id === item.vendor)
+      );
+      return acc + supplierItems.reduce((sum, item) => sum + (item.emissionValue || 0), 0);
+    }, 0);
+
+    const emAberto = sales.reduce((acc, sale) => {
+      if (sale.costStatus === 'Pago') return acc;
+      const supplierItems = sale.items.filter(item => 
+        suppliers.some(s => s.name === item.vendor || s.id === item.vendor)
+      );
+      return acc + supplierItems.reduce((sum, item) => sum + (item.emissionValue || 0), 0);
+    }, 0);
+
     return {
       total: suppliers.length,
-      ativos: suppliers.length, // Pode ser filtrado se houver campo 'status'
-      emissoes: 0, // Integração futura com tabela de vendas
-      gastoTotal: 0, // Integração futura com financeiro
-      emAberto: 0
+      ativos: suppliers.length,
+      emissoes: totalEmissoes,
+      gastoTotal: totalGasto,
+      emAberto: emAberto
     };
-  }, [suppliers]);
+  }, [suppliers, sales]);
+
+  const getSupplierStats = (supplier: Supplier) => {
+    const supplierItems = sales.flatMap(sale => 
+      sale.items
+        .filter(item => item.vendor === supplier.name || item.vendor === supplier.id)
+        .map(item => ({ ...item, costStatus: sale.costStatus }))
+    );
+
+    const emissoes = supplierItems.length;
+    const gastoTotal = supplierItems.reduce((acc, item) => acc + (item.emissionValue || 0), 0);
+    const emAberto = supplierItems
+      .filter(item => item.costStatus !== 'Pago')
+      .reduce((acc, item) => acc + (item.emissionValue || 0), 0);
+
+    return { emissoes, gastoTotal, emAberto };
+  };
 
   const filteredSuppliers = suppliers.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,7 +105,7 @@ export function SuppliersView({
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Fornecedores</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
           </div>
-          <Building2 className="w-5 h-5 text-purple-300" />
+          <Building2 className="w-5 h-5 text-[#19727d]/60" />
         </div>
 
         <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex justify-between items-start">
@@ -73,7 +113,7 @@ export function SuppliersView({
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Ativos</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.ativos}</p>
           </div>
-          <Users className="w-5 h-5 text-purple-300" />
+          <Users className="w-5 h-5 text-[#19727d]/60" />
         </div>
 
         <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex justify-between items-start">
@@ -81,7 +121,7 @@ export function SuppliersView({
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Emissões</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.emissoes}</p>
           </div>
-          <Plane className="w-5 h-5 text-purple-300" />
+          <Plane className="w-5 h-5 text-[#19727d]/60" />
         </div>
 
         <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex justify-between items-start">
@@ -89,7 +129,7 @@ export function SuppliersView({
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Total Gasto</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.gastoTotal)}</p>
           </div>
-          <DollarSign className="w-5 h-5 text-purple-300" />
+          <DollarSign className="w-5 h-5 text-[#19727d]/60" />
         </div>
 
         <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex justify-between items-start">
@@ -97,18 +137,18 @@ export function SuppliersView({
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Em Aberto</p>
             <p className="text-2xl font-bold text-green-500">{formatCurrency(stats.emAberto)}</p>
           </div>
-          <DollarSign className="w-5 h-5 text-purple-300" />
+          <DollarSign className="w-5 h-5 text-[#19727d]/60" />
         </div>
       </div>
 
       {/* 2. Barra de Busca e Ações Primárias */}
       <div className="bg-white dark:bg-[#1e293b] p-2 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/50 flex flex-col md:flex-row items-center gap-3">
         <div className="relative flex-1 group w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-purple-500 transition-colors" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#19727d] transition-colors" />
           <input
             type="text"
             placeholder="Buscar..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800/50 dark:text-gray-100 border-none rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-slate-800/50 dark:text-gray-100 border-none rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -119,7 +159,7 @@ export function SuppliersView({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-2 bg-gray-50 dark:bg-slate-800/50 border-none rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 cursor-pointer"
+              className="appearance-none pl-4 pr-10 py-2 bg-gray-50 dark:bg-slate-800/50 border-none rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#19727d]/20 cursor-pointer"
             >
               <option>Todos</option>
               <option>Ativos</option>
@@ -134,7 +174,7 @@ export function SuppliersView({
 
           <button
             onClick={onAddSupplier}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#19727d] hover:bg-[#145d66] rounded-lg transition-all shadow-sm active:scale-95"
           >
             <Plus className="w-4 h-4" /> Novo Fornecedor
           </button>
@@ -160,41 +200,44 @@ export function SuppliersView({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
-              {filteredSuppliers.map((supplier) => (
-                <tr key={supplier.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-                  <td className="px-6 py-3">
-                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{supplier.name}</span>
-                  </td>
-                  <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{supplier.cnpj || '-'}</td>
-                  <td className="px-6 py-3">
-                    <span className="px-2 py-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] font-bold rounded uppercase">Fornecedor</span>
-                  </td>
-                  <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{supplier.phone || '-'}</td>
-                  <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400 text-center">0</td>
-                  <td className="px-6 py-3 text-sm text-gray-900 dark:text-gray-100 font-medium">R$ 0,00</td>
-                  <td className="px-6 py-3 text-sm text-green-500 font-medium">R$ 0,00</td>
-                  <td className="px-6 py-3 text-center">
-                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded uppercase tracking-wider">
-                      {supplier.emissor || 'Sistema'}
-                    </span>
-                  </td>
+              {filteredSuppliers.map((supplier) => {
+                const sStats = getSupplierStats(supplier);
+                return (
+                  <tr key={supplier.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                    <td className="px-6 py-3">
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{supplier.name}</span>
+                    </td>
+                    <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{supplier.cnpj || '-'}</td>
+                    <td className="px-6 py-3">
+                      <span className="px-2 py-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] font-bold rounded uppercase">Fornecedor</span>
+                    </td>
+                    <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{supplier.phone || '-'}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400 text-center font-bold">{sStats.emissoes}</td>
+                    <td className="px-6 py-3 text-sm text-gray-900 dark:text-gray-100 font-bold">{formatCurrency(sStats.gastoTotal)}</td>
+                    <td className="px-6 py-3 text-sm text-green-500 font-bold">{formatCurrency(sStats.emAberto)}</td>
+                    <td className="px-6 py-3 text-center">
+                      <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded uppercase tracking-wider">
+                        {supplier.emissor || 'Sistema'}
+                      </span>
+                    </td>
                   <td className="px-4 py-3">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 uppercase">
                       Ativo
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1">
-                      {(currentUser?.role === 'Administrador' || supplier.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()) && (
-                        <>
-                          <button onClick={() => onEditSupplier(supplier)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md text-gray-400 dark:text-gray-500 hover:text-purple-600 transition-colors"><Settings className="w-4 h-4" /></button>
-                          <button onClick={() => onDeleteSupplier(supplier)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-1">
+                        {(currentUser?.role === 'Administrador' || supplier.emissor === `${currentUser?.name} ${currentUser?.lastName || ''}`.trim()) && (
+                          <>
+                            <button onClick={() => onEditSupplier(supplier)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md text-gray-400 dark:text-gray-500 hover:text-[#19727d] transition-colors"><Settings className="w-4 h-4" /></button>
+                            <button onClick={() => onDeleteSupplier(supplier)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

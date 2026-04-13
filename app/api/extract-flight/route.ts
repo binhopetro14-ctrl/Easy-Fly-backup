@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
-import { normalizeFlightLeg } from '@/lib/airport-utils';
+
+import { correctAirportName, extractIataCode } from '@/lib/airport-utils';
 
 // Configurações para o Vercel
 export const maxDuration = 60; // Aumentar para 60 segundos (Hobby limit)
@@ -64,7 +65,6 @@ export async function POST(req: Request) {
       1. Se houver conexões, liste cada trecho separadamente.
       2. Identifique onde começa a volta e marque 'isReturn: true' a partir desse trecho.
       3. Seja extremamente preciso com horários e códigos IATA.
-      4. IMPORTANTE: O código BFS refere-se a Belfast International Airport na Irlanda do Norte.
     `;
 
     // Lista de modelos a tentar, priorizando o solicitado pelo usuário e os estáveis
@@ -98,14 +98,25 @@ export async function POST(req: Request) {
         const textOutput = result.response.text();
         if (textOutput) {
           console.log(`[extract-flight] Sucesso com modelo: ${modelName}`);
-          const parsed = JSON.parse(textOutput);
+          const data = JSON.parse(textOutput);
           
-          // Post-processing mapping para correções conhecidas
-          if (parsed.flights) {
-            parsed.flights = parsed.flights.map((f: any) => normalizeFlightLeg(f));
-          }
+          // ---- PÓS-PROCESSAMENTO PARA CORREÇÃO DE AEROPORTOS ----
+          if (data.flights && Array.isArray(data.flights)) {
+            data.flights = data.flights.map((f: any) => {
+              // Extrai o código IATA de campos como "Belfast (BFS)" ou usa o código puro se fornecido separadamente
+              const originCode = extractIataCode(f.origin) || f.origin;
+              const destCode = extractIataCode(f.destination) || f.destination;
 
-          return NextResponse.json(parsed);
+              return {
+                ...f,
+                originAirport: originCode ? correctAirportName(originCode, f.originAirport) : f.originAirport,
+                destinationAirport: destCode ? correctAirportName(destCode, f.destinationAirport) : f.destinationAirport
+              };
+            });
+          }
+          // -------------------------------------------------------
+
+          return NextResponse.json(data);
         }
       } catch (e: any) {
         console.warn(`[extract-flight] Erro no modelo ${modelName}:`, e.message);

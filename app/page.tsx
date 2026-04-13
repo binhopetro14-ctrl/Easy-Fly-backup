@@ -802,6 +802,7 @@ export default function Page() {
               ) : activeView === 'clientes' ? (
                 <CustomersView
                   customers={customers}
+                  sales={sales}
                   groups={groups}
                   currentUser={currentUser}
                   onAddCustomer={openAddCustomer}
@@ -845,9 +846,14 @@ export default function Page() {
               ) : activeView === 'calendario' ? (
                 <CalendarView 
                   sales={sales} 
+                  customers={customers}
                   manualEvents={calendarEvents} 
                   onRefresh={fetchCalendarEvents} 
                   currentUser={currentUser}
+                  onViewCustomer={(customer) => {
+                    setSelectedCustomer(customer);
+                    setActiveView('clientes');
+                  }}
                 />
               ) : activeView === 'metricas' ? (
                 <MetricasView 
@@ -856,7 +862,7 @@ export default function Page() {
                   onViewChange={setActiveView}
                 />
               ) : activeView === 'fornecedores' && currentUser?.role === 'Administrador' ? (
-                <SuppliersView suppliers={suppliers} onAddSupplier={openAddSupplier} onEditSupplier={openEditSupplier} onDeleteSupplier={handleDeleteSupplier} currentUser={currentUser} />
+                <SuppliersView suppliers={suppliers} sales={sales} onAddSupplier={openAddSupplier} onEditSupplier={openEditSupplier} onDeleteSupplier={handleDeleteSupplier} currentUser={currentUser} />
               ) : activeView === 'usuarios' ? (
                 <UsersView currentUser={currentUser} /> // <--- Renderização da tela de Usuários
               ) : null}

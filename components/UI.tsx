@@ -140,7 +140,7 @@ export function HeaderButton({ icon, label, primary, onClick }: { icon: React.Re
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
       primary 
-        ? 'bg-[#06B6D4] text-white hover:bg-[#0891B2] shadow-lg shadow-cyan-500/20' 
+        ? 'bg-[#19727d] text-white hover:bg-[#15616a] shadow-lg shadow-[#19727d]/20' 
         : 'bg-white dark:bg-[#1e293b] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-800 shadow-sm'
     }`}>
       {icon}
@@ -161,12 +161,12 @@ export function StatCard({ label, value, description, icon, iconBg }: { label: s
       </div>
       
       {/* Ícone no canto superior direito */}
-      <div className={`absolute top-5 right-5 w-10 h-10 md:w-12 md:h-12 ${iconBg} dark:bg-cyan-950/20 rounded-xl flex items-center justify-center shadow-sm border border-white/50 dark:border-white/5 z-0 group-hover:scale-110 transition-transform`}>
+      <div className={`absolute top-5 right-5 w-10 h-10 md:w-12 md:h-12 ${iconBg} dark:bg-[#19727d]/10 rounded-xl flex items-center justify-center shadow-sm border border-white/50 dark:border-white/5 z-0 group-hover:scale-110 transition-transform`}>
         {icon}
       </div>
       
       {/* Círculo decorativo ao fundo */}
-      <div className="absolute -right-4 -bottom-4 w-16 md:w-20 h-16 md:h-20 bg-cyan-50/50 dark:bg-cyan-500/5 rounded-full opacity-40 group-hover:scale-110 transition-transform z-0"></div>
+      <div className="absolute -right-4 -bottom-4 w-16 md:w-20 h-16 md:h-20 bg-[#19727d]/5 dark:bg-[#19727d]/5 rounded-full opacity-40 group-hover:scale-110 transition-transform z-0"></div>
     </div>
   );
 }

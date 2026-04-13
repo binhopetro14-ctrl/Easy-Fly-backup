@@ -288,7 +288,7 @@ export function SalesView({
             <button className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700/50 cursor-pointer whitespace-nowrap"><FileText className="w-4 h-4" /> Relatório</button>
             <button className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700/50 cursor-pointer"><SlidersHorizontal className="w-4 h-4" /></button>
             <button className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700/50 cursor-pointer"><Upload className="w-4 h-4" /></button>
-            <button onClick={onAddSale} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg shadow-sm cursor-pointer whitespace-nowrap"><Plus className="w-4 h-4" /> Nova Cotação</button>
+            <button onClick={onAddSale} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#19727d] hover:bg-[#15616a] rounded-lg shadow-sm cursor-pointer whitespace-nowrap"><Plus className="w-4 h-4" /> Nova venda</button>
           </div>
         </div>
       </div>

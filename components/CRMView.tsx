@@ -302,7 +302,7 @@ export function CRMView({
           </div>
           <button 
             onClick={onAddLead}
-            className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 whitespace-nowrap uppercase tracking-widest"
+            className="flex items-center gap-1.5 px-5 py-2 bg-[#19727d] hover:bg-[#15616a] text-white rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 whitespace-nowrap uppercase tracking-widest"
           >
             <Plus className="w-4 h-4" />
             <span>Nova Cotação</span>
@@ -367,15 +367,7 @@ export function CRMView({
                                   <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
                                   <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-tighter">Vendido</span>
                                 </div>
-                              ) : lead.status === 'proposta_enviada' ? (
-                                <button 
-                                 onClick={(e) => { e.stopPropagation(); handleToggleResponded(lead); }}
-                                 className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all flex items-center gap-1 ${lead.responded ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500'}`}
-                               >
-                                 {lead.responded && <CheckCircle2 className="w-2 h-2" />}
-                                 {lead.responded ? 'Respondido' : 'Marcar Resposta'}
-                               </button>
-                             ) : lead.status === 'radar_oportunidades' ? null : (
+                              ) : ['proposta_enviada', 'radar_oportunidades', 'perdido'].includes(lead.status) ? null : (
                                 <>
                                   <div className={`relative flex h-3 w-3 items-center justify-center`}>
                                      <div className={`relative inline-flex rounded-full h-3 w-3 ${urgency.bg} shadow-sm border border-white/40`} />

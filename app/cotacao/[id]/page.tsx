@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Script from 'next/script';
+import { correctAirportName } from '@/lib/airport-utils';
 import {
   Plane, Hotel, Shield, Car, Package, Calendar, Users, Briefcase,
   Phone, MessageCircle, CheckCircle, Clock, CreditCard, ArrowRight,
@@ -537,7 +538,8 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'AMS': { coords: [52.3105, 4.7683], name: 'Schiphol - Amsterdam' },
   'BCN': { coords: [41.2974, 2.0833], name: 'Barcelona-El Prat' },
   'OPO': { coords: [41.2421, -8.6786], name: 'Francisco Sá Carneiro - Porto' },
-  'RAO': { coords: [-21.1364, -47.7767], name: 'Leite Lopes - Ribeirão Preto' }
+  'RAO': { coords: [-21.1364, -47.7767], name: 'Leite Lopes - Ribeirão Preto' },
+  'BFS': { coords: [54.6575, -6.2158], name: 'Aeroporto Internacional de Belfast (Capital da Irlanda do Norte)' }
 };
 
 /**
@@ -1021,7 +1023,7 @@ function FlightLegCard({
               <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">{firstSeg?.departureTime ? fmt(firstSeg.departureTime) : '--:--'}</p>
               <div className="mt-1 h-6 sm:h-7 flex items-start overflow-hidden">
                 <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase">
-                  {airportInfo[firstSeg?.origin || '']?.name || firstSeg?.origin || '---'}
+                  {correctAirportName(firstSeg?.origin || '', airportInfo[firstSeg?.origin || '']?.name || firstSeg?.origin || '---')}
                 </p>
               </div>
             </div>
@@ -1120,7 +1122,7 @@ function FlightLegCard({
               <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">{lastSeg?.arrivalTime ? fmt(lastSeg.arrivalTime) : '--:--'}</p>
               <div className="mt-1 h-6 sm:h-7 flex items-start justify-end overflow-hidden">
                 <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 leading-tight tracking-tight uppercase text-right">
-                  {airportInfo[lastSeg?.destination || '']?.name || lastSeg?.destination || '---'}
+                  {correctAirportName(lastSeg?.destination || '', airportInfo[lastSeg?.destination || '']?.name || lastSeg?.destination || '---')}
                 </p>
               </div>
             </div>
@@ -1186,7 +1188,7 @@ function FlightLegCard({
                                              <span className="text-base font-black text-slate-400">{seg.origin}</span>
                                           </div>
                                           <p className="text-xs font-bold text-slate-500 opacity-60">
-                                             {airportInfo[seg.origin]?.name || `Aeroporto ${seg.origin}`}
+                                             {correctAirportName(seg.origin, airportInfo[seg.origin]?.name || `Aeroporto ${seg.origin}`)}
                                           </p>
                                        </div>
                                     </div>
@@ -1202,7 +1204,7 @@ function FlightLegCard({
                                              <span className="text-base font-black text-slate-400">{seg.destination}</span>
                                           </div>
                                           <p className="text-xs font-bold text-slate-500 opacity-60">
-                                             {airportInfo[seg.destination]?.name || `Aeroporto ${seg.destination}`}
+                                             {correctAirportName(seg.destination, airportInfo[seg.destination]?.name || `Aeroporto ${seg.destination}`)}
                                           </p>
                                        </div>
                                     </div>

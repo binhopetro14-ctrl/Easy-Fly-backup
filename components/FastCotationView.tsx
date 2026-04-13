@@ -11,8 +11,9 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { NumericFormat } from 'react-number-format';
 import { Lead, TeamMember } from '@/types';
+
 import { supabase } from '@/lib/supabase';
-import { normalizeFlightLeg } from '@/lib/airport-utils';
+import { correctAirportName, extractIataCode } from '@/lib/airport-utils';
 
 const INTEREST_RATES: Record<number, number> = {
   1: 3.46,
@@ -336,12 +337,22 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
     if (field === 'isReturn') {
       newFlights[index] = { ...newFlights[index], isReturn: value === 'true' };
     } else {
-      newFlights[index] = { ...newFlights[index], [field]: value };
+      const updatedLeg = { ...newFlights[index], [field]: value };
+
+      // Auto-correção de nomes de aeroportos baseados no mapeamento de IATA
+      if (field === 'origin' || field === 'destination') {
+        const code = extractIataCode(value) || value;
+        if (code) {
+          const corrected = correctAirportName(code, '___NO_MAP___');
+          if (corrected !== '___NO_MAP___') {
+            if (field === 'origin') updatedLeg.originAirport = corrected;
+            else updatedLeg.destinationAirport = corrected;
+          }
+        }
+      }
+
+      newFlights[index] = updatedLeg;
     }
-    
-    // Normaliza o trecho (correções de aeroportos como BFS)
-    newFlights[index] = normalizeFlightLeg(newFlights[index]);
-    
     setFlights(newFlights);
   };
 
@@ -807,7 +818,7 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
           <button
             onClick={handleCopyImage}
             disabled={isCopying}
-            className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-300 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+            className="w-full bg-[#19727d] hover:bg-[#15616a] disabled:bg-[#19727d]/50 text-white font-black uppercase text-[10px] tracking-widest py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
           >
             {isCopying ? <Clock className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
             {isCopying ? 'Capturando...' : 'Copiar Imagem'}

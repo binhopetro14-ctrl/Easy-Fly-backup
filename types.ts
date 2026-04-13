@@ -27,6 +27,31 @@ export interface Customer {
   address: Address;
   createdAt: string;
   emissor?: string;
+  documents?: CustomerDocument[];
+  passengers?: CustomerPassenger[];
+}
+
+export interface CustomerDocument {
+  id: string;
+  customerId: string;
+  name: string;
+  url: string;
+  type: string;
+  createdAt: string;
+}
+
+export interface CustomerPassenger {
+  id: string;
+  customerId: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  passportNumber: string;
+  passportExpiry: string;
+  birthDate: string;
+  createdAt: string;
 }
 
 export interface Group {
@@ -70,6 +95,7 @@ export interface SaleItem {
   hotelImages?: string[];
   hotelDescription?: string;
   hotelAmenities?: string[];
+  boardingTime?: string;
 }
 
 export interface Sale {
@@ -222,6 +248,7 @@ export interface CalendarEvent {
   endDate?: string;
   description?: string;
   userId?: string;
+  saleId?: string;
   isAllDay?: boolean;
   createdAt: string;
 }
