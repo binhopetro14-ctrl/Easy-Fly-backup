@@ -47,6 +47,7 @@ interface DashboardViewProps {
   currentUser: any;
   teamMembers: TeamMember[];
   calendarEvents: CalendarEvent[];
+  showValues: boolean;
   onToggleValues: () => void;
 }
 export function DashboardView({

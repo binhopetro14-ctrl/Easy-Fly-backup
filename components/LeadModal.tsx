@@ -178,7 +178,25 @@ function DateInput({ value, onChange, className, placeholder }: {
 
 }
 
-function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, flightLookupError, lookupFlight, onRemove, canRemove, isReturn }: any) {
+function TrechoCard({ label, segments, onSegmentsChange, lookupFlight, onRemove, canRemove, isReturn }: any) {
+  const [localLoading, setLocalLoading] = useState<number | null>(null);
+  const [localError, setLocalError] = useState<{idx: number, msg: string} | null>(null);
+
+  const handleLookup = async (segment: any, idx: number) => {
+    setLocalLoading(idx);
+    setLocalError(null);
+    try {
+      const res = await lookupFlight(segment.flightNumber, segment.departureDate, isReturn || false, idx, onSegmentsChange);
+      if (res?.error) {
+        setLocalError({idx, msg: res.error});
+      }
+    } catch (err: any) {
+      setLocalError({idx, msg: err.message || 'Erro inesperado'});
+    } finally {
+      setLocalLoading(null);
+    }
+  };
+
   const updateSegment = (idx: number, data: any) => {
     const newSegs = segments.map((s: any, i: number) => i === idx ? { ...s, ...data } : s);
     onSegmentsChange(newSegs);
@@ -249,16 +267,16 @@ function TrechoCard({ label, segments, onSegmentsChange, flightLookupLoading, fl
                    <input className="w-20 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-center" value={segment.flightNumber || ''} onChange={e => updateSegment(idx, { flightNumber: e.target.value.toUpperCase() })} />
                 </div>
                 <div className="pt-2.5">
-                   <button type="button" onClick={() => lookupFlight(segment.flightNumber, segment.departureDate, isReturn || false, idx, onSegmentsChange)} disabled={flightLookupLoading} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
-                     {flightLookupLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                   <button type="button" onClick={() => handleLookup(segment, idx)} disabled={localLoading === idx} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
+                     {localLoading === idx ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                    </button>
                 </div>
               </div>
             </div>
 
-            {flightLookupError && (
+            {localError?.idx === idx && (
               <div className="flex justify-center -mt-2 mb-3">
-                <p className="text-[9px] font-black text-red-500 bg-red-50 px-4 py-1.5 rounded-full border border-red-100 animate-in fade-in slide-in-from-top-1 duration-300">⚠️ {flightLookupError}</p>
+                <p className="text-[9px] font-black text-red-500 bg-red-50 px-4 py-1.5 rounded-full border border-red-100 animate-in fade-in slide-in-from-top-1 duration-300">⚠️ {localError.msg}</p>
               </div>
             )}
 
@@ -623,7 +641,10 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
            }
         });
       }
-    } catch (e) { setFlightLookupError('Erro na busca'); } finally { setFlightLookupLoading(false); }
+      return {}; // success
+    } catch (e: any) { 
+        return { error: 'Erro inesperado na busca' };
+    }
   };
 
   const handleAddItem = () => {
