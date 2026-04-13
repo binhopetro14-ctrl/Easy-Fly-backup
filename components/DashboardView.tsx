@@ -47,7 +47,6 @@ interface DashboardViewProps {
   currentUser: any;
   teamMembers: TeamMember[];
   calendarEvents: CalendarEvent[];
-  showValues: boolean;
   onToggleValues: () => void;
 }
 export function DashboardView({
@@ -64,10 +63,10 @@ export function DashboardView({
   onToggleValues
 }: DashboardViewProps) {
   const [isMounted, setIsMounted] = React.useState(false);
+
   React.useEffect(() => {
     setIsMounted(true);
   }, []);
-
   const fmt = (value: number) => showValues
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
     : '••••••';
@@ -241,18 +240,22 @@ export function DashboardView({
               isAuto: true,
               saleId: sale.id
             });
-            // Check-in (24h antes)
+            // Check-in (24h antes) - Calculando preservando o horário local
+            const boardingDateTime = new Date(fullDepartureStr);
             const checkInDateTime = new Date(boardingDateTime.getTime() - 24 * 60 * 60 * 1000);
             
-            // Gerar ISO local manualmente para evitar o checkout em UTC do toISOString()
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            const localCheckInISO = `${checkInDateTime.getFullYear()}-${pad(checkInDateTime.getMonth() + 1)}-${pad(checkInDateTime.getDate())}T${pad(checkInDateTime.getHours())}:${pad(checkInDateTime.getMinutes())}`;
+            // Gerar string ISO local (sem o Z) para evitar conversão UTC indevida
+            const localISO = checkInDateTime.getFullYear() + '-' +
+              String(checkInDateTime.getMonth() + 1).padStart(2, '0') + '-' +
+              String(checkInDateTime.getDate()).padStart(2, '0') + 'T' +
+              String(checkInDateTime.getHours()).padStart(2, '0') + ':' +
+              String(checkInDateTime.getMinutes()).padStart(2, '0');
 
             autoEvents.push({
               id: `sale-checkin-${sale.id}-${idx}`,
               title: `Check-in: ${item.passengerName || sale.customerName || 'Passageiro'} - ${item.origin || ''}/${item.destination || ''}`,
               type: 'Check-in',
-              startDate: localCheckInISO,
+              startDate: localISO,
               isAuto: true,
               saleId: sale.id
             });
@@ -281,12 +284,12 @@ export function DashboardView({
     return futureEvents.slice(0, 5);
   }, [allEvents]);
   const formatEventDate = (dateStr: string) => {
+    if (!isMounted) return { day: '--', month: '---', time: '--:--' };
     try {
-      if (!isMounted) return { day: '--', month: '---', time: '--:--' };
-      
+      // Se tiver 'Z' ou offset, parseISO lida bem. Se não tiver, trata como local.
       const date = parseISO(dateStr);
       if (isNaN(date.getTime())) return { day: '--', month: '---', time: '--:--' };
-      
+
       const day = date.getDate().toString().padStart(2, '0');
       const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
       const hour = date.getHours().toString().padStart(2, '0');
@@ -321,14 +324,11 @@ export function DashboardView({
   };
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
-    // Se for apenas data YYYY-MM-DD, tratamos como string pura para evitar bugs de fuso horário
+    // Para strings YYYY-MM-DD, evitamos parseISO/Date para fugir do bug de timezone
     if (dateString.length === 10 && dateString.includes('-')) {
-      const portions = dateString.split('-');
-      if (portions[0].length === 4) {
-        return `${portions[2]}/${portions[1]}/${portions[0]}`;
-      }
+      const [year, month, day] = dateString.split('-');
+      if (year && month && day) return `${day}/${month}/${year}`;
     }
-
     try {
       const dateObj = parseISO(dateString);
       if (isNaN(dateObj.getTime())) return '-';
