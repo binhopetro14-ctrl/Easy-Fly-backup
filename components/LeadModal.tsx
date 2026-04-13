@@ -102,6 +102,16 @@ function DateInput({ value, onChange, className, placeholder }: {
 
   };
 
+  const toISO = (val: string) => {
+    const d = val.split('/');
+    if (d.length === 3) {
+      let year = d[2];
+      if (year.length === 2) year = '20' + year;
+      return `${year}-${d[1]}-${d[0]}`;
+    }
+    return '';
+  };
+
   const [display, setDisplay] = React.useState(() => toDisplay(value));
 
   React.useEffect(() => {
@@ -578,7 +588,6 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
   };
 
   const lookupFlight = async (fn: string, dt: string, isReturn: boolean, idx: number, onSegmentsChange?: (segs: any[]) => void, legId?: string) => {
-    console.log('--- FLIGHT LOOKUP DEBUG ---', { fn, dt, isReturn, idx, legId });
     if (!fn || !dt) return;
     setFlightLookupLoading(true);
     setFlightLookupError(null);
