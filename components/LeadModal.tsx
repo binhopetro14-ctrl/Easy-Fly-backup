@@ -412,6 +412,7 @@ function PassagemForm(props: any) {
             onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, outboundSegments: segs }))}
             isReturn={false}
             {...props}
+            lookupFlight={(fn: any, dt: any, isRet: any, segIdx: any, onSegChange: any) => props.lookupFlight(fn, dt, isRet, segIdx, onSegChange)}
           />
           {props.currentItem.flightType === 'ida_volta' && (
             <TrechoCard 
@@ -420,6 +421,7 @@ function PassagemForm(props: any) {
               onSegmentsChange={(segs: any[]) => props.setCurrentItem((prev: any) => ({ ...prev, inboundSegments: segs }))}
               isReturn={true}
               {...props}
+              lookupFlight={(fn: any, dt: any, isRet: any, segIdx: any, onSegChange: any) => props.lookupFlight(fn, dt, isRet, segIdx, onSegChange)}
             />
           )}
         </>
@@ -576,6 +578,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
   };
 
   const lookupFlight = async (fn: string, dt: string, isReturn: boolean, idx: number, onSegmentsChange?: (segs: any[]) => void, legId?: string) => {
+    console.log('--- FLIGHT LOOKUP DEBUG ---', { fn, dt, isReturn, idx, legId });
     if (!fn || !dt) return;
     setFlightLookupLoading(true);
     setFlightLookupError(null);
