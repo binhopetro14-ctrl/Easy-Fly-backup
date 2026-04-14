@@ -277,6 +277,106 @@ export function AcoesDoDiaModal({ isOpen, onClose, leads, onUpdateLead, currentU
                 return (
                   <div key={lead.id} className="bg-white/50 dark:bg-slate-800/40 border border-white dark:border-slate-700/50 rounded-xl p-3 md:p-3.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col lg:flex-row gap-4 lg:gap-4.5 relative group backdrop-blur-sm ring-1 ring-black/5 dark:ring-white/5">
 
+                    {/* LADO ESQUERDO: INFOS DO LEAD */}
+                    <div className={`min-w-0 ${activeTab === 'proposta' ? 'flex-1 flex flex-row items-center' : 'flex-[1.2]'}`}>
+                      <div className={`flex items-center gap-2.5 ${activeTab === 'proposta' ? 'min-w-[200px] shrink-0' : ''}`}>
+                        <div className={`w-8 h-8 rounded-xl flex flex-shrink-0 items-center justify-center text-lg font-black text-white shadow-md transform -rotate-2 group-hover:rotate-0 transition-transform duration-500 ${lead.isUrgente ? 'bg-rose-400' : 'bg-gradient-to-br from-[#19727d] to-cyan-600 shadow-cyan-500/10'}`}>
+                          {lead.name[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <h4 className="text-[14px] font-black leading-tight text-slate-900 dark:text-white">
+                            {lead.title || 'Cotação sem título'}
+                          </h4>
+                          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-2">
+                            <span>{lead.name}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {activeTab === 'proposta' && <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 mx-6 opacity-60 shrink-0" />}
+
+                      <div className={`${activeTab === 'proposta' ? 'mt-0 flex-1' : 'mt-2.5'} flex flex-col gap-0.5`}>
+                        {/* LINHA 1: ROTA + WHATSAPP */}
+                        <div className="flex items-center gap-3">
+                          {route && (
+                            <div className="text-blue-600 dark:text-blue-400 text-[11px] font-black tracking-tight flex items-center gap-1 min-w-[100px]">
+                              {route.origin} <span className="text-[10px] opacity-60">✈️</span> {route.destination}
+                            </div>
+                          )}
+                          
+                          {lead.phone && (
+                            <a 
+                              href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500 hover:text-emerald-700 transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Phone className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-black tracking-tighter">{lead.phone}</span>
+                            </a>
+                          )}
+                        </div>
+                        {/* LINHA 2: EMISSOR */}
+                        <div className="flex items-center gap-3">
+                          <div className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide min-w-[100px]">
+                            {lead.emissor || 'Emissor não identificado'}
+                          </div>
+                        </div>
+
+                        {/* LINHA 3: PAX + AÉREO + TAGS */}
+                        <div className="flex items-center gap-2 mt-1">
+                          {/* PAX ICONS */}
+                          <div className="flex items-center gap-1.5 opacity-60 shrink-0">
+                            <div className="flex items-center gap-0.5">
+                              <User className="w-2.5 h-2.5 text-slate-400" />
+                              <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{lead.adults || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                              <Users className="w-2.5 h-2.5 text-slate-400" />
+                              <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{lead.children || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                              <Baby className="w-2.5 h-2.5 text-slate-400" />
+                              <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{lead.babies || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                              <Luggage className="w-2.5 h-2.5 text-slate-400" />
+                              <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{lead.luggage23kg || 0}</span>
+                            </div>
+                          </div>
+
+                          <span className="h-2 w-[1px] bg-slate-200 dark:bg-slate-800" />
+
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {lead.tags && lead.tags.length > 0 && (
+                              <div className="flex gap-1 overflow-hidden">
+                                {lead.tags.map((tag, idx) => (
+                                  <span key={idx} className="px-1.5 py-0 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-cyan-400 text-[8px] font-black rounded border border-blue-100 dark:border-blue-500/20 uppercase tracking-tighter whitespace-nowrap">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* TEMPO SEM RESPOSTA */}
+                        <div className="flex items-center gap-1.5 text-red-600 dark:text-red-500 mt-2 ml-8">
+                          <Clock className="w-3.5 h-3.5 opacity-80" />
+                          <span className="text-[11.5px] font-black uppercase tracking-widest whitespace-nowrap">
+                            {lead.totalHoursElapsed >= 48 
+                              ? `${Math.floor(lead.totalHoursElapsed / 24)} DIAS` 
+                              : `${lead.totalHoursElapsed}H`} <span className="font-medium opacity-60 italic text-[10px]">SEM RESPOSTA</span>
+                          </span>
+                        </div>
+                        {lead.isUrgente && (
+                          <div className="mt-2 inline-flex items-center gap-1 text-red-500 font-black text-[13px] uppercase tracking-[0.2em]">
+                            <span>✨</span> URGENTE
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
                     {/* LADO DIREITO: ESTÁGIOS DE FOLLOW-UP (Apenas para aba de Resposta) */}
                     {activeTab === 'resposta' && (
