@@ -373,17 +373,6 @@ export const saleService = {
     return mapperService.fromSupabase.sale(saleDataWithNames, []);
   },
 
-  delete: async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from('sales')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Supabase Error (delete sale):', extractError(error));
-      throw new Error(error.message || 'Erro ao deletar venda');
-    }
-  }
 };
 
 export const crmService = {

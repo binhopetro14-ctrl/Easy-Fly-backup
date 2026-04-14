@@ -345,8 +345,12 @@ export default function Page() {
         if (selectedCustomer?.id === customerToDelete.id) setSelectedCustomer(null);
         setIsDeleteConfirmOpen(false);
         setCustomerToDelete(null);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting customer:', error);
+        setNotification({
+          message: 'Erro ao excluir cliente: ' + (error.message || 'Erro desconhecido'),
+          type: 'error'
+        });
       }
     }
   };
@@ -458,7 +462,13 @@ export default function Page() {
         await internalDeleteSale(saleToDelete.id);
         setIsDeleteSaleConfirmOpen(false);
         setSaleToDelete(null);
-      } catch (error) { console.error(error); }
+      } catch (error: any) {
+        console.error('Erro ao excluir venda:', error);
+        setNotification({
+          message: 'Erro ao excluir venda: ' + (error.message || 'Erro desconhecido'),
+          type: 'error'
+        });
+      }
     }
   };
 
@@ -506,8 +516,11 @@ export default function Page() {
         setIsDeleteSupplierConfirmOpen(false);
         setSupplierToDelete(null);
       } catch (error: any) {
-        console.error(error);
-        setNotification({ message: 'Erro ao excluir fornecedor: ' + (error.message || 'Erro desconhecido'), type: 'error' });
+        console.error('Erro ao excluir fornecedor:', error);
+        setNotification({
+          message: 'Erro ao excluir fornecedor: ' + (error.message || 'Erro desconhecido'),
+          type: 'error'
+        });
       }
     }
   };
@@ -563,7 +576,11 @@ export default function Page() {
         setIsDeleteLeadConfirmOpen(false);
         setLeadToDelete(null);
       } catch (error: any) {
-        setNotification({ message: 'Erro ao excluir lead: ' + error.message, type: 'error' });
+        console.error('Erro ao excluir lead:', error);
+        setNotification({
+          message: 'Erro ao excluir lead: ' + (error.message || 'Erro desconhecido'),
+          type: 'error'
+        });
       }
     }
   };
