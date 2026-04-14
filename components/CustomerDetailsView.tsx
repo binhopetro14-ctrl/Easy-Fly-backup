@@ -6,7 +6,7 @@ import {
     Percent, TrendingUp, Plane, Search, Settings,
     FileText, ChevronLeft, ChevronRight, Calendar,
     Copy, Users, FolderOpen, ChevronUp, Plus, Mail,
-    Briefcase, Shield, Trash2, ExternalLink
+    Briefcase, Shield, Trash2, ExternalLink, Eye
 } from 'lucide-react';
 import { Customer, Sale, CustomerDocument, CustomerPassenger } from '@/types';
 import { customerService } from '@/services/supabaseService';
