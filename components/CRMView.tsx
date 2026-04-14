@@ -73,6 +73,9 @@ export function CRMView({
     const startTime = new Date(slaStartAt || createdAt);
     const diff = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
     const hours = Math.floor(diff / 60);
+    const label = hours >= 48 
+      ? `${Math.floor(hours / 24)}D ${hours % 24}H`
+      : hours > 0 ? `${hours}H ${diff % 60}M` : `${diff}M`;
     
     if (diff < 120) return { 
       color: 'text-emerald-500', 
