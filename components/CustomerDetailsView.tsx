@@ -75,6 +75,7 @@ export function CustomerDetailsView({
     const [documents, setDocuments] = useState<CustomerDocument[]>(customer.documents || []);
     const [passengers, setPassengers] = useState<CustomerPassenger[]>(customer.passengers || []);
     const [isUploading, setIsUploading] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -377,14 +378,17 @@ export function CustomerDetailsView({
                             <div className="grid grid-cols-2 gap-2">
                                 {documents.map(doc => (
                                     <div key={doc.id} className="relative group rounded-lg overflow-hidden border border-gray-100 dark:border-slate-700/50 aspect-video bg-gray-50 flex items-center justify-center">
-                                        <img src={doc.url} alt={doc.name} className="w-full h-full object-cover" />
+                                        <img src={doc.url} alt={doc.name} className="w-full h-full object-cover cursor-pointer" onClick={() => setSelectedImage(doc.url)} />
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-2">
                                             <p className="text-[8px] text-white font-bold px-2 text-center truncate w-full">{doc.name}</p>
                                             <div className="flex gap-2">
-                                                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white rounded-lg text-gray-900 hover:bg-purple-50 transition-colors">
+                                                <button onClick={() => setSelectedImage(doc.url)} title="Ampliar" className="p-1.5 bg-white rounded-lg text-gray-900 hover:bg-cyan-50 transition-colors">
+                                                    <Eye className="w-3 h-3" />
+                                                </button>
+                                                <a href={doc.url} target="_blank" rel="noopener noreferrer" title="Abrir em Nova Aba" className="p-1.5 bg-white rounded-lg text-gray-900 hover:bg-purple-50 transition-colors">
                                                     <ExternalLink className="w-3 h-3" />
                                                 </a>
-                                                <button onClick={() => handleDeleteDocument(doc.id)} className="p-1.5 bg-red-500 rounded-lg text-white hover:bg-red-600 transition-colors">
+                                                <button onClick={() => handleDeleteDocument(doc.id)} title="Excluir" className="p-1.5 bg-red-500 rounded-lg text-white hover:bg-red-600 transition-colors">
                                                     <Trash2 className="w-3 h-3" />
                                                 </button>
                                             </div>
@@ -401,6 +405,29 @@ export function CustomerDetailsView({
                     </RightSectionCard>
                 </div>
             </div>
+
+            {/* 4. MODAL DE IMAGEM AMPLIADA */}
+            {selectedImage && (
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" 
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <div className="relative max-w-5xl w-full h-[85vh] flex items-center justify-center animate-in zoom-in-95 duration-200">
+                        <img 
+                            src={selectedImage} 
+                            alt="Documento Ampliado" 
+                            className="max-w-full max-h-full rounded-xl object-contain drop-shadow-2xl" 
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        <button 
+                            onClick={() => setSelectedImage(null)} 
+                            className="absolute top-0 right-0 md:-top-4 md:-right-4 w-10 h-10 bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shadow-xl"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
