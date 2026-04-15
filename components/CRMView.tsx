@@ -69,412 +69,418 @@ export function CRMView({
     if (leads.length === 0) fetchLeads();
   }, [fetchLeads, leads.length]);
 
-  if (diff < 120) return {
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-500',
-    border: 'border-emerald-500',
-    animate: '',
-    label,
-    text: 'Agente Ágil'
+  const getUrgency = (slaStartAt: string | undefined, createdAt: string) => {
+    const startTime = new Date(slaStartAt || createdAt);
+    const diff = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
+    const hours = Math.floor(diff / 60);
+    const label = hours > 0 ? `${hours}h${diff % 60}m` : `${diff}m`;
+
+    if (diff < 120) return {
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500',
+      border: 'border-emerald-500',
+      animate: '',
+      label,
+      text: 'Agente Ágil'
+    };
+    if (diff < 360) return {
+      color: 'text-amber-500',
+      bg: 'bg-amber-500',
+      border: 'border-amber-500',
+      animate: '',
+      label,
+      text: 'Atenção'
+    };
+    return {
+      color: 'text-red-500',
+      bg: 'bg-red-500',
+      border: 'border-red-500',
+      animate: '',
+      label,
+      text: 'Urgente'
+    };
   };
-  if (diff < 360) return {
-    color: 'text-amber-500',
-    bg: 'bg-amber-500',
-    border: 'border-amber-500',
-    animate: '',
-    label,
-    text: 'Atenção'
+
+  const canModifyLead = (lead: Lead) => {
+    if (!currentUser) return false;
+    // Admins e Gerentes podem tudo
+    if (currentUser.role === 'Administrador' || currentUser.role === 'Gerente') return true;
+
+    // Outros perfis (Vendedor, Representante, etc.) só podem se forem os donos
+    const currentUserName = `${currentUser.name} ${currentUser.lastName || ''}`.trim();
+    return lead.emissor === currentUserName || lead.emissor === currentUser.email;
   };
-  return {
-    color: 'text-red-500',
-    bg: 'bg-red-500',
-    border: 'border-red-500',
-    animate: '',
-    label,
-    text: 'Urgente'
+
+  const handleToggleResponded = async (lead: Lead) => {
+    if (!canModifyLead(lead)) {
+      setNotification({ message: "Você não tem permissão para alterar este orçamento.", type: 'warning' });
+      return;
+    }
+    await onUpdateLead({ ...lead, responded: !lead.responded });
   };
-};
 
-const canModifyLead = (lead: Lead) => {
-  if (!currentUser) return false;
-  // Admins e Gerentes podem tudo
-  if (currentUser.role === 'Administrador' || currentUser.role === 'Gerente') return true;
+  const filteredLeads = useMemo(() => {
+    return leads.filter((l: Lead) =>
+      l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.phone?.includes(searchTerm) ||
+      (l.title && l.title.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [leads, searchTerm]);
 
-  // Outros perfis (Vendedor, Representante, etc.) só podem se forem os donos
-  const currentUserName = `${currentUser.name} ${currentUser.lastName || ''}`.trim();
-  return lead.emissor === currentUserName || lead.emissor === currentUser.email;
-};
-
-const handleToggleResponded = async (lead: Lead) => {
-  if (!canModifyLead(lead)) {
-    setNotification({ message: "Você não tem permissão para alterar este orçamento.", type: 'warning' });
-    return;
-  }
-  await onUpdateLead({ ...lead, responded: !lead.responded });
-};
-
-const filteredLeads = useMemo(() => {
-  return leads.filter((l: Lead) =>
-    l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.phone?.includes(searchTerm) ||
-    (l.title && l.title.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-}, [leads, searchTerm]);
-
-const formatCurrency = (value: number) => {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-};
-
-const getColumnStats = (status: CRMStatus) => {
-  const colLeads = leads.filter((l: Lead) => l.status === status);
-  return {
-    count: colLeads.length,
-    totalValue: colLeads.reduce((sum: number, l: Lead) => sum + (l.value || 0), 0)
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
-};
 
-const handleDragStart = (e: React.DragEvent, leadId: string) => {
-  e.dataTransfer.setData('leadId', leadId);
-};
+  const getColumnStats = (status: CRMStatus) => {
+    const colLeads = leads.filter((l: Lead) => l.status === status);
+    return {
+      count: colLeads.length,
+      totalValue: colLeads.reduce((sum: number, l: Lead) => sum + (l.value || 0), 0)
+    };
+  };
 
-const handleDragOver = (e: React.DragEvent) => {
-  e.preventDefault();
-};
+  const handleDragStart = (e: React.DragEvent, leadId: string) => {
+    e.dataTransfer.setData('leadId', leadId);
+  };
 
-const handleDrop = async (e: React.DragEvent, newStatus: CRMStatus) => {
-  e.preventDefault();
-  const leadId = e.dataTransfer.getData('leadId');
-  if (leadId) {
-    const lead = leads.find(l => l.id === leadId);
-    if (lead) {
-      // SEGURANÇA: Verificar se o usuário pode mover este lead
-      if (!canModifyLead(lead)) {
-        setNotification({ message: "Você não tem permissão para mover este orçamento de outro vendedor.", type: 'warning' });
-        return;
-      }
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
 
-      // Preparamos apenas os dados que realmente mudaram (Delta Update)
-      // Regra Especial 1: Se mover para Aprovado, abre o modal para obrigar preenchimento de venda e custo
-      if (newStatus === 'aprovado' && lead.status !== 'aprovado') {
-        onEditLead({ ...lead, status: 'aprovado' });
-        return;
-      }
-
-      const updateData: Partial<Lead> = {
-        id: lead.id,
-        status: newStatus,
-        responded: false
-      };
-
-      // NOVO: Gatilho para Follow-ups do sistema "Ações do Dia"
-      if (newStatus === 'proposta_enviada') {
-        // Se mudou de status OU se ainda não tem a data registrada
-        if (lead.status !== 'proposta_enviada' || !lead.propostaEnviadaAt) {
-          updateData.propostaEnviadaAt = new Date().toISOString();
-          updateData.followUpHistory = lead.followUpHistory || {}; // Mantém se já existir, limpa se for novo status
-          if (lead.status !== 'proposta_enviada') updateData.followUpHistory = {};
+  const handleDrop = async (e: React.DragEvent, newStatus: CRMStatus) => {
+    e.preventDefault();
+    const leadId = e.dataTransfer.getData('leadId');
+    if (leadId) {
+      const lead = leads.find(l => l.id === leadId);
+      if (lead) {
+        // SEGURANÇA: Verificar se o usuário pode mover este lead
+        if (!canModifyLead(lead)) {
+          setNotification({ message: "Você não tem permissão para mover este orçamento de outro vendedor.", type: 'warning' });
+          return;
         }
+
+        // Preparamos apenas os dados que realmente mudaram (Delta Update)
+        // Regra Especial 1: Se mover para Aprovado, abre o modal para obrigar preenchimento de venda e custo
+        if (newStatus === 'aprovado' && lead.status !== 'aprovado') {
+          onEditLead({ ...lead, status: 'aprovado' });
+          return;
+        }
+
+        const updateData: Partial<Lead> = {
+          id: lead.id,
+          status: newStatus,
+          responded: false
+        };
+
+        // NOVO: Gatilho para Follow-ups do sistema "Ações do Dia"
+        if (newStatus === 'proposta_enviada') {
+          // Se mudou de status OU se ainda não tem a data registrada
+          if (lead.status !== 'proposta_enviada' || !lead.propostaEnviadaAt) {
+            updateData.propostaEnviadaAt = new Date().toISOString();
+            updateData.followUpHistory = lead.followUpHistory || {}; // Mantém se já existir, limpa se for novo status
+            if (lead.status !== 'proposta_enviada') updateData.followUpHistory = {};
+          }
+        }
+
+        // Regra Especial 2: Só reseta o tempo se estiver saindo de 'Proposta Enviada' para 'Em Cotação'
+        if (lead.status === 'proposta_enviada' && newStatus === 'em_cotacao') {
+          updateData.slaStartAt = new Date().toISOString();
+        }
+
+        await onUpdateLead(updateData);
       }
+    }
+  };
 
-      // Regra Especial 2: Só reseta o tempo se estiver saindo de 'Proposta Enviada' para 'Em Cotação'
-      if (lead.status === 'proposta_enviada' && newStatus === 'em_cotacao') {
-        updateData.slaStartAt = new Date().toISOString();
+  // Helper para extrair origem/destino do primeiro item de voo
+  const getRouteInfo = (lead: Lead) => {
+    const flight = lead.items?.find(item => item.type === 'passagem');
+    if (!flight) return null;
+
+    // Prioridade 1: Campos diretos (fallback)
+    if (flight.origin && flight.destination) {
+      return { origin: flight.origin, destination: flight.destination };
+    }
+
+    // Prioridade 2: Segmentos de ida
+    const segs = flight.outboundSegments;
+    if (segs && segs.length > 0) {
+      const origin = segs[0].origin;
+      const destination = segs[segs.length - 1].destination;
+      if (origin && destination) {
+        return { origin, destination };
       }
-
-      await onUpdateLead(updateData);
     }
-  }
-};
+    return null;
+  };
 
-// Helper para extrair origem/destino do primeiro item de voo
-const getRouteInfo = (lead: Lead) => {
-  const flight = lead.items?.find(item => item.type === 'passagem');
-  if (!flight) return null;
+  const redLeadsCount = useMemo(() => {
+    return filteredLeads.filter((l: Lead) => l.status === 'em_cotacao').length;
+  }, [filteredLeads]);
 
-  // Prioridade 1: Campos diretos (fallback)
-  if (flight.origin && flight.destination) {
-    return { origin: flight.origin, destination: flight.destination };
-  }
+  const followUpsCount = useMemo(() => {
+    return leads.filter((l: Lead) => l.status === 'proposta_enviada' && !l.responded).length;
+  }, [leads]);
 
-  // Prioridade 2: Segmentos de ida
-  const segs = flight.outboundSegments;
-  if (segs && segs.length > 0) {
-    const origin = segs[0].origin;
-    const destination = segs[segs.length - 1].destination;
-    if (origin && destination) {
-      return { origin, destination };
-    }
-  }
-  return null;
-};
+  return (
+    <div className="flex flex-col h-[calc(100vh-80px)] bg-[#f8fafc] dark:bg-slate-950 p-2 pt-1 pb-0 animate-in fade-in duration-500 relative">
 
-const redLeadsCount = useMemo(() => {
-  return filteredLeads.filter((l: Lead) => l.status === 'em_cotacao').length;
-}, [filteredLeads]);
-
-const followUpsCount = useMemo(() => {
-  return leads.filter((l: Lead) => l.status === 'proposta_enviada' && !l.responded).length;
-}, [leads]);
-
-return (
-  <div className="flex flex-col h-[calc(100vh-80px)] bg-[#f8fafc] dark:bg-slate-950 p-2 pt-1 pb-0 animate-in fade-in duration-500 relative">
-
-    <AnimatePresence>
-      {notification && (
-        <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-[200]"
-        >
-          <div className="bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-500/20 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
-              <AlertCircle className="w-4 h-4 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">Acesso Restrito</p>
-              <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400">{notification.message}</p>
-            </div>
-            <button
-              onClick={() => setNotification(null)}
-              className="ml-2 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              <X className="w-3 h-3 text-gray-400" />
-            </button>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-
-    <div className="flex justify-between items-center gap-3 mb-2 shrink-0">
-      <div className="flex items-center gap-4">
-        {redLeadsCount > 0 ? (
-          <div className="flex items-center justify-center gap-1.5 py-1.5 w-[450px] bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
-            <span className="relative flex h-2 w-2 items-center justify-center">
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">
-              {redLeadsCount} {redLeadsCount === 1 ? 'lead esperando' : 'leads esperando'}
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center gap-1.5 py-1.5 w-[450px] bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
-            <span className="text-[11px] leading-none mb-[1px]">✨</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-              Tudo sob controle
-            </span>
-          </div>
-        )}
-
-        <button
-          onClick={() => setAcoesModalOpen(true)}
-          className="flex items-center justify-center gap-1.5 py-1.5 w-[450px] bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-slate-700/80 transition-all focus:ring-2 focus:ring-yellow-500/20"
-        >
-          <span className="text-yellow-500 text-sm leading-none">⚡</span>
-          <span>Ações do Dia</span>
-          {followUpsCount > 0 && (
-            <>
-              <span className="text-gray-300 dark:text-gray-600">-</span>
-              <span className="text-red-500 dark:text-red-400">
-                {followUpsCount} follow-ups pendentes
-              </span>
-            </>
-          )}
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl text-xs w-48 md:w-64 focus:ring-2 focus:ring-purple-500/20 transition-all outline-none"
-          />
-        </div>
-        <button
-          onClick={onAddLead}
-          className="flex items-center gap-1.5 px-5 py-2 bg-[#19727d] hover:bg-[#15616a] text-white rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 whitespace-nowrap uppercase tracking-widest"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nova Cotação</span>
-        </button>
-      </div>
-    </div>
-
-    <div className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
-      <div className="flex gap-4 min-w-full h-full pb-4">
-        {COLUMNS.map((col) => {
-          const { count, totalValue } = getColumnStats(col.id);
-          const columnLeads = filteredLeads.filter(l => l.status === col.id);
-
-          return (
-            <div
-              key={col.id}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, col.id)}
-              className="flex-1 min-w-[300px] flex flex-col h-full rounded-2xl bg-gray-50/50 dark:bg-slate-900/40 border-2 border-gray-200 dark:border-slate-800 overflow-hidden relative"
-            >
-              <div className={`h-1.5 w-full ${col.headerBg} opacity-100`} />
-
-              <div className="p-3 bg-white/50 dark:bg-slate-800/50 border-b border-gray-100/50 dark:border-slate-700/50 shrink-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`font-black uppercase text-[11px] tracking-widest ${col.color}`}>{col.title}</span>
-                    <span className="text-gray-400 text-[9px] font-bold">({count})</span>
-                  </div>
-                  <span className="text-[10px] font-black text-gray-400">
-                    {formatCurrency(totalValue)}
-                  </span>
-                </div>
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[200]"
+          >
+            <div className="bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-500/20 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                <AlertCircle className="w-4 h-4 text-amber-500" />
               </div>
+              <div>
+                <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">Acesso Restrito</p>
+                <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400">{notification.message}</p>
+              </div>
+              <button
+                onClick={() => setNotification(null)}
+                className="ml-2 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="w-3 h-3 text-gray-400" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              <div className="flex-1 p-2 overflow-y-auto space-y-2.5 custom-scrollbar h-full">
-                {columnLeads.length > 0 ? (
-                  columnLeads.map((lead: Lead) => {
-                    const route = getRouteInfo(lead);
-                    const urgency = getUrgency(lead.slaStartAt, lead.createdAt);
-                    const stopBlinking = ['proposta_enviada', 'radar_oportunidades', 'aprovado', 'perdido'].includes(lead.status);
-                    const finalAnimate = stopBlinking ? '' : urgency.animate;
-                    let finalBorder = urgency.border;
-                    let borderWidth = 'border-2';
-                    if (lead.status === 'aprovado') {
-                      finalBorder = 'border-emerald-500 shadow-sm shadow-emerald-500/10';
-                      borderWidth = 'border-[3px]';
-                    } else if (stopBlinking) {
-                      finalBorder = 'border-gray-200 dark:border-slate-700/50';
-                    }
+      <div className="flex justify-between items-center gap-3 mb-2 shrink-0">
+        <div className="flex items-center gap-4">
+          {redLeadsCount > 0 ? (
+            <div className="flex items-center justify-center gap-1.5 py-1.5 w-[450px] bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
+              <span className="relative flex h-2 w-2 items-center justify-center">
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">
+                {redLeadsCount} {redLeadsCount === 1 ? 'lead esperando' : 'leads esperando'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1.5 py-1.5 w-[450px] bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm animate-in fade-in zoom-in duration-500">
+              <span className="text-[11px] leading-none mb-[1px]">✨</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                Tudo sob controle
+              </span>
+            </div>
+          )}
 
-                    return (
-                      <motion.div
-                        layout
-                        key={lead.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e as any, lead.id)}
-                        className={`p-3 bg-white dark:bg-slate-800 rounded-xl ${borderWidth} ${finalBorder} ${finalAnimate} hover:brightness-95 transition-all cursor-grab active:cursor-grabbing group relative`}
-                      >
-                        <div className="absolute top-2 right-12 flex items-center gap-1.5 transition-opacity">
-                          {lead.status === 'aprovado' ? (
-                            <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
-                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
-                              <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-tighter">Vendido</span>
-                            </div>
-                          ) : ['proposta_enviada', 'radar_oportunidades', 'perdido'].includes(lead.status) ? null : (
-                            <>
-                              <div className={`relative flex h-3 w-3 items-center justify-center`}>
-                                <div className={`relative inline-flex rounded-full h-3 w-3 ${urgency.bg} shadow-sm border border-white/40`} />
+          <button
+            onClick={() => setAcoesModalOpen(true)}
+            className="flex items-center justify-center gap-1.5 py-1.5 w-[450px] bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-slate-700/80 transition-all focus:ring-2 focus:ring-yellow-500/20"
+          >
+            <span className="text-yellow-500 text-sm leading-none">⚡</span>
+            <span>Ações do Dia</span>
+            {followUpsCount > 0 && (
+              <>
+                <span className="text-gray-300 dark:text-gray-600">-</span>
+                <span className="text-red-500 dark:text-red-400">
+                  {followUpsCount} follow-ups pendentes
+                </span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl text-xs w-48 md:w-64 focus:ring-2 focus:ring-purple-500/20 transition-all outline-none"
+            />
+          </div>
+          <button
+            onClick={onAddLead}
+            className="flex items-center gap-1.5 px-5 py-2 bg-[#19727d] hover:bg-[#15616a] text-white rounded-xl text-xs font-black transition-all shadow-lg active:scale-95 whitespace-nowrap uppercase tracking-widest"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Cotação</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
+        <div className="flex gap-4 min-w-full h-full pb-4">
+          {COLUMNS.map((col) => {
+            const { count, totalValue } = getColumnStats(col.id);
+            const columnLeads = filteredLeads.filter(l => l.status === col.id);
+
+            return (
+              <div
+                key={col.id}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, col.id)}
+                className="flex-1 min-w-[300px] flex flex-col h-full rounded-2xl bg-gray-50/50 dark:bg-slate-900/40 border-2 border-gray-200 dark:border-slate-800 overflow-hidden relative"
+              >
+                <div className={`h-1.5 w-full ${col.headerBg} opacity-100`} />
+
+                <div className="p-3 bg-white/50 dark:bg-slate-800/50 border-b border-gray-100/50 dark:border-slate-700/50 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-black uppercase text-[11px] tracking-widest ${col.color}`}>{col.title}</span>
+                      <span className="text-gray-400 text-[9px] font-bold">({count})</span>
+                    </div>
+                    <span className="text-[10px] font-black text-gray-400">
+                      {formatCurrency(totalValue)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1 p-2 overflow-y-auto space-y-2.5 custom-scrollbar h-full">
+                  {columnLeads.length > 0 ? (
+                    columnLeads.map((lead: Lead) => {
+                      const route = getRouteInfo(lead);
+                      const urgency = getUrgency(lead.slaStartAt, lead.createdAt);
+                      const stopBlinking = ['proposta_enviada', 'radar_oportunidades', 'aprovado', 'perdido'].includes(lead.status);
+                      const finalAnimate = stopBlinking ? '' : urgency.animate;
+                      let finalBorder = urgency.border;
+                      let borderWidth = 'border-2';
+                      if (lead.status === 'aprovado') {
+                        finalBorder = 'border-emerald-500 shadow-sm shadow-emerald-500/10';
+                        borderWidth = 'border-[3px]';
+                      } else if (stopBlinking) {
+                        finalBorder = 'border-gray-200 dark:border-slate-700/50';
+                      }
+
+                      return (
+                        <motion.div
+                          layout
+                          key={lead.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e as any, lead.id)}
+                          className={`p-3 bg-white dark:bg-slate-800 rounded-xl ${borderWidth} ${finalBorder} ${finalAnimate} hover:brightness-95 transition-all cursor-grab active:cursor-grabbing group relative`}
+                        >
+                          <div className="absolute top-2 right-12 flex items-center gap-1.5 transition-opacity">
+                            {lead.status === 'aprovado' ? (
+                              <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                                <span className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-tighter">Vendido</span>
                               </div>
-                              <span className={`text-[11px] font-black uppercase tracking-tighter ${urgency.color}`}>
-                                {urgency.label}
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        {canModifyLead(lead) && (
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onEditLead(lead); }}
-                              className="p-1 px-1.5 bg-white dark:bg-slate-700 text-blue-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-blue-50"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onDeleteLead(lead.id); }}
-                              className="p-1 px-1.5 bg-white dark:bg-slate-700 text-red-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-
-                        <div className="flex flex-col gap-1.5">
-                          <h4 className="font-black text-gray-900 dark:text-white text-[13px] leading-tight pr-10">
-                            {lead.title || lead.name}
-                          </h4>
-
-                          <div className="flex items-center gap-1.5 text-[9.5px] font-bold text-gray-400 uppercase tracking-tighter truncate">
-                            <span className="shrink-0">{lead.name}</span>
-                            {lead.duration && (
-                              <span className="ml-1 px-1.5 py-0.5 rounded-md font-black text-gray-500 bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700/50 shadow-sm animate-in fade-in duration-300">
-                                {lead.duration}{lead.duration.toUpperCase().includes('D') ? '' : 'D'}
-                              </span>
-                            )}
-                            {route && (
+                            ) : ['proposta_enviada', 'radar_oportunidades', 'perdido'].includes(lead.status) ? null : (
                               <>
-                                <div className="w-0.5 h-0.5 bg-gray-300 rounded-full shrink-0" />
-                                <div className="flex items-center gap-0.5 text-purple-500 font-black shrink-0">
-                                  <span>{route.origin.toUpperCase()}</span>
-                                  <ArrowRight className="w-2.5 h-2.5" />
-                                  <span>{route.destination.toUpperCase()}</span>
+                                <div className={`relative flex h-3 w-3 items-center justify-center`}>
+                                  <div className={`relative inline-flex rounded-full h-3 w-3 ${urgency.bg} shadow-sm border border-white/40`} />
                                 </div>
+                                <span className={`text-[11px] font-black uppercase tracking-tighter ${urgency.color}`}>
+                                  {urgency.label}
+                                </span>
                               </>
                             )}
                           </div>
 
-                          <div className="flex items-center justify-between gap-2 mt-1 pt-1.5 border-t border-gray-50 dark:border-slate-700/50">
-                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5 opacity-60 mr-1.5 border-r border-gray-100 pr-1.5">
-                                <div className="flex items-center gap-0.5">
-                                  <User className="w-2.5 h-2.5 text-gray-400" />
-                                  <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.adults || 0}</span>
-                                </div>
-                                <div className="flex items-center gap-0.5">
-                                  <Users className="w-2.5 h-2.5 text-gray-400" />
-                                  <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.children || 0}</span>
-                                </div>
-                                <div className="flex items-center gap-0.5">
-                                  <Baby className="w-2.5 h-2.5 text-gray-400" strokeWidth={3} />
-                                  <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.babies || 0}</span>
-                                </div>
-                                <div className="flex items-center gap-0.5">
-                                  <Luggage className="w-2.5 h-2.5 text-gray-400" />
-                                  <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.luggage23kg || 0}</span>
-                                </div>
-                              </div>
+                          {canModifyLead(lead) && (
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onEditLead(lead); }}
+                                className="p-1 px-1.5 bg-white dark:bg-slate-700 text-blue-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-blue-50"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onDeleteLead(lead.id); }}
+                                className="p-1 px-1.5 bg-white dark:bg-slate-700 text-red-500 rounded-lg border border-gray-100 dark:border-slate-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
 
-                              {lead.tags && lead.tags.length > 0 && (
-                                <div className="flex gap-0.5 overflow-hidden">
-                                  {lead.tags.map((tag: string, idx: number) => (
-                                    <span key={idx} className="px-1.5 py-0 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 text-[8px] font-black rounded border border-cyan-100/50 tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis">
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
+                          <div className="flex flex-col gap-1.5">
+                            <h4 className="font-black text-gray-900 dark:text-white text-[13px] leading-tight pr-10">
+                              {lead.title || lead.name}
+                            </h4>
+
+                            <div className="flex items-center gap-1.5 text-[9.5px] font-bold text-gray-400 uppercase tracking-tighter truncate">
+                              <span className="shrink-0">{lead.name}</span>
+                              {lead.duration && (
+                                <span className="ml-1 px-1.5 py-0.5 rounded-md font-black text-gray-500 bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700/50 shadow-sm animate-in fade-in duration-300">
+                                  {lead.duration}{lead.duration.toUpperCase().includes('D') ? '' : 'D'}
+                                </span>
+                              )}
+                              {route && (
+                                <>
+                                  <div className="w-0.5 h-0.5 bg-gray-300 rounded-full shrink-0" />
+                                  <div className="flex items-center gap-0.5 text-purple-500 font-black shrink-0">
+                                    <span>{route.origin.toUpperCase()}</span>
+                                    <ArrowRight className="w-2.5 h-2.5" />
+                                    <span>{route.destination.toUpperCase()}</span>
+                                  </div>
+                                </>
                               )}
                             </div>
 
-                            {(lead.value || 0) > 0 && (
-                              <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 whitespace-nowrap">
-                                {formatCurrency(lead.value || 0)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 h-40 opacity-20">
-                    <LayoutGrid className="w-8 h-8 text-gray-400" />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+                            <div className="flex items-center justify-between gap-2 mt-1 pt-1.5 border-t border-gray-50 dark:border-slate-700/50">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 opacity-60 mr-1.5 border-r border-gray-100 pr-1.5">
+                                  <div className="flex items-center gap-0.5">
+                                    <User className="w-2.5 h-2.5 text-gray-400" />
+                                    <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.adults || 0}</span>
+                                  </div>
+                                  <div className="flex items-center gap-0.5">
+                                    <Users className="w-2.5 h-2.5 text-gray-400" />
+                                    <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.children || 0}</span>
+                                  </div>
+                                  <div className="flex items-center gap-0.5">
+                                    <Baby className="w-2.5 h-2.5 text-gray-400" strokeWidth={3} />
+                                    <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.babies || 0}</span>
+                                  </div>
+                                  <div className="flex items-center gap-0.5">
+                                    <Luggage className="w-2.5 h-2.5 text-gray-400" />
+                                    <span className="text-[9px] font-black text-gray-700 dark:text-gray-300">{lead.luggage23kg || 0}</span>
+                                  </div>
+                                </div>
 
-    <AcoesDoDiaModal
-      isOpen={acoesModalOpen}
-      onClose={() => setAcoesModalOpen(false)}
-      leads={leads}
-      onUpdateLead={onUpdateLead}
-      currentUser={currentUser}
-    />
-  </div>
-);
+                                {lead.tags && lead.tags.length > 0 && (
+                                  <div className="flex gap-0.5 overflow-hidden">
+                                    {lead.tags.map((tag: string, idx: number) => (
+                                      <span key={idx} className="px-1.5 py-0 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 text-[8px] font-black rounded border border-cyan-100/50 tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {(lead.value || 0) > 0 && (
+                                <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 whitespace-nowrap">
+                                  {formatCurrency(lead.value || 0)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 h-40 opacity-20">
+                      <LayoutGrid className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <AcoesDoDiaModal
+        isOpen={acoesModalOpen}
+        onClose={() => setAcoesModalOpen(false)}
+        leads={leads}
+        onUpdateLead={onUpdateLead}
+        currentUser={currentUser}
+      />
+    </div>
+  );
 }

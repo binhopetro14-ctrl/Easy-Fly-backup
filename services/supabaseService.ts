@@ -373,6 +373,24 @@ export const saleService = {
     return mapperService.fromSupabase.sale(saleDataWithNames, []);
   },
 
+  delete: async (id: string): Promise<void> => {
+    // Remove itens da venda primeiro
+    await supabase.from('sale_items').delete().eq('sale_id', id);
+    // Remove transações financeiras vinculadas
+    await supabase.from('financial_transactions').delete().eq('sale_id', id);
+    // Remove eventos de calendário vinculados
+    await supabase.from('calendar_events').delete().eq('sale_id', id);
+
+    const { error } = await supabase
+      .from('sales')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Supabase Error (delete sale):', extractError(error));
+      throw new Error(error.message || 'Erro ao excluir venda');
+    }
+  },
 };
 
 export const crmService = {
