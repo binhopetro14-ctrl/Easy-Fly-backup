@@ -1881,7 +1881,7 @@ function TransferItemCard({ item }: { item: any }) {
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                  <FileText className="w-3 h-3" /> Observações importante
               </p>
-              <p className="text-xs font-bold text-slate-600 leading-relaxed italic">"{item.notes}"</p>
+              <p className="text-xs font-bold text-slate-600 leading-relaxed italic">&quot;{item.notes}&quot;</p>
            </div>
         )}
       </div>

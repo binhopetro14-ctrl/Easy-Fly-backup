@@ -29,48 +29,53 @@ export function CustomerModal({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      if (customer) {
-        setFormData({
-          firstName: customer.firstName || '',
-          lastName: customer.lastName || '',
-          email: customer.email || '',
-          phone: customer.phone || '',
-          cpfCnpj: customer.cpfCnpj || '',
-          rg: customer.rg || '',
-          passportNumber: customer.passportNumber || '',
-          passportExpiry: customer.passportExpiry || '',
-          birthDate: customer.birthDate || '',
-          notes: customer.notes || '',
-          address: customer.address 
-            ? { ...customer.address } 
-            : { cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '' }
-        });
-      } else {
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          cpfCnpj: '',
-          rg: '',
-          passportNumber: '',
-          passportExpiry: '',
-          birthDate: '',
-          notes: '',
-          address: {
-            cep: '',
-            street: '',
-            number: '',
-            complement: '',
-            neighborhood: '',
-            city: '',
-            state: '',
-          }
-        });
+    // Adia o reset do formulário para o próximo tick para evitar renderização em cascata síncrona (lint error)
+    const timeoutId = setTimeout(() => {
+      if (isOpen) {
+        if (customer) {
+          setFormData({
+            firstName: customer.firstName || '',
+            lastName: customer.lastName || '',
+            email: customer.email || '',
+            phone: customer.phone || '',
+            cpfCnpj: customer.cpfCnpj || '',
+            rg: customer.rg || '',
+            passportNumber: customer.passportNumber || '',
+            passportExpiry: customer.passportExpiry || '',
+            birthDate: customer.birthDate || '',
+            notes: customer.notes || '',
+            address: customer.address 
+              ? { ...customer.address } 
+              : { cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '' }
+          });
+        } else {
+          setFormData({
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            cpfCnpj: '',
+            rg: '',
+            passportNumber: '',
+            passportExpiry: '',
+            birthDate: '',
+            notes: '',
+            address: {
+              cep: '',
+              street: '',
+              number: '',
+              complement: '',
+              neighborhood: '',
+              city: '',
+              state: '',
+            }
+          });
+        }
+        setError(null);
       }
-      setError(null);
-    }
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [customer, isOpen]);
 
   if (!isOpen) return null;

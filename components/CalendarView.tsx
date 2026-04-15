@@ -745,7 +745,7 @@ const EventDetailsModal = ({ event, onClose, onDelete, onEdit, currentUser, cust
                 <div className="flex-1">
                     <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Descrição</p>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-relaxed bg-gray-50/50 dark:bg-slate-800/50 p-3 rounded-xl border border-gray-50 dark:border-slate-800 italic">
-                      "{event.description}"
+                      &quot;{event.description}&quot;
                     </p>
                 </div>
               </div>

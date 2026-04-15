@@ -54,7 +54,7 @@ export function DeleteTransactionModal({ onClose, onConfirm, transactionDescript
         <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 mb-6">
           <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Item a ser excluído:</p>
           <p className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-relaxed italic">
-            "{transactionDescription || 'Lançamento financeiro'}"
+            &quot;{transactionDescription || 'Lançamento financeiro'}&quot;
           </p>
         </div>
 

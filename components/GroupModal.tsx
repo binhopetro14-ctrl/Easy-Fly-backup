@@ -24,20 +24,25 @@ export function GroupModal({
   const [isAddingMember, setIsAddingMember] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      if (group) {
-        setFormData({
-          name: group.name || '',
-          memberIds: [...(group.memberIds || [])]
-        });
-      } else {
-        setFormData({
-          name: '',
-          memberIds: []
-        });
+    // Adia o reset do formulário para o próximo tick para evitar renderização em cascata síncrona (lint error)
+    const timeoutId = setTimeout(() => {
+      if (isOpen) {
+        if (group) {
+          setFormData({
+            name: group.name || '',
+            memberIds: [...(group.memberIds || [])]
+          });
+        } else {
+          setFormData({
+            name: '',
+            memberIds: []
+          });
+        }
+        setIsAddingMember(false);
       }
-      setIsAddingMember(false);
-    }
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [group, isOpen]);
 
   if (!isOpen) return null;
