@@ -1109,13 +1109,13 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                 </div>
                 <div className="bg-[#111827] flex flex-col justify-center py-4 px-8 space-y-2">
                   <div className="flex justify-between items-center text-white">
-                    <span className="text-3xl font-black italic">R$ {parseFloat(price6x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="text-3xl font-black italic">R$ {parseFloat(price6x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     <span className="text-xl font-bold uppercase tracking-tight">
                       EM 6X SEM JUROS
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-white">
-                    <span className="text-3xl font-black italic">R$ {parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="text-3xl font-black italic">R$ {parseFloat(price12x || '0').toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     <span className="text-xl font-bold uppercase tracking-tight">
                       {`EM ${maxInstallments}X SEM JUROS`}
                     </span>
