@@ -172,15 +172,15 @@ function PriceDetails({ sale }: { sale: Sale }) {
     : exchangeRates;
 
   return (
-    <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] rounded-3xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden group">
+    <div className="bg-gradient-to-br from-[#19727d] to-[#0d5c66] rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white shadow-2xl relative overflow-hidden group">
       <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40 blur-3xl group-hover:bg-white/10 transition-all duration-700 pointer-events-none" />
       
-      <div className="relative z-10 space-y-8">
+      <div className="relative z-10 space-y-6 sm:space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em] mb-3 leading-none italic">Investimento Total</p>
-            <div className="flex flex-wrap items-baseline gap-3">
-              <h2 className="text-5xl sm:text-6xl font-black tracking-tighter leading-none drop-shadow-sm">
+            <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter leading-none drop-shadow-sm">
                 {formatCurrency(sale.total_price)}
               </h2>
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-sm">
@@ -198,13 +198,13 @@ function PriceDetails({ sale }: { sale: Sale }) {
 
           {/* CÂMBIO DINÂMICO */}
           {rates.USD > 0 && (
-            <div className="flex gap-2.5">
+            <div className="flex flex-wrap gap-2 sm:gap-2.5">
               {[
                 { code: 'USD', symbol: '$', rate: rates.USD },
                 { code: 'EUR', symbol: '€', rate: rates.EUR },
                 { code: 'GBP', symbol: '£', rate: rates.GBP }
               ].filter(c => c.rate > 0).map(c => (
-                <div key={c.code} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-3.5 py-2.5 flex flex-col items-center min-w-[85px] shadow-sm hover:bg-white/15 transition-all">
+                <div key={c.code} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-xl sm:rounded-2xl px-2.5 sm:px-3.5 py-2 sm:py-2.5 flex flex-col items-center min-w-[70px] sm:min-w-[85px] shadow-sm hover:bg-white/15 transition-all flex-1 sm:flex-none">
                    <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="text-[8px] font-black text-cyan-300 tracking-[0.2em]">{c.code}</span>
                       <RefreshCw className={`w-2.5 h-2.5 text-cyan-300 ${!sale.usd_rate ? 'animate-spin' : 'opacity-40'}`} />
@@ -227,7 +227,7 @@ function PriceDetails({ sale }: { sale: Sale }) {
              <p className="text-white font-black text-[11px] uppercase tracking-[0.2em]">Parcelamento no Cartão</p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
             {INSTALLMENTS.filter(n => n <= (sale.fees_installments || 12)).map((n) => {
               const type = sale.fees_type || 'interest_free';
               let totalWithFees = sale.total_price;
@@ -238,9 +238,9 @@ function PriceDetails({ sale }: { sale: Sale }) {
               }
 
               return (
-                <div key={n} className="bg-white/10 backdrop-blur-sm border border-white/5 rounded-2xl p-3 text-center group/inst hover:bg-white/20 hover:border-white/20 transition-all cursor-default relative overflow-hidden">
-                  <p className="text-[10px] text-white/50 font-black uppercase tracking-tighter mb-0.5 leading-none">{n}x de</p>
-                  <p className="text-[15px] font-black text-white tracking-tight leading-none">
+                <div key={n} className="bg-white/10 backdrop-blur-sm border border-white/5 rounded-xl sm:rounded-2xl p-2 sm:p-3 text-center group/inst hover:bg-white/20 hover:border-white/20 transition-all cursor-default relative overflow-hidden">
+                  <p className="text-[8px] sm:text-[10px] text-white/50 font-black uppercase tracking-tighter mb-0.5 leading-none">{n}x de</p>
+                  <p className="text-[12px] sm:text-[15px] font-black text-white tracking-tight leading-none">
                     {formatCurrency(totalWithFees / n).replace('R$', '').trim()}
                   </p>
                   {type === 'interest_free' ? (
@@ -363,10 +363,10 @@ function HotelGallery({ images, name }: { images?: string[]; name: string }) {
 
 function HotelItem({ item }: { item: SaleItem }) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
       <div className="h-1.5 w-full bg-[#19727d]" />
       
-      <div className="p-4 sm:p-5 space-y-4">
+      <div className="p-3 sm:p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#19727d] flex items-center justify-center text-white shadow-xl shadow-[#19727d]/20 shrink-0 transform group-hover:rotate-3 transition-transform duration-500">
@@ -374,7 +374,7 @@ function HotelItem({ item }: { item: SaleItem }) {
             </div>
             <div>
               <p className="text-[10px] font-black text-[#19727d] uppercase tracking-[0.3em] leading-none mb-1.5">Hospedagem</p>
-              <h3 className="font-black text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">{item.hotelName || item.description || 'Nome do Hotel'}</h3>
+              <h3 className="font-black text-xl sm:text-2xl md:text-3xl text-slate-900 tracking-tight leading-tight">{item.hotelName || item.description || 'Nome do Hotel'}</h3>
             </div>
           </div>
 
@@ -542,17 +542,17 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
 
 function Header({ sale }: { sale: Sale }) {
   return (
-    <header className="mb-12">
-      <div className="flex items-center justify-center mb-8">
-        <h1 className="text-3xl font-black text-[#19727d] tracking-tighter flex items-center gap-2 italic">
+    <header className="mb-8 sm:mb-12">
+      <div className="flex items-center justify-center mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#19727d] tracking-tighter flex items-center gap-2 italic">
           EASY FLY <span className="text-slate-300 font-light">TURISMO</span>
         </h1>
       </div>
       
       <div className="text-center space-y-2">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none mb-4">Proposta Especial para</p>
-        <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">{sale.client_name}</h2>
-        <div className="flex items-center justify-center gap-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest pt-4">
+        <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none mb-3 sm:mb-4">Proposta Especial para</p>
+        <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter leading-none">{sale.client_name}</h2>
+        <div className="flex items-center justify-center gap-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest pt-3 sm:pt-4">
           <Calendar className="w-3 h-3" />
           Emitido em {formatDate(sale.created_at)}
         </div>
@@ -612,7 +612,7 @@ export default function BudgetPage() {
   const others = sale.items?.filter(i => i.type !== 'flight' && i.type !== 'hotel') || [];
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] py-12 px-4 sm:py-20 no-scrollbar">
+    <main className="min-h-screen bg-[#f8fafc] py-8 px-3 sm:py-20 sm:px-4 no-scrollbar">
       <div className="max-w-4xl mx-auto">
         <Header sale={sale} />
         
@@ -631,25 +631,25 @@ export default function BudgetPage() {
               <SectionTitle icon={<Plane className="w-4 h-4" />} title="Passagens Aéreas" />
               <div className="space-y-4">
                 {flights.map((flight, idx) => (
-                  <div key={idx} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                  <div key={idx} className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
                     <div className="h-1.5 w-full bg-blue-500" />
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                        {/* Simplified Flight Render for Brevity */}
-                       <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
-                                <Plane className="w-6 h-6" />
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100 shrink-0">
+                                <Plane className="w-5 h-5 sm:w-6 sm:h-6" />
                              </div>
                              <div>
-                                <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1.5">Voo {flight.flightNumber}</p>
-                                <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-tight">
+                                <p className="text-[9px] sm:text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Voo {flight.flightNumber}</p>
+                                <h3 className="font-black text-lg sm:text-2xl text-slate-900 tracking-tight leading-tight">
                                   {correctAirportName('', flight.departure || '')} → {correctAirportName('', flight.destination || '')}
                                 </h3>
                              </div>
                           </div>
-                          <div className="text-right">
-                             <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Embarque</p>
-                             <p className="font-black text-lg text-[#19727d]">{formatDate(flight.departureDate)}</p>
+                          <div className="text-left sm:text-right pl-[52px] sm:pl-0">
+                             <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase mb-1">Embarque</p>
+                             <p className="font-black text-base sm:text-lg text-[#19727d]">{formatDate(flight.departureDate)}</p>
                           </div>
                        </div>
                     </div>
