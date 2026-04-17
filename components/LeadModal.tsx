@@ -2,18 +2,14 @@
 
 import { apiFetch } from '@/lib/apiFetch';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { 
 
   X, Plus, Plane, Hotel, Shield, Car, Trash2, Layout, 
-
-  Tag as TagIcon, Minus, Luggage, User, Baby, Clock,
-
+  Tag as TagIcon, Minus, Luggage, User, Baby, Clock, Bus, Train,
   MapPin, Pencil, Search, ChevronDown, Target, Phone, Mail, FileText, Users, MessageCircle, Loader2, Star, CheckCircle, Calendar,
-
-  CreditCard, Percent, LayoutGrid, Coffee
-
+  CreditCard, Percent, LayoutGrid, Coffee, Zap
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'motion/react';
@@ -37,6 +33,27 @@ interface LeadModalProps {
   suppliers: Supplier[];
 
 }
+
+const parseAIDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const months: Record<string, string> = {
+    'jan': '01', 'fev': '02', 'mar': '03', 'abr': '04', 'mai': '05', 'jun': '06',
+    'jul': '07', 'ago': '08', 'set': '09', 'out': '10', 'nov': '11', 'dez': '12'
+  };
+
+  const cleanStr = dateStr.toLowerCase().trim();
+  const parts = cleanStr.split('/');
+  if (parts.length < 2) return '';
+
+  const day = parts[0].padStart(2, '0');
+  const monthAbbr = parts[1].substring(0, 3);
+  const month = months[monthAbbr] || '01';
+  
+  let year = parts[2] ? parts[2].trim() : new Date().getFullYear().toString();
+  if (year.length === 2) year = '20' + year;
+
+  return `${year}-${month}-${day}`;
+};
 
 const formatDateRange = (start: string, end: string) => {
 
@@ -215,6 +232,7 @@ function TrechoCard({ label, segments, onSegmentsChange, lookupFlight, onRemove,
       airline: lastSeg?.airline || '',
       duration: '',
       flightClass: lastSeg?.flightClass || 'Econômica',
+      transportType: lastSeg?.transportType || 'voo',
       personalItem: lastSeg?.personalItem ?? 1,
       carryOn: lastSeg?.carryOn ?? 1,
       checkedBag23kg: lastSeg?.checkedBag23kg ?? 0
@@ -257,19 +275,40 @@ function TrechoCard({ label, segments, onSegmentsChange, lookupFlight, onRemove,
             )}
 
             <div className="flex justify-center -mt-4 mb-3 px-4 relative z-10">
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-lg shadow-cyan-500/5">
-                <div className="space-y-0.5">
-                   <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">Data</label>
-                   <DateInput className="w-24 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black text-center" value={segment.departureDate || ''} onChange={v => updateSegment(idx, { departureDate: v })} />
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-900/80 p-1 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                  {[
+                    { id: 'voo', icon: Plane, color: 'text-cyan-500', bg: 'bg-cyan-50' },
+                    { id: 'onibus', icon: Bus, color: 'text-orange-500', bg: 'bg-orange-50' },
+                    { id: 'transfer', icon: Car, color: 'text-green-500', bg: 'bg-green-50' },
+                    { id: 'trem', icon: Train, color: 'text-purple-500', bg: 'bg-purple-50' },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => updateSegment(idx, { transportType: t.id })}
+                      className={`p-1.5 rounded-lg transition-all ${segment.transportType === t.id || (!segment.transportType && t.id === 'voo') ? `${t.bg} ${t.color} ring-1 ring-current` : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'}`}
+                      title={t.id.toUpperCase()}
+                    >
+                      <t.icon className="w-3.5 h-3.5" />
+                    </button>
+                  ))}
                 </div>
-                <div className="space-y-0.5">
-                   <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">Nº Voo</label>
-                   <input className="w-20 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-center" value={segment.flightNumber || ''} onChange={e => updateSegment(idx, { flightNumber: e.target.value.toUpperCase() })} />
-                </div>
-                <div className="pt-2.5">
-                   <button type="button" onClick={() => handleLookup(segment, idx)} disabled={localLoading === idx} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
-                     {localLoading === idx ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                   </button>
+
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-lg shadow-cyan-500/5">
+                  <div className="space-y-0.5">
+                     <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">Data</label>
+                     <DateInput className="w-24 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black text-center" value={segment.departureDate || ''} onChange={v => updateSegment(idx, { departureDate: v })} />
+                  </div>
+                  <div className="space-y-0.5">
+                     <label className="block text-[8px] font-black text-cyan-500 uppercase tracking-tighter text-center">{segment.transportType === 'onibus' ? 'Nº Ônibus' : segment.transportType === 'transfer' ? 'Carro/Placa' : 'Nº Voo'}</label>
+                     <input className="w-20 px-2 py-1 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-center" value={segment.flightNumber || ''} onChange={e => updateSegment(idx, { flightNumber: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div className="pt-2.5">
+                     <button type="button" onClick={() => handleLookup(segment, idx)} disabled={localLoading === idx || segment.transportType === 'onibus' || segment.transportType === 'transfer'} className="w-7 h-7 flex items-center justify-center bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow shadow-cyan-500/10 active:scale-95 disabled:opacity-50">
+                       {localLoading === idx ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                     </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -356,7 +395,7 @@ function PassagemForm(props: any) {
       if (type === 'ida_volta') {
         const inbound = (prev.inboundSegments?.length > 0) 
             ? prev.inboundSegments 
-            : [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }];
+            : [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', transportType: 'voo', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }];
         return { ...base, inboundSegments: inbound };
       }
 
@@ -364,8 +403,8 @@ function PassagemForm(props: any) {
         const legs = (prev.multiLegs?.length > 0)
             ? prev.multiLegs
             : [
-                { id: '1', label: 'Trecho 1', segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }] },
-                { id: '2', label: 'Trecho 2', segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }] }
+                { id: '1', label: 'Trecho 1', segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', transportType: 'voo', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }] },
+                { id: '2', label: 'Trecho 2', segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', transportType: 'voo', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }] }
               ];
         return { ...base, multiLegs: legs };
       }
@@ -380,7 +419,7 @@ function PassagemForm(props: any) {
       const newLeg = {
         id: Math.random().toString(36).substr(2, 9),
         label: `Trecho ${nextIdx}`,
-        segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }]
+        segments: [{ origin: '', destination: '', flightNumber: '', departureDate: '', airline: '', flightClass: 'Econômica', transportType: 'voo', personalItem: 1, carryOn: 1, checkedBag23kg: 0 }]
       };
       return { ...prev, multiLegs: [...(prev.multiLegs || []), newLeg] };
     });
@@ -404,14 +443,44 @@ function PassagemForm(props: any) {
 
     <div className="space-y-3 animate-in fade-in duration-300">
 
-      <div className="flex bg-gray-100 dark:bg-slate-900 p-0.5 rounded-lg w-fit">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex bg-gray-100 dark:bg-slate-900 p-0.5 rounded-lg w-fit">
+          <button type="button" onClick={() => toggleFlightType('ida')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'ida' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Ida</button>
+          <button type="button" onClick={() => toggleFlightType('ida_volta')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'ida_volta' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Ida e Volta</button>
+          <button type="button" onClick={() => toggleFlightType('multi')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'multi' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Multi-trecho</button>
+        </div>
 
-        <button type="button" onClick={() => toggleFlightType('ida')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'ida' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Ida</button>
-
-        <button type="button" onClick={() => toggleFlightType('ida_volta')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'ida_volta' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Ida e Volta</button>
-
-        <button type="button" onClick={() => toggleFlightType('multi')} className={`px-4 py-1 rounded-md text-[10px] font-bold transition-all ${props.currentItem.flightType === 'multi' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-400'}`}>Multi-trecho</button>
-
+        <div className="relative">
+          <input 
+            type="file" 
+            ref={props.fileInputRef} 
+            onChange={props.handleFileChange} 
+            accept="image/*" 
+            className="hidden" 
+          />
+          <button
+            type="button"
+            disabled={props.isExtracting}
+            onClick={() => props.fileInputRef.current?.click()}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-300 shadow-sm border border-cyan-100 dark:border-cyan-500/20 active:scale-95 ${
+              props.isExtracting 
+                ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-500 cursor-wait' 
+                : 'bg-white dark:bg-slate-900 text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-500/5 hover:border-cyan-300'
+            }`}
+          >
+            {props.isExtracting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Lendo Itinerário...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5 fill-cyan-500 text-cyan-500 animate-pulse" />
+                <span>Extrair com IA</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {props.currentItem.flightType === 'multi' ? (
@@ -486,14 +555,13 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
   const [hotelLookupError, setHotelLookupError] = useState<string | null>(null);
 
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
-
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
-
   const [hotelDescription, setHotelDescription] = useState('');
-
   const [hotelFacilities, setHotelFacilities] = useState<string[]>([]);
-
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+
+  const [isExtracting, setIsExtracting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const INITIAL_LEAD_STATE: Lead = {
     id: '', 
@@ -603,6 +671,78 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
     } catch (e) { setHotelLookupError('Erro ao buscar detalhes completos'); } finally { setHotelLookupLoading(false); }
 
+  };
+
+  const handleExtractWithIA = async (file: File) => {
+    setIsExtracting(true);
+    try {
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const base64 = await base64Promise;
+      const res = await apiFetch('/api/extract-flight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro na extração');
+      
+      if (data.flights && data.flights.length > 0) {
+        const extractedSegments = data.flights.map((f: any) => ({
+          origin: f.origin || '',
+          destination: f.destination || '',
+          flightNumber: f.flightNumber || '',
+          departureDate: parseAIDate(f.date),
+          departureTime: f.departureTime || '',
+          arrivalDate: parseAIDate(f.date), // Simplificação inicial
+          arrivalTime: f.arrivalTime || '',
+          airline: f.airline || '',
+          duration: f.duration || '',
+          flightClass: 'Econômica',
+          personalItem: 1,
+          carryOn: 1,
+          checkedBag23kg: 0,
+          isReturn: f.isReturn
+        }));
+
+        const outbound = extractedSegments.filter((s: any) => !s.isReturn);
+        const inbound = extractedSegments.filter((s: any) => s.isReturn);
+
+        let flightType: 'ida' | 'ida_volta' | 'multi' = 'ida';
+        if (inbound.length > 0) flightType = 'ida_volta';
+        if (outbound.length > 2 || inbound.length > 2) flightType = 'multi'; // Exemplo de heurística
+
+        setCurrentItem((prev: any) => ({
+          ...prev,
+          flightType,
+          outboundSegments: outbound.length > 0 ? outbound : [{}],
+          inboundSegments: inbound.length > 0 ? inbound : [],
+          multiLegs: flightType === 'multi' ? [
+            { id: '1', label: 'Trecho 1', segments: outbound },
+            { id: '2', label: 'Trecho 2', segments: inbound }
+          ] : prev.multiLegs
+        }));
+      }
+    } catch (err: any) {
+      console.error('Extraction error:', err);
+      alert('Falha ao extrair dados: ' + err.message);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleExtractWithIA(file);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const lookupFlight = async (fn: string, dt: string, isReturn: boolean, idx: number, onSegmentsChange?: (segs: any[]) => void, legId?: string) => {
@@ -846,7 +986,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                   <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Título da Viagem</label>
 
-                  <input placeholder="Ex: Lua de Mel Maldivas" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl outline-none font-bold text-gray-800 dark:text-white focus:border-cyan-400 transition-all shadow-sm text-center" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                  <input placeholder="Ex: Lua de Mel Maldivas" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl outline-none font-bold text-gray-800 dark:text-white focus:border-cyan-400 transition-all shadow-sm text-center" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />
 
                 </div>
 
@@ -854,7 +994,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                   <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">Nome do Cliente</label>
 
-                  <input placeholder="Nome do Lead" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl outline-none font-bold text-gray-800 dark:text-white focus:border-cyan-400 transition-all shadow-sm text-center" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  <input placeholder="Nome do Lead" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700 rounded-xl outline-none font-bold text-gray-800 dark:text-white focus:border-cyan-400 transition-all shadow-sm text-center" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
 
                 </div>
 
@@ -1014,6 +1154,9 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
                   flightLookupError={flightLookupError} 
 
                   lookupFlight={lookupFlight} 
+                  isExtracting={isExtracting}
+                  fileInputRef={fileInputRef}
+                  handleFileChange={handleFileChange}
 
                 />
 
@@ -1041,7 +1184,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                            className="w-full px-5 py-3 bg-gray-50 dark:bg-slate-900 border-2 border-transparent dark:border-slate-700/50 rounded-2xl font-black text-xs uppercase text-gray-800 dark:text-white outline-none focus:border-orange-400 focus:bg-white transition-all shadow-sm pl-11" 
 
-                           value={currentItem.hotelName} 
+                           value={currentItem.hotelName || ''} 
 
                            onChange={e => {
 
@@ -1157,7 +1300,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                           <option key={r.id} value={r.id}>
 
-                            {(r.name || "Acomodação").toUpperCase()} (MÃX {r.maxOccupancy || 2} PERS.)
+                            {(r.name || "Acomodação").toUpperCase()} (MÃ X {r.maxOccupancy || 2} PERS.)
 
                           </option>
 
@@ -1181,7 +1324,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                          className="w-full px-5 py-3 bg-gray-50 dark:bg-slate-900 border-2 border-transparent dark:border-slate-700/50 rounded-2xl font-black text-xs uppercase text-gray-500 dark:text-gray-400 outline-none transition-all shadow-sm" 
 
-                         value={currentItem.address}
+                         value={currentItem.address || ''}
 
                          readOnly
 
@@ -1207,7 +1350,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                             className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-900 border-2 border-transparent dark:border-slate-700/50 rounded-2xl font-black text-[10px] shadow-sm text-center focus:border-orange-400 focus:bg-white transition-all uppercase" 
 
-                            value={currentItem.checkInDate} 
+                            value={currentItem.checkInDate || ''} 
 
                             onChange={v => setCurrentItem({...currentItem, checkInDate: v})} 
 
@@ -1219,7 +1362,7 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                             className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-900 border-2 border-transparent dark:border-slate-700/50 rounded-2xl font-black text-[10px] shadow-sm text-center focus:border-orange-400 focus:bg-white transition-all uppercase" 
 
-                            value={currentItem.checkOutDate} 
+                            value={currentItem.checkOutDate || ''} 
 
                             onChange={v => setCurrentItem({...currentItem, checkOutDate: v})} 
 
@@ -1591,9 +1734,77 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
                </div>
 
-            </div>
+             </div>
 
-            <div className="mt-auto pt-2">
+            <AnimatePresence>
+              {formData.items && formData.items.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  <h3 className="text-[9px] font-black uppercase text-gray-400 tracking-widest pl-1">Itens Adicionados ({formData.items.length})</h3>
+                  <div className="space-y-2 pr-1">
+                    {formData.items.map((item: any) => (
+                      <motion.div 
+                        initial={{ opacity:0, x:10 }} 
+                        animate={{ opacity:1, x:0 }} 
+                        exit={{ opacity:0, scale:0.9 }} 
+                        key={item.id} 
+                        onClick={() => handleEditItem(item)}
+                        className={`p-3 rounded-xl border flex justify-between items-center group cursor-pointer transition-all ${editingItemId === item.id ? 'bg-cyan-50 border-cyan-200 shadow-md ring-2 ring-cyan-500/20' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.type === 'passagem' ? 'bg-cyan-50 text-cyan-600' : 'bg-orange-50 text-orange-600'}`}>
+                             {(() => {
+                               if (item.type !== 'passagem') return <Hotel className="w-4 h-4" />;
+                               const tType = item.outboundSegments?.[0]?.transportType || 'voo';
+                               if (tType === 'onibus') return <Bus className="w-4 h-4" />;
+                               if (tType === 'transfer') return <Car className="w-4 h-4" />;
+                               if (tType === 'trem') return <Train className="w-4 h-4" />;
+                               return <Plane className="w-4 h-4" />;
+                             })()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black text-gray-800 dark:text-white uppercase leading-tight truncate">{item.description}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                               <p className="text-[8px] font-black text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded-md">R$ {item.value?.toLocaleString()}</p>
+                               {item.type === 'hospedagem' && item.checkInDate && (
+                                 <p className="text-[7px] font-bold text-gray-400 uppercase truncate">
+                                   {new Date(item.checkInDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} 
+                                   {item.checkOutDate && ` – ${new Date(item.checkOutDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`}
+                                 </p>
+                               )}
+                               {item.type === 'passagem' && item.outboundSegments?.[0]?.departureDate && (
+                                 <p className="text-[7px] font-bold text-gray-400 uppercase">
+                                   {new Date(item.outboundSegments[0].departureDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}
+                                 </p>
+                               )}
+                            </div>
+                            {item.roomType && (
+                              <p className="text-[7px] font-bold text-gray-400 uppercase mt-1 truncate opacity-70">
+                                {item.roomType}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="p-1 px-2 text-[8px] font-black text-cyan-600 bg-cyan-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">EDITAR</div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (editingItemId === item.id) cancelEdit();
+                              setFormData({...formData, items: formData.items?.filter((i:any)=>i.id !== item.id)});
+                            }}
+                            className="p-2 hover:bg-red-50 text-red-300 hover:text-red-500 rounded-lg transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </AnimatePresence>
+
+            <div className="mt-4 pt-2">
 
                <button 
                  onClick={() => {
@@ -1610,125 +1821,6 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
 
             </div>
 
-            <AnimatePresence>
-
-              {formData.items && formData.items.length > 0 && (
-
-                <div className="space-y-2 mt-4">
-
-                  <h3 className="text-[9px] font-black uppercase text-gray-400 tracking-widest pl-1">Itens Adicionados ({formData.items.length})</h3>
-
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-
-                    {formData.items.map((item: any) => (
-
-                      <motion.div 
-
-                        initial={{ opacity:0, x:10 }} 
-
-                        animate={{ opacity:1, x:0 }} 
-
-                        exit={{ opacity:0, scale:0.9 }} 
-
-                        key={item.id} 
-
-                        onClick={() => handleEditItem(item)}
-
-                        className={`p-3 rounded-xl border flex justify-between items-center group cursor-pointer transition-all ${editingItemId === item.id ? 'bg-cyan-50 border-cyan-200 shadow-md ring-2 ring-cyan-500/20' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-
-                      >
-
-                        <div className="flex items-center gap-3 overflow-hidden">
-
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.type === 'passagem' ? 'bg-cyan-50 text-cyan-600' : 'bg-orange-50 text-orange-600'}`}>
-
-                             {item.type === 'passagem' ? <Plane className="w-4 h-4" /> : <Hotel className="w-4 h-4" />}
-
-                          </div>
-
-                          <div className="min-w-0">
-
-                            <p className="text-[10px] font-black text-gray-800 dark:text-white uppercase leading-tight truncate">{item.description}</p>
-
-                            <div className="flex items-center gap-2 mt-1">
-
-                               <p className="text-[8px] font-black text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded-md">R$ {item.value?.toLocaleString()}</p>
-
-                               {item.type === 'hospedagem' && item.checkInDate && (
-
-                                 <p className="text-[7px] font-bold text-gray-400 uppercase truncate">
-
-                                   {new Date(item.checkInDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})} 
-
-                                   {item.checkOutDate && ` – ${new Date(item.checkOutDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}`}
-
-                                 </p>
-
-                               )}
-
-                               {item.type === 'passagem' && item.outboundSegments?.[0]?.departureDate && (
-
-                                 <p className="text-[7px] font-bold text-gray-400 uppercase">
-
-                                   {new Date(item.outboundSegments[0].departureDate).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}
-
-                                 </p>
-
-                               )}
-
-                            </div>
-
-                            {item.roomType && (
-
-                              <p className="text-[7px] font-bold text-gray-400 uppercase mt-1 truncate opacity-70">
-
-                                {item.roomType}
-
-                              </p>
-
-                            )}
-
-                          </div>
-
-                        </div>
-
-                        <div className="flex items-center gap-1">
-
-                          <div className="p-1 px-2 text-[8px] font-black text-cyan-600 bg-cyan-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">EDITAR</div>
-
-                          <button 
-
-                            onClick={(e) => {
-
-                              e.stopPropagation();
-
-                              if (editingItemId === item.id) cancelEdit();
-
-                              setFormData({...formData, items: formData.items?.filter((i:any)=>i.id !== item.id)});
-
-                            }} 
-
-                            className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-
-                          >
-
-                            <Trash2 className="w-3.5 h-3.5" />
-
-                          </button>
-
-                        </div>
-
-                      </motion.div>
-
-                    ))}
-
-                  </div>
-
-                </div>
-
-              )}
-
-            </AnimatePresence>
 
           </div>
 

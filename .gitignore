@@ -19,3 +19,5 @@ tmp/
 !.eslintrc.json
 !package.json
 !tsconfig.json
+
+.vercel

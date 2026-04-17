@@ -12,7 +12,7 @@ import {
   Printer, ShieldAlert, Download, FileText, Star, X, Coffee,
   Wifi, Dumbbell, Waves, Utensils, GlassWater, Baby, Key, ConciergeBell,
   Snowflake, Bath, DoorOpen, Shirt, Wine, Palmtree, Tv, Gamepad2,
-  Wind, Navigation, Cigarette, CigaretteOff, Sparkles, LayoutGrid, Heart, Images
+  Wind, Navigation, Cigarette, CigaretteOff, Sparkles, LayoutGrid, Heart, Images, Bus, TrainFront
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
@@ -132,6 +132,99 @@ const formatDate = (dateStr?: string) => {
     if (dateStr.includes('/')) return dateStr;
     return dateStr;
   } catch { return dateStr || '—'; }
+};
+
+const resolveCoords = (place: string, airportInfo: Record<string, any>) => {
+  if (!place) return null;
+  
+  // 1. Clean place name (extract IATA if in "City (IATA)" format)
+  const cleanPlace = place.trim();
+  const codeMatch = cleanPlace.match(/\(([A-Z]{3})\)/);
+  const code = codeMatch ? codeMatch[1] : cleanPlace.toUpperCase();
+
+  // 2. Hardcoded high-certainty coords (Backbone Brasil)
+  const HARDCODED: Record<string, [number, number]> = {
+    'AJU': [-10.9847, -37.0703],
+    'VCP': [-23.0075, -47.1344],
+    'SJK': [-23.2289, -45.8711],
+    'GRU': [-23.4356, -46.4731],
+    'CGH': [-23.6273, -46.6564],
+    'GIG': [-22.8091, -43.2503],
+    'SDU': [-22.9105, -43.1631],
+    'CNF': [-19.6244, -43.9719],
+    'PLU': [-19.8519, -43.9506],
+    'BSB': [-15.8697, -47.9172],
+    'REC': [-8.1264, -34.9228],
+    'SSA': [-12.9086, -38.3315],
+    'FOR': [-3.7763, -38.5323],
+    'POA': [-29.9939, -51.1711],
+    'FLN': [-27.6703, -48.5525],
+    'CWB': [-25.5317, -49.1758],
+    'BEL': [-1.3847, -48.4788],
+    'MAO': [-3.0358, -60.0506],
+    'NAT': [-5.9114, -35.2477],
+    'MCZ': [-9.5108, -35.7917],
+    'JPA': [-7.1467, -34.9506],
+    'THE': [-5.0606, -42.8225],
+    'SLZ': [-2.5867, -44.2361],
+    'VIX': [-20.2581, -40.2864],
+    'GYN': [-16.6325, -49.2211],
+    'CUI': [-15.6531, -56.1167],
+    'CGR': [-20.4697, -54.6703],
+    'BVB': [2.8461, -60.6922],
+    'PVH': [-8.7094, -63.9039],
+    'RBR': [-9.8683, -67.8983],
+    'MCP': [0.0508, -51.0722],
+    'CAMPOS DO JORDÃO': [-22.7394, -45.5912],
+    'CAMPOS DO JORDAO': [-22.7394, -45.5912],
+    'TIETE': [-23.5162, -46.6234],
+    'SAO PAULO, SP - TIETE': [-23.5162, -46.6234],
+    'ARACAJU': [-10.9847, -37.0703],
+    'CAMPINAS': [-22.9071, -47.0632],
+    'SAO PAULO': [-23.5505, -46.6333],
+    'RIO DE JANEIRO': [-22.9068, -43.1729],
+    'VICIOSA': [-20.7539, -42.8819],
+  };
+
+  if (HARDCODED[code]) return HARDCODED[code];
+  
+  // 3. Map info from resolver
+  if (airportInfo[code]) return airportInfo[code].coords;
+  
+  // 4. Fuzzy search in airportInfo
+  const searchName = cleanPlace.toLowerCase();
+  const foundCode = Object.keys(airportInfo).find(k => {
+    const city = airportInfo[k].city?.toLowerCase() || '';
+    const name = airportInfo[k].name?.toLowerCase() || '';
+    return (city.length > 3 && searchName.includes(city)) || (name.length > 3 && searchName.includes(name));
+  });
+  
+  if (foundCode) return airportInfo[foundCode].coords;
+
+  // 5. Partial match in HARDCODED keys
+  const upperTrim = searchName.toUpperCase();
+  const hardKey = Object.keys(HARDCODED).find(k => {
+    return (k.length > 3 && upperTrim.includes(k)) || (upperTrim.length > 3 && k.includes(upperTrim));
+  });
+  if (hardKey) return HARDCODED[hardKey];
+
+  return null;
+};
+
+const getNights = (item: any, lead?: any) => {
+  if (item.nights && item.nights > 0) return item.nights;
+  if (item.checkIn && item.checkOut) {
+    const d1 = new Date(item.checkIn);
+    const d2 = new Date(item.checkOut);
+    const diff = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff > 0) return diff;
+  }
+  if (lead?.duration) {
+    const dStr = String(lead.duration);
+    const match = dStr.match(/\d+/);
+    if (match) return parseInt(match[0], 10);
+  }
+  return 0;
 };
 
 const BRAZILIAN_STATES = [
@@ -637,16 +730,15 @@ const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string,
   } catch { return null; }
 };
 
-function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: LeadItem[]; airportInfo: Record<string, any> }) {
+function InteractiveMap({ lead, flights, hotels, transfers, airportInfo }: { lead: Lead; flights: LeadItem[]; hotels: LeadItem[]; transfers: LeadItem[]; airportInfo: Record<string, any> }) {
   const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLeafletReady, setLeafletReady] = useState(false);
-  // Correção: Verificar se o voo principal sendo exibido é ida e volta
   const isIdaVolta = flights.some(f => f.flightType === 'ida_volta');
 
   useEffect(() => {
     if ((window as any).L) {
-      setTimeout(() => setLeafletReady(true), 0);
+      setTimeout(() => setLeafletReady(true), 100);
       return;
     }
     const interval = setInterval(() => {
@@ -661,54 +753,22 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
   useEffect(() => {
     if (!isLeafletReady || !containerRef.current || flights.length === 0) return;
     const L = (window as any).L;
-    
+    let active = true;
+
     if (mapRef.current) {
-      mapRef.current.off();
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
-    
-    if (containerRef.current) {
-        const container = containerRef.current as any;
-        if (container._leaflet_id) {
-            container._leaflet_id = null;
-        }
+        mapRef.current.off();
+        mapRef.current.remove();
+        mapRef.current = null;
     }
 
-    const firstFlight = flights[0];
-    const outbound = Array.isArray(firstFlight?.outboundSegments) ? firstFlight.outboundSegments : [];
-    
-    const ori = outbound[0]?.origin || 'REC';
-    const des = outbound[outbound.length - 1]?.destination || 'GIG';
-    const p1 = airportInfo[ori]?.coords || [-15, -47];
-    const p2 = airportInfo[des]?.coords || [-23, -46];
-
-    // Proteção contra NaN
-    const centerLat = isNaN((p1[0]+p2[0])/2) ? -15 : (p1[0]+p2[0])/2;
-    const centerLng = isNaN((p1[1]+p2[1])/2) ? -47 : (p1[1]+p2[1])/2;
-
-    let map: any;
-    try {
-      map = L.map(containerRef.current, {
-        zoomControl: false,
-        attributionControl: false
-      }).setView([ centerLat, centerLng ], 4);
-    } catch (e) {
-      console.error("Erro ao inicializar mapa", e);
-      return;
-    }
-    
+    const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false }).setView([-15, -47], 4);
     mapRef.current = map;
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19
-    }).addTo(map);
-
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
     L.control.zoom({ position: 'topleft' }).addTo(map);
-    
+
     const getCurvePoints = (start: [number, number], end: [number, number], arcIntensity = 0.2) => {
       const points: [number, number][] = [];
-      const steps = 30;
+      const steps = 100; // Maior resolução para 144fps
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
         const lat = start[0] + (end[0] - start[0]) * t;
@@ -721,145 +781,250 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
 
     const createDot = (color: string) => L.divIcon({
       className: 'custom-div-icon',
-      html: `<div style="background-color: ${color}; width: 10px; height: 10px; border: 2.5px solid white; border-radius: 50%; box-shadow: 0 0 10px ${color}80;"></div>`,
-      iconSize: [10, 10],
-      iconAnchor: [5, 5]
+      html: `<div style="background-color: ${color}; width: 8px; height: 8px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 8px ${color}80;"></div>`,
+      iconSize: [8, 8],
+      iconAnchor: [4, 4]
     });
 
     const allPoints: [number, number][] = [];
+    const idaSequence: any[] = [];
+    const voltaSequence: any[] = [];
 
-    flights.forEach((flight, flightIdx) => {
-      const isIdaVoltaItem = flight.flightType === 'ida_volta';
+    flights.forEach((flight: any) => {
       const outbound = Array.isArray(flight.outboundSegments) ? flight.outboundSegments : [];
       const inbound = Array.isArray(flight.inboundSegments) ? flight.inboundSegments : [];
+      const isIdaVoltaItem = flight.flightType === 'ida_volta' || flight.flightType === 'multi';
 
-      // --- IDA / TRECHOS ---
-      if (outbound.length > 0) {
+      if (outbound.length > 0 && flight.flightType !== 'volta') {
+        const fullPath: [number, number][] = [];
+        const lastDest = outbound[outbound.length - 1].destination;
         outbound.forEach((seg: any, idx: number) => {
-          const pStart = airportInfo[seg.origin]?.coords;
-          const pEnd = airportInfo[seg.destination]?.coords;
-          
+          const pStart = resolveCoords(seg.origin, airportInfo);
+          const pEnd = resolveCoords(seg.destination, airportInfo);
           if (!pStart || !pEnd) return;
-
+          const transportType = seg.transportType || 'voo';
+          const isRoad = transportType === 'onibus' || transportType === 'transfer';
+          const routeColor = transportType === 'onibus' ? '#fb8c00' : transportType === 'transfer' ? '#10b981' : transportType === 'trem' ? '#8b5cf6' : '#0891b2';
           allPoints.push(pStart);
           if (idx === outbound.length - 1) allPoints.push(pEnd);
-
-          // Draw Arc
-          const pts = getCurvePoints(pStart, pEnd, 0.15);
-          L.polyline(pts, {
-            color: '#0891b2',
-            weight: 3,
-            dashArray: '8, 8',
-            lineCap: 'round',
-            lineJoin: 'round'
-          }).addTo(map);
-
-          // Marker for each point in IDA
-          L.marker(pStart, { icon: createDot('#0891b2') }).addTo(map);
-          if (idx === outbound.length - 1) {
-            L.marker(pEnd, { icon: createDot('#0891b2') }).addTo(map);
-          }
+          const pts = getCurvePoints(pStart, pEnd, isRoad ? 0.02 : 0.15);
+          fullPath.push(...pts);
+          L.polyline(pts, { color: routeColor, weight: 2, dashArray: '5, 5', opacity: 0.9 }).addTo(map);
+          L.marker(pStart, { icon: createDot(routeColor) }).addTo(map);
+          if (idx === outbound.length - 1) L.marker(pEnd, { icon: createDot(routeColor) }).addTo(map);
         });
-      }
-      // --- VOLTA ---
-      if (isIdaVoltaItem && inbound.length > 0) {
-        inbound.forEach((seg: any, idx: number) => {
-          const pStart = airportInfo[seg.origin]?.coords;
-          const pEnd = airportInfo[seg.destination]?.coords;
-          
-          if (!pStart || !pEnd) return;
-
-          allPoints.push(pStart);
-          if (idx === inbound.length - 1) allPoints.push(pEnd);
-
-          // Draw Arc (Inverted for differentiation)
-          const pts = getCurvePoints(pStart, pEnd, -0.1);
-          L.polyline(pts, {
-            color: '#9333ea',
-            weight: 2,
-            dashArray: '5, 10',
-            opacity: 0.8
-          }).addTo(map);
-
-          // Marker for each point in VOLTA
-          L.marker(pStart, { icon: createDot('#9333ea') }).addTo(map);
-          if (idx === inbound.length - 1) {
-            L.marker(pEnd, { icon: createDot('#9333ea') }).addTo(map);
-          }
-        });
+        if (fullPath.length > 0) {
+          const mainTrans = outbound[0].transportType || 'voo';
+          const mainCol = mainTrans === 'onibus' ? '#fb8c00' : '#0891b2';
+          idaSequence.push({ taskType: 'transport', points: fullPath, type: mainTrans, color: mainCol, destinationName: lastDest });
+        }
       }
 
-      // --- MULTI-TRECHO ---
       if (flight.flightType === 'multi' && Array.isArray(flight.multiLegs)) {
         flight.multiLegs.forEach((leg: any) => {
-          const segments = Array.isArray(leg.segments) ? leg.segments : [];
-          segments.forEach((seg: any, idx: number) => {
-            const pStart = airportInfo[seg.origin]?.coords;
-            const pEnd = airportInfo[seg.destination]?.coords;
-            
-            if (!pStart || !pEnd) return;
-
-            allPoints.push(pStart);
-            if (idx === segments.length - 1) allPoints.push(pEnd);
-
-            // Draw Arc
-            const pts = getCurvePoints(pStart, pEnd, 0.15);
-            L.polyline(pts, {
-              color: '#0891b2',
-              weight: 3,
-              dashArray: '8, 8',
-              lineCap: 'round',
-              lineJoin: 'round'
-            }).addTo(map);
-
-            // Marker for each point
-            L.marker(pStart, { icon: createDot('#0891b2') }).addTo(map);
-            if (idx === segments.length - 1) {
-              L.marker(pEnd, { icon: createDot('#0891b2') }).addTo(map);
-            }
-          });
+           const segments = Array.isArray(leg.segments) ? leg.segments : [];
+           const fullPath: [number, number][] = [];
+           const lastDest = segments[segments.length - 1]?.destination;
+           segments.forEach((seg: any, idx: number) => {
+             const pStart = resolveCoords(seg.origin, airportInfo);
+             const pEnd = resolveCoords(seg.destination, airportInfo);
+             if (!pStart || !pEnd) return;
+             const transportType = seg.transportType || 'voo';
+             const isRoad = transportType === 'onibus' || transportType === 'transfer';
+             const routeColor = transportType === 'onibus' ? '#fb8c00' : transportType === 'transfer' ? '#10b981' : transportType === 'trem' ? '#8b5cf6' : '#0891b2';
+             allPoints.push(pStart);
+             if (idx === segments.length - 1) allPoints.push(pEnd);
+             const pts = getCurvePoints(pStart, pEnd, isRoad ? 0.02 : 0.15);
+             fullPath.push(...pts);
+             L.polyline(pts, { color: routeColor, weight: 2, dashArray: '5, 5', opacity: 0.9 }).addTo(map);
+             L.marker(pStart, { icon: createDot(routeColor) }).addTo(map);
+             if (idx === segments.length - 1) L.marker(pEnd, { icon: createDot(routeColor) }).addTo(map);
+           });
+           if (fullPath.length > 0) {
+             const mainTrans = segments[0]?.transportType || 'voo';
+             const mainCol = mainTrans === 'onibus' ? '#fb8c00' : '#0891b2';
+             idaSequence.push({ taskType: 'transport', points: fullPath, type: mainTrans, color: mainCol, destinationName: lastDest });
+           }
         });
+      }
+
+      if ((isIdaVoltaItem || flight.flightType === 'volta') && (inbound.length > 0 || outbound.length > 0)) {
+        const segments = (flight.flightType === 'volta') ? (outbound.length > 0 ? outbound : inbound) : inbound;
+        const fullPath: [number, number][] = [];
+        segments.forEach((seg: any, idx: number) => {
+          const pStart = resolveCoords(seg.origin, airportInfo);
+          const pEnd = resolveCoords(seg.destination, airportInfo);
+          if (!pStart || !pEnd) return;
+          const transportType = seg.transportType || 'voo';
+          const isRoad = transportType === 'onibus' || transportType === 'transfer';
+          const routeColor = transportType === 'onibus' ? '#fb8c00' : '#9333ea';
+          allPoints.push(pStart);
+          if (idx === segments.length - 1) allPoints.push(pEnd);
+          const pts = getCurvePoints(pStart, pEnd, isRoad ? -0.02 : -0.1);
+          fullPath.push(...pts);
+          L.polyline(pts, { color: routeColor, weight: 2, dashArray: '5, 5', opacity: 0.8 }).addTo(map);
+          L.marker(pStart, { icon: createDot(routeColor) }).addTo(map);
+          if (idx === segments.length - 1) L.marker(pEnd, { icon: createDot(routeColor) }).addTo(map);
+        });
+        if (fullPath.length > 0) {
+          const mainTrans = segments[0].transportType || 'voo';
+          const mainCol = mainTrans === 'onibus' ? '#fb8c00' : '#9333ea';
+          voltaSequence.push({ taskType: 'transport', points: fullPath, type: mainTrans, color: mainCol });
+        }
       }
     });
 
-    if (allPoints.length > 0) {
-       const validPoints = allPoints.filter(p => p && Array.isArray(p) && p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]));
-       if (validPoints.length > 0) {
-         try {
-           const bounds = L.latLngBounds(validPoints);
-           map.fitBounds(bounds, { padding: [50, 50] });
-         } catch (e) {
-           console.error("Erro ao ajustar limites do mapa", e);
-         }
-       }
+    const hasStay = idaSequence.some(t => t.taskType === 'stay');
+    if (!hasStay && (hotels || []).length > 0 && idaSequence.length > 0) {
+      const transports = idaSequence.filter(t => t.taskType === 'transport' && t.points && t.points.length > 0);
+      if (transports.length > 0) {
+        const lastT = transports[transports.length - 1];
+        const h = hotels[0];
+        const nights = getNights(h, lead);
+        if (nights) {
+          const cityName = h.destination || lastT.destinationName || "Destino";
+          idaSequence.push({ taskType: 'stay', coords: lastT.points[lastT.points.length - 1], message: `${nights} Noites <br/> em ${cityName}` });
+        }
+      }
     }
 
+    const animationQueue = [...idaSequence, ...voltaSequence];
+
+    if (allPoints.length > 0) {
+      const validPoints = allPoints.filter(p => p && Array.isArray(p) && p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]));
+      if (validPoints.length > 0) {
+        try {
+          const bounds = L.latLngBounds(validPoints);
+          map.fitBounds(bounds, { padding: [50, 50] });
+        } catch (e) {}
+      }
+    }
+
+    const animateMarkerAlongPath = (pts: [number, number][], type: string, color: string) => {
+      return new Promise<void>((resolve) => {
+        if (!pts || pts.length < 2) { resolve(); return; }
+        const icon = L.divIcon({
+          className: 'custom-moving-icon',
+          html: `
+            <div class="moving-marker-container" style="color: ${color}">
+              ${type === 'onibus' ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6v6M16 6v6M3 10h18M7.5 18h9M3 18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-10a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10Z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>' : 
+                type === 'transfer' ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2M3 17h2M2 9l2 2M22 9l-2 2"/><rect width="18" height="12" x="3" y="8" rx="2"/><path d="M11 18h2"/><circle cx="17" cy="20" r="2"/><circle cx="7" cy="20" r="2"/></svg>' :
+                '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"></path></svg>'}
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        const marker = L.marker(pts[0], { icon, zIndexOffset: 1000 }).addTo(map);
+        const duration = 3500; // 3.5 segundos por trecho - mais lento e fluído
+        const startTime = performance.now();
+
+        const animate = (currentTime: number) => {
+          if (!active) { marker.remove(); resolve(); return; }
+          if (!pts[0]) { marker.remove(); resolve(); return; }
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+
+          // Find current position in path segments
+          const index = Math.floor(progress * (pts.length - 1));
+          const nextIndex = Math.min(index + 1, pts.length - 1);
+          const ratio = (progress * (pts.length - 1)) % 1;
+
+          // Interpolate position for ultra-smoothness
+          if (!pts[index] || !pts[nextIndex]) { marker.remove(); resolve(); return; }
+
+          const currentPos: [number, number] = [
+            pts[index][0] + (pts[nextIndex][0] - pts[index][0]) * ratio,
+            pts[index][1] + (pts[nextIndex][1] - pts[index][1]) * ratio
+          ];
+
+          marker.setLatLng(currentPos);
+
+          // Interpolate angle (different offsets for Plane vs Bus SVGs)
+          const angle = Math.atan2(pts[nextIndex][0] - pts[index][0], pts[nextIndex][1] - pts[index][1]) * (180 / Math.PI);
+          const el = marker.getElement();
+          if (el) {
+            const inner = el.querySelector('.moving-marker-container') as HTMLElement;
+            if (inner) {
+              // Airplane points North (90), Bus points East (0)
+              const rotation = type === 'onibus' ? -angle : (90 - angle);
+              inner.style.transform = `rotate(${rotation}deg)`;
+            }
+          }
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            marker.remove();
+            resolve();
+          }
+        };
+
+        requestAnimationFrame(animate);
+      });
+    };
+
+    const runAnimations = async () => {
+        while (active && animationQueue.length > 0) {
+          for (const task of animationQueue) {
+            if (!active) break;
+            if (task.taskType === 'stay') {
+              if (task.coords && mapRef.current) {
+                mapRef.current.panTo(task.coords, { animate: true });
+                const stayIcon = L.divIcon({
+                  className: 'custom-stay-icon',
+                  html: `
+                    <div class="stay-balloon-container">
+                      <div class="stay-balloon-content">
+                        <div class="stay-balloon-header">
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                          <span>HOSPEDAGEM</span>
+                        </div>
+                        <div class="stay-balloon-text">${task.message}</div>
+                      </div>
+                      <div class="stay-balloon-arrow"></div>
+                    </div>
+                  `,
+                  iconSize: [200, 60],
+                  iconAnchor: [100, 70]
+                });
+                const stayMarker = L.marker(task.coords, { icon: stayIcon, zIndexOffset: 2000 }).addTo(mapRef.current);
+                await new Promise(resolve => setTimeout(resolve, 2500));
+                stayMarker.remove();
+              }
+            } else {
+              await animateMarkerAlongPath(task.points, task.type, task.color);
+            }
+            if (active) await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+    };
+
+    runAnimations();
+
     return () => {
+      active = false;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, [isLeafletReady, flights, airportInfo]);
+  }, [isLeafletReady, flights, hotels, airportInfo, lead]);
 
   return (
     <div className="mb-12 no-print">
       <div id="main-travel-map" className="relative w-full h-[400px] sm:h-[450px] rounded-[32px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/40 bg-[#f8f9fa] group">
-        {/* Container Leaflet */}
         <div ref={containerRef} className="w-full h-full z-0" />
-        
         {!isLeafletReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-50/50 backdrop-blur-sm z-50">
              <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
           </div>
         )}
-
-        {/* Legend Overlay INSIDE Map */}
         <div className="absolute bottom-3 left-3 right-3 z-[400] flex items-center justify-between gap-4 pointer-events-none">
            <p className="text-[7px] sm:text-[8px] text-slate-400 font-bold italic leading-none truncate flex-1 opacity-80">
               *As linhas do trajeto exibidas são ilustrativas e podem não representar o trajeto exato da aeronave.
            </p>
-
            <div className="bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/40 flex items-center gap-4 shadow-sm pointer-events-auto scale-90 origin-right transition-transform hover:scale-95">
               <div className="flex items-center gap-2">
                  <div className="w-3 h-1 rounded-full bg-[#0891b2] shadow-[0_0_8px_rgba(8,145,178,0.5)]" />
@@ -873,39 +1038,27 @@ function InteractiveMap({ lead, flights, airportInfo }: { lead: Lead; flights: L
               )}
            </div>
         </div>
-
-        {/* Custom Style for Zoom Controls (No Borders) */}
         <style jsx global>{`
-          .leaflet-bar {
-            border: none !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-            border-radius: 12px !important;
-            overflow: hidden;
-            margin-top: 10px !important;
-            margin-left: 10px !important;
-          }
-          .leaflet-bar a {
-            border: none !important;
-            background-color: white !important;
-            color: #475569 !important;
-            font-weight: bold !important;
-            width: 36px !important;
-            height: 36px !important;
-            line-height: 36px !important;
-            transition: all 0.2s;
-          }
-          .leaflet-bar a:hover {
-            background-color: #f8fafc !important;
-            color: #1e293b !important;
-          }
+          .leaflet-bar { border: none !important; box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; border-radius: 12px !important; overflow: hidden; margin-top: 10px !important; margin-left: 10px !important; }
+          .leaflet-bar a { border: none !important; background-color: white !important; color: #475569 !important; font-weight: bold !important; width: 36px !important; height: 36px !important; line-height: 36px !important; transition: all 0.2s; }
+          .leaflet-bar a:hover { background-color: #f8fafc !important; color: #1e293b !important; }
+          .moving-marker-container { transition: transform 0.1s linear; filter: drop-shadow(0 0 5px currentColor); }
+          .stay-balloon-container { position: relative; animation: balloon-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+          @keyframes balloon-pop { from { transform: scale(0) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+          .stay-balloon-content { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1.5px solid white; padding: 10px 14px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; min-width: 140px; }
+          .stay-balloon-header { display: flex; items-center gap: 6px; margin-bottom: 4px; }
+          .stay-balloon-header span { font-size: 8px; font-weight: 900; color: #64748b; letter-spacing: 0.1em; }
+          .stay-balloon-header svg { color: #94a3b8; }
+          .stay-balloon-text { font-size: 13px; font-weight: 800; color: #1e293b; text-align: center; line-height: 1.3; }
+          .stay-balloon-arrow { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid white; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.05)); }
         `}</style>
       </div>
     </div>
   );
 }
 
-function MainTravelMap({ lead, flights, airportInfo }: { lead: Lead; flights: LeadItem[]; airportInfo: Record<string, any> }) {
-  return <InteractiveMap lead={lead} flights={flights} airportInfo={airportInfo} />;
+function MainTravelMap({ lead, flights, hotels, transfers, airportInfo }: { lead: Lead; flights: LeadItem[]; hotels: LeadItem[]; transfers: LeadItem[]; airportInfo: Record<string, any> }) {
+  return <InteractiveMap lead={lead} flights={flights} hotels={hotels} transfers={transfers} airportInfo={airportInfo} />;
 }
 
 function AirlineLogo({ name }: { name: string }) {
@@ -1001,10 +1154,21 @@ function FlightLegCard({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 ${type === 'Ida' ? 'bg-cyan-50' : 'bg-purple-50'} rounded-2xl flex items-center justify-center`}>
-                 <Plane className={`w-5 h-5 ${type === 'Ida' ? 'text-cyan-600' : 'text-purple-600'}`} />
+                 {firstSeg?.transportType === 'onibus' ? (
+                   <Bus className={`w-5 h-5 ${type === 'Ida' ? 'text-cyan-600' : 'text-purple-600'}`} />
+                 ) : firstSeg?.transportType === 'trem' ? (
+                   <TrainFront className={`w-5 h-5 ${type === 'Ida' ? 'text-cyan-600' : 'text-purple-600'}`} />
+                 ) : (
+                   <Plane className={`w-5 h-5 ${type === 'Ida' ? 'text-cyan-600' : 'text-purple-600'}`} />
+                 )}
               </div>
               <div>
-                <h3 className="text-[11px] sm:text-sm font-black text-slate-800 uppercase tracking-widest leading-none mb-1">Voo de {type}</h3>
+                <h3 className="text-[11px] sm:text-sm font-black text-slate-800 uppercase tracking-widest leading-none mb-1">
+                  {firstSeg?.transportType === 'onibus' ? 'Ônibus' : 
+                   firstSeg?.transportType === 'trem' ? 'Trem' : 
+                   (firstSeg?.transportType === 'transfer' || firstSeg?.transportType === 'translado') ? 'Translado' : 
+                   'Voo'} de {type}
+                </h3>
                 {firstSeg && <p className="text-[10px] sm:text-xs font-bold text-slate-400">{formatDate(firstSeg.departureDate)}</p>}
               </div>
             </div>
@@ -1147,7 +1311,13 @@ function FlightLegCard({
                            {/* Dots Column */}
                            <div className="flex flex-col items-center gap-1 mt-1 shrink-0 z-10">
                               <div className="w-12 h-12 bg-white rounded-2xl border-2 border-slate-100 shadow-sm flex items-center justify-center group-hover/seg:border-cyan-300 transition-colors">
-                                 <Plane className="w-5 h-5 text-slate-400 group-hover/seg:text-cyan-500 transition-colors" />
+                                 {seg.transportType === 'onibus' ? (
+                                   <Bus className="w-5 h-5 text-slate-400 group-hover/seg:text-cyan-500 transition-colors" />
+                                 ) : seg.transportType === 'trem' ? (
+                                   <TrainFront className="w-5 h-5 text-slate-400 group-hover/seg:text-cyan-500 transition-colors" />
+                                 ) : (
+                                   <Plane className="w-5 h-5 text-slate-400 group-hover/seg:text-cyan-500 transition-colors" />
+                                 )}
                               </div>
                            </div>
 
@@ -1159,7 +1329,9 @@ function FlightLegCard({
                                        <AirlineLogo name={seg.airline || 'LATAM'} />
                                        <div className="h-6 w-px bg-slate-100 hidden md:block" />
                                        <div className="flex flex-col">
-                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Voo</p>
+                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                            {seg.transportType === 'onibus' ? 'Ônibus' : seg.transportType === 'trem' ? 'Trem' : 'Voo'}
+                                          </p>
                                           <p className="text-sm font-black text-slate-800 font-mono tracking-tighter">{seg.flightNumber || '---'}</p>
                                        </div>
                                        <div className="h-6 w-px bg-slate-100 hidden md:block" />
@@ -1980,7 +2152,14 @@ export default function CotacaoPage() {
     }
   };
 
-  const flights = useMemo(() => (lead?.items || []).filter(i => i.type === 'passagem'), [lead?.items]);
+  const flights = useMemo(() => (lead?.items || []).filter(i => {
+    const hasOutbound = Array.isArray(i.outboundSegments) && i.outboundSegments.length > 0;
+    const hasMulti = Array.isArray(i.multiLegs) && i.multiLegs.length > 0;
+    const firstSeg = i.outboundSegments?.[0] || i.multiLegs?.[0];
+    const isValid = firstSeg && (firstSeg.origin || firstSeg.destination);
+    return (i.type === 'passagem' || hasOutbound || hasMulti) && isValid;
+  }), [lead?.items]);
+
   const hotels = useMemo(() => (lead?.items || []).filter(i => i.type === 'hospedagem'), [lead?.items]);
   const transfers = useMemo(() => (lead?.items || []).filter(i => i.type === 'translado'), [lead?.items]);
   const others = useMemo(() => (lead?.items || []).filter(i => !['passagem', 'hospedagem', 'translado'].includes(i.type)), [lead?.items]);
@@ -1990,7 +2169,7 @@ export default function CotacaoPage() {
     if (!lead?.items) return [];
     try {
       return Array.from(new Set(lead.items.flatMap(item => {
-        if (item.type !== 'passagem') return [];
+        // Collect from all items that might have travel info
         const outSegments = Array.isArray(item.outboundSegments) ? item.outboundSegments : [];
         const incSegments = Array.isArray(item.inboundSegments) ? item.inboundSegments : [];
         const multiSegments = item.flightType === 'multi' && Array.isArray(item.multiLegs) 
@@ -2001,8 +2180,11 @@ export default function CotacaoPage() {
         const inc = incSegments.flatMap((s: any) => [s.origin, s.destination]);
         const multi = multiSegments.flatMap((s: any) => [s.origin, s.destination]);
         
-        return [...out, ...inc, ...multi];
-      }).filter(iata => iata && typeof iata === 'string' && iata.length === 3) as string[]));
+        // Add city name for hotels to help resolved coords filter
+        const hotelCity = item.type === 'hospedagem' ? [(item as any).city, (item as any).address] : [];
+        
+        return [...out, ...inc, ...multi, ...hotelCity];
+      }).filter(place => place && typeof place === 'string' && place.length >= 2) as string[]));
     } catch (e) {
       return [];
     }
@@ -2284,7 +2466,7 @@ export default function CotacaoPage() {
             <SectionTitle icon={<Plane className="w-4 h-4" />} title="Voos" />
             
             {/* Mapa Consolidado da Rota Real */}
-            <MainTravelMap lead={lead} flights={flights} airportInfo={airportInfo} />
+            <MainTravelMap lead={lead} flights={flights} hotels={hotels} transfers={transfers} airportInfo={airportInfo} />
 
             <div className="space-y-3">
               {flights.map(item => <FlightItemCard key={item.id} item={item} lead={lead} airportInfo={airportInfo} />)}

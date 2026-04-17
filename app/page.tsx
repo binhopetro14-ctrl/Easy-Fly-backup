@@ -41,7 +41,8 @@ import {
   CreditCard,
   CheckCircle2,
   Clock,
-  Shield // Ícone extra para a sidebar
+  Shield,
+  Bot // Agente de Cotação
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Customer, Group, Sale, Supplier, TeamMember, Lead, CalendarEvent } from '@/types';
@@ -56,6 +57,7 @@ import { UsersView } from '@/components/UsersView';
 import { useLeads } from '@/hooks/useLeads';
 import { CRMView } from '@/components/CRMView';
 import { FastCotationView } from '@/components/FastCotationView';
+import { AgenteCotacaoView } from '@/components/AgenteCotacaoView';
 import { LeadModal } from '@/components/LeadModal';
 import { FinanceiroView } from '@/components/OtherViews';
 import { MetricasView } from '@/components/MetricasView';
@@ -78,7 +80,7 @@ import { useSales } from '@/hooks/useSales';
 import { useSuppliers } from '@/hooks/useSuppliers';
 
 // <--- 'usuarios' adicionado ao tipo View
-type View = 'dashboard' | 'crm' | 'fast-cotation' | 'vendas' | 'clientes' | 'financeiro-controle' | 'financeiro-contas' | 'fornecedores' | 'metricas' | 'usuarios' | 'calendario';
+type View = 'dashboard' | 'crm' | 'fast-cotation' | 'vendas' | 'clientes' | 'financeiro-controle' | 'financeiro-contas' | 'fornecedores' | 'metricas' | 'usuarios' | 'calendario' | 'agente';
 
 export default function Page() {
   const { theme, toggleTheme, mounted } = useTheme();
@@ -755,6 +757,7 @@ export default function Page() {
           {currentUser?.role === 'Administrador' && (
             <SidebarItem icon={<Truck className="w-5 h-5" />} label="Fornecedores" active={activeView === 'fornecedores'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('fornecedores')} />
           )}
+          <SidebarItem icon={<Bot className="w-5 h-5" />} label="Agente de Cotação" active={activeView === 'agente'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('agente')} />
 
           <SidebarSection label="Configurações" collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
           <SidebarItem icon={<Shield className="w-5 h-5" />} label="Usuários" active={activeView === 'usuarios'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('usuarios')} />
@@ -881,7 +884,9 @@ export default function Page() {
               ) : activeView === 'fornecedores' && currentUser?.role === 'Administrador' ? (
                 <SuppliersView suppliers={suppliers} sales={sales} onAddSupplier={openAddSupplier} onEditSupplier={openEditSupplier} onDeleteSupplier={handleDeleteSupplier} currentUser={currentUser} />
               ) : activeView === 'usuarios' ? (
-                <UsersView currentUser={currentUser} /> // <--- Renderização da tela de Usuários
+                <UsersView currentUser={currentUser} />
+              ) : activeView === 'agente' ? (
+                <AgenteCotacaoView />
               ) : null}
             </motion.div>
           </AnimatePresence>

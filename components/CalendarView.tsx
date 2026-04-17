@@ -97,37 +97,77 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, customers, ma
     sales.forEach(sale => {
       sale.items?.forEach((item, idx) => {
         const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
-        if (item.type === 'passagem' && item.departureDate) {
+        if (item.type === 'passagem') {
+          const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
           const boardingTimeStr = item.boardingTime || '00:00';
-          const fullDepartureStr = `${item.departureDate}T${boardingTimeStr}`;
-          
-          // Evento de Embarque
-          events.push({
-            id: `sale-dep-${sale.id}-${idx}`,
-            title: `Embarque: ${item.origin} ✈️ ${item.destination}${passengerLabel}`,
-            type: 'Embarque',
-            startDate: fullDepartureStr,
-            userName: sale.emissor || 'Sistema',
-            isAuto: true,
-            saleId: sale.id,
-            originalData: sale
-          });
 
-          // Evento de Check-in (24h antes)
-          try {
-            const boardingDateTime = parseSafeDate(fullDepartureStr);
-            const checkInDateTime = new Date(boardingDateTime.getTime() - 24 * 60 * 60 * 1000);
+          // --- IDA ---
+          if (item.departureDate) {
+            const fullDepartureStr = `${item.departureDate}T${boardingTimeStr}`;
+            
+            // Evento de Embarque (Ida)
             events.push({
-              id: `sale-checkin-${sale.id}-${idx}`,
-              title: `Check-in: ${item.passengerName || sale.customerName || 'Passageiro'} - ${item.origin || ''}/${item.destination || ''}`,
-              type: 'Check-in',
-              startDate: checkInDateTime.toISOString(),
+              id: `sale-dep-${sale.id}-${idx}`,
+              title: `Embarque: ${item.origin || ''} ✈️ ${item.destination || ''}${passengerLabel}`,
+              type: 'Embarque',
+              startDate: fullDepartureStr,
               userName: sale.emissor || 'Sistema',
               isAuto: true,
               saleId: sale.id,
               originalData: sale
             });
-          } catch (e) { /* ignore */ }
+
+            // Evento de Check-in Ida (24h antes)
+            try {
+              const boardingDateTime = parseSafeDate(fullDepartureStr);
+              const checkInDateTime = new Date(boardingDateTime.getTime() - 24 * 60 * 60 * 1000);
+              events.push({
+                id: `sale-checkin-${sale.id}-${idx}`,
+                title: `Check-in: ${item.passengerName || sale.customerName || 'Passageiro'} - ${item.origin || ''}/${item.destination || ''}`,
+                type: 'Check-in',
+                startDate: checkInDateTime.toISOString(),
+                userName: sale.emissor || 'Sistema',
+                isAuto: true,
+                saleId: sale.id,
+                originalData: sale
+              });
+            } catch (e) { /* ignore */ }
+          }
+
+          // --- VOLTA ---
+          if (item.returnDate) {
+            // Para a volta, assumimos o mesmo horário de embarque ou 00:00 se não especificado
+            // Idealmente existiria um 'returnBoardingTime', mas usaremos o padrão por enquanto
+            const fullReturnStr = `${item.returnDate}T${boardingTimeStr}`;
+            
+            // Evento de Embarque (Volta)
+            events.push({
+              id: `sale-ret-${sale.id}-${idx}`,
+              title: `Embarque (Volta): ${item.destination || ''} ✈️ ${item.origin || ''}${passengerLabel}`,
+              type: 'Embarque',
+              startDate: fullReturnStr,
+              userName: sale.emissor || 'Sistema',
+              isAuto: true,
+              saleId: sale.id,
+              originalData: sale
+            });
+
+            // Evento de Check-in Volta (24h antes)
+            try {
+              const returnDateTime = parseSafeDate(fullReturnStr);
+              const checkInReturnDateTime = new Date(returnDateTime.getTime() - 24 * 60 * 60 * 1000);
+              events.push({
+                id: `sale-checkin-ret-${sale.id}-${idx}`,
+                title: `Check-in (Volta): ${item.passengerName || sale.customerName || 'Passageiro'} - ${item.destination || ''}/${item.origin || ''}`,
+                type: 'Check-in',
+                startDate: checkInReturnDateTime.toISOString(),
+                userName: sale.emissor || 'Sistema',
+                isAuto: true,
+                saleId: sale.id,
+                originalData: sale
+              });
+            } catch (e) { /* ignore */ }
+          }
         }
       });
     });

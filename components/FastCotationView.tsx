@@ -53,6 +53,7 @@ interface FlightLeg {
 
 export function FastCotationView({ leads, currentUser }: FastCotationViewProps) {
   const proposalRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [isCopying, setIsCopying] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -80,9 +81,9 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
   const [price12x, setPrice12x] = useState('526');
 
   const [baggageState, setBaggageState] = useState({
-    mochila: { enabled: true, qty: 1, weight: 5, label: 'Mochila' },
-    mao: { enabled: true, qty: 1, weight: 10, label: 'Mala de mão' },
-    despachada: { enabled: false, qty: 0, weight: 23, label: 'Mala despachada' }
+    mochila: { enabled: true, qty: 1, weight: 5, label: 'Item Pessoal (Cabine)' },
+    mao: { enabled: true, qty: 1, weight: 10, label: 'Mala de Mão (Cabine)' },
+    despachada: { enabled: false, qty: 0, weight: 23, label: 'Bagagem Despachada (Porão)' }
   });
 
   const inclusions = useMemo(() => {
@@ -241,9 +242,9 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
         const isLatamOrGol = allAirlines.some((name: string) => name.includes('LATAM') || name.includes('GOL'));
 
         setBaggageState({
-          mochila: { enabled: true, qty: 1, weight: isLatamOrGol ? 10 : 5, label: 'Mochila' },
-          mao: { enabled: true, qty: 1, weight: isLatamOrGol ? 12 : 10, label: 'Mala de mão' },
-          despachada: { enabled: false, qty: 0, weight: 23, label: 'Mala despachada' }
+          mochila: { enabled: true, qty: 1, weight: isLatamOrGol ? 10 : 5, label: 'Item Pessoal (Cabine)' },
+          mao: { enabled: true, qty: 1, weight: isLatamOrGol ? 12 : 10, label: 'Mala de Mão (Cabine)' },
+          despachada: { enabled: false, qty: 0, weight: 23, label: 'Bagagem Despachada (Porão)' }
         });
 
         setExtractionStatus('success');
@@ -263,23 +264,15 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
       clearTimeout(timeoutId);
     }
   };
-
-  useEffect(() => {
-    const handleGlobalPaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      
-      for (const item of Array.from(items)) {
-        if (item.type.indexOf('image') !== -1) {
-          const file = item.getAsFile();
-          if (file) handlePasteImage(file);
-        }
-      }
-    };
-
-    window.addEventListener('paste', handleGlobalPaste);
-    return () => window.removeEventListener('paste', handleGlobalPaste);
-  }, [travelClass]);
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handlePasteImage(file);
+      // Limpa o input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleLeadSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const leadId = e.target.value;
@@ -529,10 +522,21 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
 
           <div className="space-y-4">
             
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+
             <button
               onClick={() => {
-                setExtractionStatus('idle');
-                setNotification({ message: 'Pressione Ctrl+V para colar um print do voo', type: 'success' });
+                if (extractionStatus === 'idle') {
+                  fileInputRef.current?.click();
+                } else {
+                  setExtractionStatus('idle');
+                }
               }}
               disabled={isExtracting}
               className={`w-full py-4 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 transition-all duration-300 ${
@@ -561,9 +565,9 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
               ) : (
                 <>
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                    <Copy className="w-6 h-6" />
+                    <Download className="w-6 h-6" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Colar Print de Voo (Ctrl+V)</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-center px-2">Faça Upload da imagem</span>
                 </>
               )}
             </button>
@@ -1136,6 +1140,11 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                     </div>
                   ))}
                 </div>
+                {inclusions.length > 0 && (
+                  <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase italic leading-tight">
+                    * Itens de cabine acompanham você no avião. Itens de porão são entregues no balcão da companhia.
+                  </p>
+                )}
               </div>
             </div>
 
