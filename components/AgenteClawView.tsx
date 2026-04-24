@@ -54,7 +54,7 @@ export function AgenteClawView() {
   };
 
   const startTask = async (id: string, command: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'running' } : t));
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'running', logs: ['🤖 Iniciando conexão com a VPS...'] } : t));
     setIsRunning(true);
 
     const AGENT_URL = 'https://claw-agent-claw-agent.3cmm3y.easypanel.host';
@@ -75,27 +75,42 @@ export function AgenteClawView() {
       const pollInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(`${AGENT_URL}/status/${task_id}`);
+          if (!statusRes.ok) return;
+          
           const statusData = await statusRes.json();
           
+          // Atualiza logs em tempo real
+          setTasks(prev => prev.map(t => t.id === id ? { 
+            ...t, 
+            logs: statusData.logs || t.logs,
+            status: statusData.status === 'completed' ? 'completed' : 
+                    statusData.status === 'failed' ? 'failed' : 'running'
+          } : t));
+
           if (statusData.status === 'completed') {
             clearInterval(pollInterval);
             setTasks(prev => prev.map(t => t.id === id ? { 
               ...t, 
               status: 'completed', 
               result: statusData.result?.message || 'Tarefa finalizada',
-              logs: ['✅ Processamento concluído na VPS Hostinger']
             } : t));
             setIsRunning(false);
           } else if (statusData.status === 'failed' || statusData.status === 'error') {
-            throw new Error(statusData.message || 'Erro no Agente');
+            clearInterval(pollInterval);
+            setTasks(prev => prev.map(t => t.id === id ? { 
+              ...t, 
+              status: 'failed', 
+              result: statusData.result?.message || statusData.message || 'Erro no Agente'
+            } : t));
+            setIsRunning(false);
           }
         } catch (err) {
           console.error("Erro no polling:", err);
         }
-      }, 3000);
+      }, 2500);
 
     } catch (err: any) {
-      setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'failed', result: err.message } : t));
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'failed', result: err.message, logs: [`❌ Erro: ${err.message}`] } : t));
       setIsRunning(false);
     }
   };
