@@ -1,0 +1,16 @@
+{
+  "event": "messages.upsert",
+  "instance": "EasyFly_Bot",
+  "data": {
+    "key": {
+      "remoteJid": "5511987654321@s.whatsapp.net",
+      "fromMe": false,
+      "id": "TEST-12345"
+    },
+    "message": {
+      "conversation": "Olá Raul, você está funcionando?"
+    },
+    "pushName": "Cleber Teste",
+    "messageTimestamp": 1776651000
+  }
+}

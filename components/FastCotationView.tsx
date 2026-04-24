@@ -226,10 +226,31 @@ export function FastCotationView({ leads, currentUser }: FastCotationViewProps) 
       }
       
       if (data.flights && data.flights.length > 0) {
-        const newFlights = data.flights.map((f: any) => ({
-          ...f,
-          class: travelClass
-        }));
+        const newFlights = data.flights.map((f: any) => {
+          let arrivalTime = f.arrivalTime || '';
+          
+          const depDate = f.departureDate || f.date;
+          const arrDate = f.arrivalDate;
+          
+          const cleanTime = (t: string) => (t || '').replace(/[^\d:]/g, '');
+          const [depH, depM] = cleanTime(f.departureTime || '').split(':').map(Number);
+          const [arrH, arrM] = cleanTime(f.arrivalTime || '').split(':').map(Number);
+          
+          const hasTimes = !isNaN(depH) && !isNaN(arrH);
+          const isNextDayByTime = hasTimes && (arrH * 60 + (arrM || 0)) < (depH * 60 + (depM || 0));
+
+          if ((depDate && arrDate && depDate !== arrDate) || isNextDayByTime) {
+            if (!arrivalTime.includes('(+1)')) {
+              arrivalTime += ' (+1)';
+            }
+          }
+
+          return {
+            ...f,
+            arrivalTime,
+            class: travelClass
+          };
+        });
         
         while (newFlights.length < 5) {
           newFlights.push({ date: '', origin: '', departure: '', arrival: '', destination: '', airline: '', class: travelClass });

@@ -14,6 +14,7 @@ interface SalesViewProps {
   sales: Sale[];
   onAddSale: () => void;
   onEditSale: (sale: Sale) => void;
+  onViewSale: (sale: Sale) => void;
   onDeleteSale: (id: string) => void;
   onUpdateSale: (saleId: string, updates: Partial<Sale>) => void;
   currentUser: any;
@@ -25,6 +26,7 @@ export function SalesView({
   sales,
   onAddSale,
   onEditSale,
+  onViewSale,
   onDeleteSale,
   onUpdateSale,
   currentUser,
@@ -352,7 +354,12 @@ export function SalesView({
 
                   {/* 3. Localizador */}
                   <td className="px-6 py-3 text-xs font-black text-cyan-600 dark:text-cyan-400 tracking-wider">
-                    {sale.items?.map(i => i.locator).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') || '-'}
+                    <button 
+                      onClick={() => onViewSale(sale)}
+                      className="hover:text-cyan-700 transition-colors cursor-pointer text-left"
+                    >
+                      {sale.items?.map(i => i.locator).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') || '-'}
+                    </button>
                   </td>
 
                   {/* 4. Cliente / Passageiros */}

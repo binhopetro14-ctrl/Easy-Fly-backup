@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember, CustomerDocument, CustomerPassenger } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember, CustomerDocument, CustomerPassenger, AIAgentSettings, AIAgentLearning, AIKnowledgeItem } from '../types';
 
 import { mapperService } from './mapperService';
 
@@ -333,7 +333,13 @@ export const saleService = {
 
       // --- AUTOMAÇÃO DE CHECK-IN NO CALENDÁRIO ---
       try {
-        const flightItems = items.filter(item => item.type === 'passagem' && item.departureDate && item.boardingTime);
+        const flightItems = items.filter(item => 
+          item.type === 'passagem' && 
+          item.departureDate && 
+          item.boardingTime &&
+          !item.vendor?.toLowerCase().includes('seguro') &&
+          !item.description?.toLowerCase().includes('seguro')
+        );
         
         // Remove eventos de check-in antigos para reconstruir (evita duplicidade)
         await supabase
@@ -606,5 +612,171 @@ export const calendarService = {
       console.error('Supabase Error (delete calendar_event):', extractError(error));
       throw new Error(error.message || 'Erro ao deletar evento do calendário');
     }
+  }
+};
+
+export const aiService = {
+  getSettings: async (): Promise<AIAgentSettings | null> => {
+    const { data, error } = await supabase
+      .from('ai_agent_settings')
+      .select('*')
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Supabase Error (getSettings):', extractError(error));
+      return null;
+    }
+    return data ? mapperService.fromSupabase.aiSettings(data) : null;
+  },
+
+  saveSettings: async (settings: Partial<AIAgentSettings>): Promise<AIAgentSettings> => {
+    const payload = mapperService.toSupabase.aiSettings(settings);
+    const { data, error } = await supabase
+      .from('ai_agent_settings')
+      .upsert(payload)
+      .select();
+
+    if (error) throw new Error(error.message);
+    return mapperService.fromSupabase.aiSettings(data[0]);
+  },
+
+  getLearnings: async (): Promise<AIAgentLearning[]> => {
+    const { data, error } = await supabase
+      .from('ai_agent_learnings')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return (data || []).map(mapperService.fromSupabase.aiLearning);
+  },
+
+  saveLearning: async (learning: Partial<AIAgentLearning>): Promise<AIAgentLearning> => {
+    const payload = mapperService.toSupabase.aiLearning(learning);
+    const { data, error } = await supabase
+      .from('ai_agent_learnings')
+      .insert(payload)
+      .select();
+
+    if (error) throw new Error(error.message);
+    return mapperService.fromSupabase.aiLearning(data[0]);
+  },
+
+  updateLearningStatus: async (id: string, status: 'approved' | 'rejected'): Promise<void> => {
+    // 1. Get the learning details
+    const { data: learning, error: fetchError } = await supabase
+      .from('ai_agent_learnings')
+      .select('suggested_rule')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw new Error(fetchError.message);
+
+    let previousInstructions = '';
+
+    // 2. If approved, we need to update settings FIRST
+    if (status === 'approved' && learning.suggested_rule) {
+        // 2a. Get current instructions to backup
+        const { data: currentSettings, error: settingsFetchError } = await supabase
+            .from('ai_agent_settings')
+            .select('core_instructions')
+            .eq('agent_name', 'Raul')
+            .single();
+        
+        if (settingsFetchError) throw new Error(`Erro ao buscar configurações atuais: ${settingsFetchError.message}`);
+        
+        if (currentSettings) {
+            previousInstructions = currentSettings.core_instructions;
+        }
+
+        // 2b. Apply TO settings FIRST
+        const { error: settingsUpdateError } = await supabase
+            .from('ai_agent_settings')
+            .update({ 
+                core_instructions: learning.suggested_rule,
+                updated_at: new Date().toISOString()
+            })
+            .eq('agent_name', 'Raul');
+
+        if (settingsUpdateError) {
+            throw new Error(`Não foi possível atualizar o Prompt Mestre: ${settingsUpdateError.message}. Verifique as permissões do banco.`);
+        }
+    }
+
+    // 3. Update learning status and backup (only after settings are safe)
+    const { error: updateError } = await supabase
+      .from('ai_agent_learnings')
+      .update({ 
+        status, 
+        previous_instructions: status === 'approved' ? previousInstructions : null,
+        approved_at: status === 'approved' ? new Date().toISOString() : null 
+      })
+      .eq('id', id);
+
+    if (updateError) throw new Error(`O treinamento foi aplicado às configurações, mas houve um erro ao atualizar o histórico: ${updateError.message}`);
+  },
+
+  revertLearning: async (learningId: string): Promise<void> => {
+    // 1. Get the backup from the learning record
+    const { data: learning, error: fetchError } = await supabase
+      .from('ai_agent_learnings')
+      .select('previous_instructions, observation')
+      .eq('id', learningId)
+      .single();
+
+    if (fetchError || !learning?.previous_instructions) {
+      throw new Error('Instruções anteriores não encontradas para reversão.');
+    }
+
+    // 2. Restore settings
+    const { error: restoreError } = await supabase
+      .from('ai_agent_settings')
+      .update({ 
+          core_instructions: learning.previous_instructions,
+          updated_at: new Date().toISOString()
+      })
+      .eq('agent_name', 'Raul');
+
+    if (restoreError) throw new Error(restoreError.message);
+
+    // 3. Create a log entry for the reversion
+    await supabase
+      .from('ai_agent_learnings')
+      .insert({
+          observation: `REVERSÃO: Voltando atrás na mudança "${learning.observation}"`,
+          suggested_rule: learning.previous_instructions,
+          reasoning: 'Reversão solicitada pelo usuário via histórico.',
+          status: 'approved',
+          approved_at: new Date().toISOString()
+      });
+  },
+
+  getKnowledgeBase: async (): Promise<AIKnowledgeItem[]> => {
+    const { data, error } = await supabase
+      .from('ai_knowledge_base')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return (data || []).map(mapperService.fromSupabase.aiKnowledge);
+  },
+
+  saveKnowledgeItem: async (item: Partial<AIKnowledgeItem>): Promise<AIKnowledgeItem> => {
+    const payload = mapperService.toSupabase.aiKnowledge(item);
+    const { data, error } = await supabase
+      .from('ai_knowledge_base')
+      .upsert(payload)
+      .select();
+
+    if (error) throw new Error(error.message);
+    return mapperService.fromSupabase.aiKnowledge(data[0]);
+  },
+
+  deleteKnowledgeItem: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('ai_knowledge_base')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message);
   }
 };

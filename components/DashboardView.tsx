@@ -227,7 +227,11 @@ export function DashboardView({
       sale.items?.forEach((item, idx) => {
         const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
 
-        if (item.type === 'passagem' && item.departureDate) {
+        const isInsurance = item.type === 'seguro' || 
+          item.vendor?.toLowerCase().includes('seguro') || 
+          item.description?.toLowerCase().includes('seguro');
+
+        if (item.type === 'passagem' && item.departureDate && !isInsurance) {
           try {
             const boardingTimeStr = item.boardingTime || '00:00';
             const fullDepartureStr = `${item.departureDate}T${boardingTimeStr}`;
@@ -275,7 +279,10 @@ export function DashboardView({
       );
       return !hasDuplicate;
     });
-    return [...manualEvents, ...filteredAutoEvents];
+    return [...manualEvents, ...filteredAutoEvents].filter(event => 
+      !event.title?.toLowerCase().includes('seguro') && 
+      !event.type?.toLowerCase().includes('seguro')
+    );
   }, [sales, calendarEvents]);
   const upcomingEvents = React.useMemo(() => {
     const now = new Date();

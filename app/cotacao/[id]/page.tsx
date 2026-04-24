@@ -163,6 +163,11 @@ const resolveCoords = (place: string, airportInfo: Record<string, any>) => {
     'BEL': [-1.3847, -48.4788],
     'MAO': [-3.0358, -60.0506],
     'NAT': [-5.9114, -35.2477],
+    'FRA': [50.0333, 8.5705],
+    'MUC': [48.3537, 11.7861],
+    'ZRH': [47.4582, 8.5555],
+    'BRU': [50.9010, 4.4844],
+    'VIE': [48.1103, 16.5636],
     'MCZ': [-9.5108, -35.7917],
     'JPA': [-7.1467, -34.9506],
     'THE': [-5.0606, -42.8225],
@@ -631,8 +636,22 @@ const AIRPORT_INFO: Record<string, { coords: [number, number], name: string }> =
   'AMS': { coords: [52.3105, 4.7683], name: 'Schiphol - Amsterdam' },
   'BCN': { coords: [41.2974, 2.0833], name: 'Barcelona-El Prat' },
   'OPO': { coords: [41.2421, -8.6786], name: 'Francisco Sá Carneiro - Porto' },
+  'FRA': { coords: [50.0333, 8.5705], name: 'Frankfurt am Main' },
+  'MUC': { coords: [48.3537, 11.7861], name: 'Munich Airport' },
+  'ZRH': { coords: [47.4582, 8.5555], name: 'Zurich Airport' },
+  'BRU': { coords: [50.9010, 4.4844], name: 'Brussels Airport' },
+  'VIE': { coords: [48.1103, 16.5636], name: 'Vienna International' },
+  'MXP': { coords: [45.6300, 8.7231], name: 'Malpensa - Milão' },
+  'FCO': { coords: [41.8003, 12.2389], name: 'Fiumicino - Roma' },
   'RAO': { coords: [-21.1364, -47.7767], name: 'Leite Lopes - Ribeirão Preto' },
-  'BFS': { coords: [54.6575, -6.2158], name: 'Aeroporto Internacional de Belfast (Capital da Irlanda do Norte)' }
+  'BFS': { coords: [54.6575, -6.2158], name: 'Aeroporto Internacional de Belfast' },
+  'LGW': { coords: [51.1481, -0.1903], name: 'Gatwick - Londres' },
+  'SNN': { coords: [52.7020, -8.9248], name: 'Shannon - Irlanda' },
+  'STN': { coords: [51.8860, 0.2389], name: 'Stansted - Londres' },
+  'LTN': { coords: [51.8763, -0.3717], name: 'Luton - Londres' },
+  'BHD': { coords: [54.6181, -5.8725], name: 'George Best Belfast City' },
+  'DUB': { coords: [53.4264, -6.2499], name: 'Dublin International' },
+  'BVA': { coords: [49.4544, 2.1128], name: 'Beauvais-Tillé - Paris' },
 };
 
 /**
@@ -690,31 +709,28 @@ function useAirportResolver(initialAirports: string[]) {
 }
 
 
+const parseDateTime = (t: string, d?: string) => {
+  const [h, m] = t.split(':').map(Number);
+  if (d) {
+    const parts = d.split(/[/-]/);
+    let day, month, year;
+    if (parts[0].length === 4) { [year, month, day] = parts; }
+    else { [day, month, year] = parts; }
+    return new Date(Number(year), Number(month) - 1, Number(day), h, m).getTime();
+  }
+  return new Date(2000, 0, 1, h, m).getTime();
+};
+
 const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string, arrDate?: string, origin?: string, destination?: string) => {
   if (!depTime || !arrTime) return null;
   try {
-    const parse = (t: string, d?: string) => {
-      const [h, m] = t.split(':').map(Number);
-      if (d) {
-        const parts = d.split(/[/-]/);
-        let day, month, year;
-        if (parts[0].length === 4) { [year, month, day] = parts; }
-        else { [day, month, year] = parts; }
-        return new Date(Number(year), Number(month) - 1, Number(day), h, m).getTime();
-      }
-      return new Date(2000, 0, 1, h, m).getTime();
-    };
-
-    let start = parse(depTime, depDate);
-    let end = parse(arrTime, arrDate);
+    let start = parseDateTime(depTime, depDate);
+    let end = parseDateTime(arrTime, arrDate);
     
     // AJUSTE DE FUSO HORÁRIO (NORONHA - FEN)
-    // Fernando de Noronha é UTC-2, o resto do Brasil (Brasiia) é UTC-3
     if (origin === 'FEN' && destination !== 'FEN') {
-      // Saindo de Noronha: O voo "ganha" 1 hora no relógio local, então a duração real é +1h do que a diferença nominal
       start -= 60 * 60 * 1000;
     } else if (origin !== 'FEN' && destination === 'FEN') {
-      // Chegando em Noronha: O voo "perde" 1 hora no relógio local, então a duração real é -1h do que a diferença nominal
       start += 60 * 60 * 1000;
     }
 
@@ -728,6 +744,22 @@ const calculateDuration = (depTime?: string, arrTime?: string, depDate?: string,
     const m = totalMin % 60;
     return `${h}h ${m}min`;
   } catch { return null; }
+};
+
+const calculateConnectionTime = (arrival: string, departure: string, arrivalDate?: string, departureDate?: string) => {
+  try {
+    const start = parseDateTime(arrival, arrivalDate);
+    const end = parseDateTime(departure, departureDate);
+    const diffMs = end - start;
+    if (diffMs <= 0) return null;
+
+    const totalMin = Math.floor(diffMs / (1000 * 60));
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}h ${m}min`;
+  } catch (e) {
+    return null;
+  }
 };
 
 function InteractiveMap({ lead, flights, hotels, transfers, airportInfo }: { lead: Lead; flights: LeadItem[]; hotels: LeadItem[]; transfers: LeadItem[]; airportInfo: Record<string, any> }) {
@@ -1127,19 +1159,6 @@ function FlightLegCard({
     return `${h}h${m}`;
   };
 
-  const calculateConnectionTime = (arrival: string, departure: string) => {
-    try {
-      const [h1, m1] = arrival.split(':').map(Number);
-      const [h2, m2] = departure.split(':').map(Number);
-      let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-      if (diff < 0) diff += 1440; // Next day
-      const h = Math.floor(diff / 60);
-      const m = diff % 60;
-      return `${h}h ${m}min`;
-    } catch (e) {
-      return null;
-    }
-  };
 
   if (!segments || segments.length === 0) return null;
 
@@ -1225,7 +1244,12 @@ function FlightLegCard({
 
                             // Add connection if not last segment
                             if (idx < segments.length - 1) {
-                              const connStr = calculateConnectionTime(seg.arrivalTime, segments[idx + 1].departureTime);
+                              const connStr = calculateConnectionTime(
+                                seg.arrivalTime, 
+                                segments[idx + 1].departureTime,
+                                seg.arrivalDate || seg.departureDate,
+                                segments[idx + 1].departureDate
+                              );
                               const cNum = getNums(connStr);
                               if (cNum.length >= 2) {
                                 totalMinutes += (cNum[0] * 60) + cNum[1];
@@ -1302,7 +1326,12 @@ function FlightLegCard({
                 <div className="space-y-8">
                   {segments.map((seg, sidx) => {
                     const nextSeg = segments[sidx + 1];
-                    const connectionTime = nextSeg ? calculateConnectionTime(seg.arrivalTime, nextSeg.departureTime) : null;
+                    const connectionTime = nextSeg ? calculateConnectionTime(
+                      seg.arrivalTime, 
+                      nextSeg.departureTime, 
+                      seg.arrivalDate || seg.departureDate, 
+                      nextSeg.departureDate
+                    ) : null;
 
                     return (
                       <div key={sidx} className="relative group/seg">
@@ -2168,24 +2197,34 @@ export default function CotacaoPage() {
   const allIatas = useMemo(() => {
     if (!lead?.items) return [];
     try {
-      return Array.from(new Set(lead.items.flatMap(item => {
-        // Collect from all items that might have travel info
+      const iatas = new Set<string>();
+      
+      lead.items.forEach(item => {
         const outSegments = Array.isArray(item.outboundSegments) ? item.outboundSegments : [];
         const incSegments = Array.isArray(item.inboundSegments) ? item.inboundSegments : [];
         const multiSegments = item.flightType === 'multi' && Array.isArray(item.multiLegs) 
             ? item.multiLegs.flatMap((l: any) => l.segments || []) 
             : [];
             
-        const out = outSegments.flatMap((s: any) => [s.origin, s.destination]);
-        const inc = incSegments.flatMap((s: any) => [s.origin, s.destination]);
-        const multi = multiSegments.flatMap((s: any) => [s.origin, s.destination]);
-        
-        // Add city name for hotels to help resolved coords filter
-        const hotelCity = item.type === 'hospedagem' ? [(item as any).city, (item as any).address] : [];
-        
-        return [...out, ...inc, ...multi, ...hotelCity];
-      }).filter(place => place && typeof place === 'string' && place.length >= 2) as string[]));
+        [...outSegments, ...incSegments, ...multiSegments].forEach((s: any) => {
+          if (s.origin) {
+            const match = String(s.origin).match(/\(([A-Z]{3})\)/);
+            iatas.add(match ? match[1] : String(s.origin).toUpperCase().trim());
+          }
+          if (s.destination) {
+            const match = String(s.destination).match(/\(([A-Z]{3})\)/);
+            iatas.add(match ? match[1] : String(s.destination).toUpperCase().trim());
+          }
+        });
+
+        if (item.type === 'hospedagem') {
+          if ((item as any).city) iatas.add(String((item as any).city).toUpperCase().trim());
+        }
+      });
+      
+      return Array.from(iatas).filter(iata => iata && iata.length >= 2);
     } catch (e) {
+      console.error("Erro ao processar IATAs para o mapa:", e);
       return [];
     }
   }, [lead?.items]);

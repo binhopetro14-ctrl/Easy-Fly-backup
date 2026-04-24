@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { Toaster } from 'react-hot-toast';
+
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
@@ -23,7 +25,10 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           } catch (_) {}
         `}} />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <Toaster position="top-right" />
+      </body>
     </html>
   );
 }

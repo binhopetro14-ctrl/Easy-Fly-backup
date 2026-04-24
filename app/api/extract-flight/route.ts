@@ -49,6 +49,8 @@ export async function POST(req: Request) {
         "flights": [
           {
             "date": "DD/MMM (ex: 15/Abr)",
+            "departureDate": "DD/MMM (ex: 15/Abr)",
+            "arrivalDate": "DD/MMM (ex: 16/Abr)",
             "origin": "Cidade (IATA)",
             "originAirport": "Nome do Aeroporto",
             "destination": "Cidade (IATA)",
@@ -65,45 +67,51 @@ export async function POST(req: Request) {
       1. Se houver conexões, liste cada trecho separadamente.
       2. Identifique onde começa a volta e marque 'isReturn: true' a partir desse trecho.
       3. Seja extremamente preciso com horários e códigos IATA.
+      4. IMPORTANTE: Identifique se o voo chega no dia seguinte (normalmente indicado por "+1" ao lado do horário de chegada ou pela duração longa) e forneça a 'arrivalDate' correta. Se a imagem não mostrar a data de chegada explicitamente, calcule-a com base na duração e horário de partida.
     `;
 
-    // Lista de modelos a tentar, priorizando o solicitado pelo usuário e os estáveis
+    // Lista de modelos a tentar, priorizando os mais recentes e estáveis verificado na API atual (2026)
     const modelsToTry = [
-      'gemini-3-flash-preview', // Solicitado pelo usuário como funcional
-      'gemini-2.0-flash-exp',    // Experimental rápido
-      'gemini-1.5-flash',        // Estável e rápido
-      'gemini-1.5-flash-latest'
+      'gemini-3.1-flash-preview',
+      'gemini-3-flash-preview',
+      'gemini-2.1-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-1.5-flash'
     ];
 
-    let lastError = '';
+    let modelErrors: string[] = [];
 
     for (const modelName of modelsToTry) {
       try {
         console.log(`[extract-flight] Tentando modelo: ${modelName}`);
         const model = genAI.getGenerativeModel({ 
           model: modelName,
-          generationConfig: { responseMimeType: 'application/json' }
+          generationConfig: { 
+            responseMimeType: 'application/json',
+            temperature: 0.1 // Baixa temperatura para extração mais precisa
+          }
         });
 
         const result = await model.generateContent([
           prompt,
           {
             inlineData: {
-              mimeType: 'image/png',
+              mimeType: 'image/png', // A maioria das capturas de itinerário são PNG
               data: base64Data
             }
           }
         ]);
 
-        const textOutput = result.response.text();
+        const response = await result.response;
+        const textOutput = response.text();
+
         if (textOutput) {
-          console.log(`[extract-flight] Sucesso com modelo: ${modelName}`);
+          console.log(`[extract-flight] Sucesso absoluto com modelo: ${modelName}`);
           const data = JSON.parse(textOutput);
           
           // ---- PÓS-PROCESSAMENTO PARA CORREÇÃO DE AEROPORTOS ----
           if (data.flights && Array.isArray(data.flights)) {
             data.flights = data.flights.map((f: any) => {
-              // Extrai o código IATA de campos como "Belfast (BFS)" ou usa o código puro se fornecido separadamente
               const originCode = extractIataCode(f.origin) || f.origin;
               const destCode = extractIataCode(f.destination) || f.destination;
 
@@ -119,14 +127,15 @@ export async function POST(req: Request) {
           return NextResponse.json(data);
         }
       } catch (e: any) {
-        console.warn(`[extract-flight] Erro no modelo ${modelName}:`, e.message);
-        lastError = e.message;
-        // Continua para o próximo modelo se este falhar
+        const errorMsg = `Modelo ${modelName}: ${e.message}`;
+        console.warn(`[extract-flight] Falha no ${errorMsg}`);
+        modelErrors.push(errorMsg);
+        // Continua para o próximo
         continue;
       }
     }
 
-    throw new Error(`Falha em todos os modelos. Último erro: ${lastError}`);
+    throw new Error(`Falha em todos os modelos tentados.\n\nDetalhes:\n${modelErrors.join('\n')}`);
 
   } catch (err: any) {
     console.error('[extract-flight ERROR]', err);

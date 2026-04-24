@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  claw-agent:
+    build: .
+    container_name: claw-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./screenshots:/app/screenshots
+    restart: unless-stopped

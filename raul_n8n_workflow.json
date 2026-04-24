@@ -1,0 +1,312 @@
+{
+  "id": "0qMJgNvB9oQT9JG6",
+  "name": "Raul - Agente de Vendas WhatsApp (Completo)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-raul",
+        "options": {}
+      },
+      "id": "119e7a8e-574f-426c-85e3-999320e8b15d",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = items[0].json.body.data;\nconst message = data.message || {};\nlet text = '';\nlet isAudio = false;\n\nif (message.conversation) {\n  text = message.conversation;\n} else if (message.extendedTextMessage?.text) {\n  text = message.extendedTextMessage.text;\n} else if (message.imageMessage?.caption) {\n  text = message.imageMessage.caption;\n} else if (message.audioMessage) {\n  isAudio = true;\n}\n\nreturn {\n  whatsapp_number: data.key.remoteJid,\n  client_name: data.pushName || 'Cliente',\n  incoming_text: text,\n  is_audio: isAudio,\n  message_id: data.key.id,\n  instance_name: items[0].json.body.instance,\n  audio_base64: message.audioMessage?.url || ''\n};\n"
+      },
+      "id": "6d9e87cf-49e0-40e8-b74c-47eaabae8f81",
+      "name": "Normalizar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 480]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "databaseId": "ai_agent_settings",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "agent_name",
+              "value": "Raul"
+            }
+          ]
+        }
+      },
+      "id": "76ec2f69-d485-48b2-921c-590059c63b4b",
+      "name": "Get Raul Settings",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [840, 480],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CRED_ID",
+          "name": "Supabase Easy Fly"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $node[\"Normalizar Entrada\"].json[\"is_audio\"] ? $node[\"OpenAI Whisper\"].json[\"text\"] : $node[\"Normalizar Entrada\"].json[\"incoming_text\"] }}",
+        "options": {
+          "systemMessage": "=Você é o Raul, consultor especialista da Easy Fly.\n\nPERSONALIDADE: {{ $json.personality }}\nTOM DE VOZ: {{ $json.tone_of_voice }}\n\nINSTRUÇÕES E REGRAS:\n{{ $json.core_instructions }}\n\nNOME DO CLIENTE: {{ $node[\"Normalizar Entrada\"].json[\"client_name\"] }}\n\nOBJETIVO: Venda consultiva de passagens e pacotes.\nResponda sempre de forma humana, simpática e focada em ajudar o cliente a viajar."
+        }
+      },
+      "id": "098e72f9-7f6c-48be-88da-908cf678696c",
+      "name": "AI Agent Raul",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.1,
+      "position": [1080, 480]
+    },
+    {
+      "parameters": {
+        "modelName": "gemini-1.5-flash",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "5f6e72a1-43e8-4682-901d-5ced94801692",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [1020, 680],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "YOUR_GEMINI_CRED_ID",
+          "name": "Google Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.relaxsolucoes.online/message/sendText/{{ $node[\"Normalizar Entrada\"].json[\"instance_name\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "C4C6980B-A4C8-4178-A461-BD67D9B35EF8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Normalizar Entrada\"].json[\"whatsapp_number\"] }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.output }}"
+            },
+            {
+              "name": "delay",
+              "value": "2000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cc8e92f2-12a4-4a6c-9c71-c06872f9c8d1",
+      "name": "Enviar Resposta WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 480]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node[\"Normalizar Entrada\"].json[\"is_audio\"] }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "90e82c1f-4f6c-482a-9e8c-123456789abc",
+      "name": "É Áudio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [440, 480]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d0e82c1f-4f6c-482a-9e8c-abcdef123456",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [1200, 680]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.relaxsolucoes.online/chat/getBase64FromMediaMessage/{{ $node[\"Normalizar Entrada\"].json[\"instance_name\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "C4C6980B-A4C8-4178-A461-BD67D9B35EF8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messageId",
+              "value": "={{ $node[\"Normalizar Entrada\"].json[\"message_id\"] }}"
+            },
+            {
+              "name": "convertToMp3",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "responseFormat": "file"
+        }
+      },
+      "id": "e0e82c1f-4f6c-482a-9e8c-555555555555",
+      "name": "Download Áudio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [620, 320]
+    },
+    {
+      "parameters": {
+        "operation": "transcribe",
+        "language": "pt",
+        "options": {}
+      },
+      "id": "f0e82c1f-4f6c-482a-9e8c-666666666666",
+      "name": "OpenAI Whisper",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [840, 320],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CRED_ID",
+          "name": "OpenAI API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Entrada": {
+      "main": [
+        [
+          {
+            "node": "É Áudio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Áudio?": {
+      "main": [
+        [
+          {
+            "node": "Download Áudio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Raul Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Áudio": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Whisper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Whisper": {
+      "main": [
+        [
+          {
+            "node": "Get Raul Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Raul Settings": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Raul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Raul",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Raul": {
+      "main": [
+        [
+          {
+            "node": "Enviar Resposta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent Raul",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

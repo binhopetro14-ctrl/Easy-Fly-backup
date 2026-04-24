@@ -97,7 +97,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ sales, customers, ma
     sales.forEach(sale => {
       sale.items?.forEach((item, idx) => {
         const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
-        if (item.type === 'passagem') {
+        const isInsurance = item.type === 'seguro' || 
+          item.vendor?.toLowerCase().includes('seguro') || 
+          item.description?.toLowerCase().includes('seguro');
+
+        if (item.type === 'passagem' && !isInsurance) {
           const passengerLabel = item.passengerName ? ` - ${item.passengerName}` : '';
           const boardingTimeStr = item.boardingTime || '00:00';
 

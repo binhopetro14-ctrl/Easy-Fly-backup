@@ -17,6 +17,7 @@ interface CustomerDetailsViewProps {
     sales: Sale[];
     onBack: () => void;
     onEditCustomer: (customer: Customer) => void;
+    onViewSale: (sale: Sale) => void;
     currentUser: any;
 }
 
@@ -25,6 +26,7 @@ export function CustomerDetailsView({
     sales,
     onBack,
     onEditCustomer,
+    onViewSale,
     currentUser
 }: CustomerDetailsViewProps) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -61,7 +63,8 @@ export function CustomerDetailsView({
                         flights.push({
                             ...item,
                             saleId: sale.id,
-                            orderNumber: sale.orderNumber
+                            orderNumber: sale.orderNumber,
+                            sale: sale
                         });
                     }
                 }
@@ -240,7 +243,14 @@ export function CustomerDetailsView({
                                             {customerSales.map(s => (
                                                 <tr key={s.id} className="dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                                     <td className="px-4 py-3">{new Date(s.saleDate || s.createdAt).toLocaleDateString('pt-BR')}</td>
-                                                    <td className="px-4 py-3 font-bold">#{s.orderNumber || s.id.slice(0, 6)}</td>
+                                                    <td className="px-4 py-3 font-bold">
+                                                        <button 
+                                                            onClick={() => onViewSale(s)}
+                                                            className="hover:text-purple-600 transition-colors cursor-pointer"
+                                                        >
+                                                            #{s.orderNumber || s.id.slice(0, 6)}
+                                                        </button>
+                                                    </td>
                                                     <td className="px-4 py-3 font-bold">{formatCurrency(s.totalValue)}</td>
                                                     <td className="px-4 py-3"><span className="bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold">{s.saleStatus}</span></td>
                                                 </tr>
@@ -316,7 +326,12 @@ export function CustomerDetailsView({
                                 {upcomingFlights.map((flight, i) => (
                                     <div key={i} className="p-2.5 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700/50">
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className="text-[10px] font-black text-purple-500 uppercase tracking-tight">#{flight.orderNumber}</span>
+                                            <button 
+                                                onClick={() => onViewSale(flight.sale)}
+                                                className="text-[10px] font-black text-purple-500 hover:text-purple-700 uppercase tracking-tight cursor-pointer"
+                                            >
+                                                #{flight.orderNumber}
+                                            </button>
                                             <span className="text-[10px] text-gray-400">{new Date(flight.departureDate).toLocaleDateString('pt-BR')} {flight.boardingTime}</span>
                                         </div>
                                         <p className="text-[11px] font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">

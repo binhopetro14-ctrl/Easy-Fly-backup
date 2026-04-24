@@ -252,3 +252,39 @@ export interface CalendarEvent {
   isAllDay?: boolean;
   createdAt: string;
 }
+
+// IA - Agente Raul
+export interface AIAgentSettings {
+  id: string;
+  agentName: string;
+  personality: string;
+  toneOfVoice: string;
+  coreInstructions: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface AIAgentLearning {
+  id: string;
+  observation: string;
+  suggestedRule: string;
+  reasoning?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  previousInstructions?: string;
+  approvedAt?: string;
+  createdAt: string;
+}
+
+export interface AIKnowledgeItem {
+  id: string;
+  content: string;
+  category: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface DiffPart {
+  value: string;
+  added?: boolean;
+  removed?: boolean;
+}

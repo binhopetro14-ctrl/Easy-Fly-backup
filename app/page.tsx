@@ -42,7 +42,8 @@ import {
   CheckCircle2,
   Clock,
   Shield,
-  Bot // Agente de Cotação
+  Bot,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Customer, Group, Sale, Supplier, TeamMember, Lead, CalendarEvent } from '@/types';
@@ -52,12 +53,15 @@ import { DashboardView } from '@/components/DashboardView';
 import { CustomersView } from '@/components/CustomersView';
 import { CustomerDetailsView } from '@/components/CustomerDetailsView';
 import { SalesView } from '@/components/SalesView';
+import { SaleDetailsView } from '@/components/SaleDetailsView';
 import { SuppliersView } from '@/components/SuppliersView';
 import { UsersView } from '@/components/UsersView';
 import { useLeads } from '@/hooks/useLeads';
 import { CRMView } from '@/components/CRMView';
 import { FastCotationView } from '@/components/FastCotationView';
 import { AgenteCotacaoView } from '@/components/AgenteCotacaoView';
+import { AgenteClawView } from '@/components/AgenteClawView';
+import { AITrainingView } from '@/components/AITrainingView';
 import { LeadModal } from '@/components/LeadModal';
 import { FinanceiroView } from '@/components/OtherViews';
 import { MetricasView } from '@/components/MetricasView';
@@ -80,7 +84,7 @@ import { useSales } from '@/hooks/useSales';
 import { useSuppliers } from '@/hooks/useSuppliers';
 
 // <--- 'usuarios' adicionado ao tipo View
-type View = 'dashboard' | 'crm' | 'fast-cotation' | 'vendas' | 'clientes' | 'financeiro-controle' | 'financeiro-contas' | 'fornecedores' | 'metricas' | 'usuarios' | 'calendario' | 'agente';
+type View = 'dashboard' | 'crm' | 'fast-cotation' | 'vendas' | 'clientes' | 'financeiro-controle' | 'financeiro-contas' | 'fornecedores' | 'metricas' | 'usuarios' | 'calendario' | 'agente' | 'ai-training' | 'agente-claw';
 
 export default function Page() {
   const { theme, toggleTheme, mounted } = useTheme();
@@ -120,6 +124,7 @@ export default function Page() {
   // --- ESTADOS DE NAVEGAÇÃO ---
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCRMExpanded, setIsCRMExpanded] = useState(false);
@@ -238,6 +243,7 @@ export default function Page() {
   const handleViewChange = (view: View) => {
     setActiveView(view);
     setSelectedCustomer(null);
+    setSelectedSale(null);
     closeMobileMenu();
 
     if (view === 'dashboard') {
@@ -757,7 +763,11 @@ export default function Page() {
           {currentUser?.role === 'Administrador' && (
             <SidebarItem icon={<Truck className="w-5 h-5" />} label="Fornecedores" active={activeView === 'fornecedores'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('fornecedores')} />
           )}
+          
+          <SidebarSection label="Ferramentas" collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
+          <SidebarItem icon={<Wand2 className="w-5 h-5" />} label="Agente Claw" active={activeView === 'agente-claw'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('agente-claw')} />
           <SidebarItem icon={<Bot className="w-5 h-5" />} label="Agente de Cotação" active={activeView === 'agente'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('agente')} />
+          <SidebarItem icon={<Sparkles className="w-5 h-5" />} label="Treinamento Raul (IA)" active={activeView === 'ai-training'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('ai-training')} />
 
           <SidebarSection label="Configurações" collapsed={isSidebarCollapsed && !isMobileMenuOpen} />
           <SidebarItem icon={<Shield className="w-5 h-5" />} label="Usuários" active={activeView === 'usuarios'} collapsed={isSidebarCollapsed && !isMobileMenuOpen} onClick={() => handleViewChange('usuarios')} />
@@ -795,14 +805,29 @@ export default function Page() {
 
         <div className={`flex-1 ${(activeView === 'crm' || activeView.startsWith('financeiro-')) ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-6 lg:p-8'}`}>
           <AnimatePresence mode="wait">
-            <motion.div key={activeView + (selectedCustomer ? '-details' : '')} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+            <motion.div key={activeView + (selectedCustomer ? '-details' : '') + (selectedSale ? '-sale' : '')} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
 
-              {activeView === 'clientes' && selectedCustomer ? (
+              {selectedSale ? (
+                <SaleDetailsView
+                  sale={selectedSale}
+                  onBack={() => setSelectedSale(null)}
+                  onEditSale={openEditSale}
+                  onViewCustomer={(customerId) => {
+                    const customer = customers.find(c => c.id === customerId);
+                    if (customer) {
+                      setSelectedCustomer(customer);
+                      setSelectedSale(null);
+                      setActiveView('clientes');
+                    }
+                  }}
+                />
+              ) : activeView === 'clientes' && selectedCustomer ? (
                 <CustomerDetailsView
                   customer={selectedCustomer}
                   sales={sales}
                   onBack={() => setSelectedCustomer(null)}
                   onEditCustomer={openEditCustomer}
+                  onViewSale={(s) => setSelectedSale(s)}
                   currentUser={currentUser}
                 />
               ) : activeView === 'dashboard' ? (
@@ -839,11 +864,18 @@ export default function Page() {
                   currentUser={currentUser}
                   onAddSale={openAddSale}
                   onEditSale={openEditSale}
+                  onViewSale={(s) => setSelectedSale(s)}
                   onDeleteSale={handleDeleteSale}
                   onUpdateSale={handleQuickUpdateSale}
                   fetchSales={fetchSales}
                   showValues={showValues}
                 />
+              ) : activeView === 'agente-claw' ? (
+                <AgenteClawView />
+              ) : activeView === 'agente' ? (
+                <AgenteCotacaoView />
+              ) : activeView === 'ai-training' ? (
+                <AITrainingView />
               ) : activeView === 'crm' ? (
                 <CRMView
                   leads={leads}
@@ -885,8 +917,6 @@ export default function Page() {
                 <SuppliersView suppliers={suppliers} sales={sales} onAddSupplier={openAddSupplier} onEditSupplier={openEditSupplier} onDeleteSupplier={handleDeleteSupplier} currentUser={currentUser} />
               ) : activeView === 'usuarios' ? (
                 <UsersView currentUser={currentUser} />
-              ) : activeView === 'agente' ? (
-                <AgenteCotacaoView />
               ) : null}
             </motion.div>
           </AnimatePresence>

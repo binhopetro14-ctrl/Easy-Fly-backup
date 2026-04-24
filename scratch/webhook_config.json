@@ -1,0 +1,11 @@
+{
+  "webhook": {
+    "url": "https://nasty-apes-boil.loca.lt/webhook/whatsapp-raul",
+    "enabled": true,
+    "byEvents": false,
+    "base64": false,
+    "events": [
+      "MESSAGES_UPSERT"
+    ]
+  }
+}

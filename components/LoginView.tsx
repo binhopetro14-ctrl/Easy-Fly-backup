@@ -58,8 +58,8 @@ export function LoginView({ onLogin, sessionExpiredMessage }: LoginViewProps) {
             <div className="w-full max-w-md relative z-10 px-4">
                 <div className="bg-white/40 dark:bg-[#1e293b]/60 backdrop-blur-2xl p-8 rounded-[2.5rem] shadow-2xl border border-white/30 dark:border-slate-700/50 flex flex-col gap-4">
                     <div className="text-center pt-2">
-                        <div className="inline-flex items-center justify-center mb-4 transition-transform hover:scale-105 duration-300">
-                            <Image src="/logo2.png" alt="Easy Fly Logo" width={128} height={128} className="w-32 h-auto drop-shadow-xl" />
+                        <div className="inline-flex items-center justify-center mb-6 transition-transform hover:scale-110 duration-500 translate-x-3">
+                            <Image src="/logosemnome2.png" alt="Easy Fly Logo" width={170} height={170} className="w-[163px] h-auto drop-shadow-2xl" />
                         </div>
                         <h1 className="text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none drop-shadow-sm">Easy Fly</h1>
                         <p className="text-[#19727d] dark:text-cyan-400 font-bold text-sm uppercase tracking-[0.4em] mt-3 opacity-90 drop-shadow-sm">Agência de Viagens</p>

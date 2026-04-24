@@ -1,4 +1,4 @@
-import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember, CustomerDocument, CustomerPassenger } from '../types';
+import { Customer, Group, Sale, Supplier, SaleItem, Lead, FinancialAccount, FinancialTransaction, FinancialCategory, FinancialSettings, CalendarEvent, TeamMember, CustomerDocument, CustomerPassenger, AIAgentSettings, AIAgentLearning, AIKnowledgeItem } from '../types';
 
 
 export const mapperService = {
@@ -223,6 +223,32 @@ export const mapperService = {
       birthDate: data.birth_date,
       address: data.address,
       avatarUrl: data.avatar_url
+    }),
+    aiSettings: (data: any): AIAgentSettings => ({
+      id: data.id,
+      agentName: data.agent_name,
+      personality: data.personality,
+      toneOfVoice: data.tone_of_voice,
+      coreInstructions: data.core_instructions,
+      isActive: data.is_active,
+      updatedAt: data.updated_at
+    }),
+    aiLearning: (data: any): AIAgentLearning => ({
+      id: data.id,
+      observation: data.observation,
+      suggestedRule: data.suggested_rule,
+      reasoning: data.reasoning,
+      status: data.status,
+      previousInstructions: data.previous_instructions,
+      approvedAt: data.approved_at,
+      createdAt: data.created_at
+    }),
+    aiKnowledge: (data: any): AIKnowledgeItem => ({
+      id: data.id,
+      content: data.content,
+      category: data.category,
+      isActive: data.is_active,
+      createdAt: data.created_at
     })
   },
 
@@ -463,6 +489,37 @@ export const mapperService = {
         avatar_url: member.avatarUrl
       };
       if (member.id) data.id = member.id;
+      return data;
+    },
+    aiSettings: (settings: Partial<AIAgentSettings>) => {
+      const data: any = {
+        agent_name: settings.agentName,
+        personality: settings.personality,
+        tone_of_voice: settings.toneOfVoice,
+        core_instructions: settings.coreInstructions,
+        is_active: settings.isActive
+      };
+      if (settings.id) data.id = settings.id;
+      return data;
+    },
+    aiKnowledge: (item: Partial<AIKnowledgeItem>) => {
+      const data: any = {
+        content: item.content,
+        category: item.category,
+        is_active: item.isActive
+      };
+      if (item.id) data.id = item.id;
+      return data;
+    },
+    aiLearning: (learning: Partial<AIAgentLearning>) => {
+      const data: any = {
+        observation: learning.observation,
+        suggested_rule: learning.suggestedRule,
+        reasoning: learning.reasoning,
+        status: learning.status,
+        previous_instructions: learning.previousInstructions
+      };
+      if (learning.id) data.id = learning.id;
       return data;
     }
   }

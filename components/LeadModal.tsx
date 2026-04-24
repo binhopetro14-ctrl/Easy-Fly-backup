@@ -46,8 +46,15 @@ const parseAIDate = (dateStr: string) => {
   if (parts.length < 2) return '';
 
   const day = parts[0].padStart(2, '0');
-  const monthAbbr = parts[1].substring(0, 3);
-  const month = months[monthAbbr] || '01';
+  const monthPart = parts[1].trim();
+  let month = '01';
+  
+  if (/^\d+$/.test(monthPart)) {
+    month = monthPart.padStart(2, '0');
+  } else {
+    const monthAbbr = monthPart.substring(0, 3);
+    month = months[monthAbbr] || '01';
+  }
   
   let year = parts[2] ? parts[2].trim() : new Date().getFullYear().toString();
   if (year.length === 2) year = '20' + year;
@@ -694,22 +701,57 @@ export function LeadModal({ isOpen, onClose, onSave, editingLead, suppliers }: L
       if (!res.ok) throw new Error(data.error || 'Erro na extração');
       
       if (data.flights && data.flights.length > 0) {
-        const extractedSegments = data.flights.map((f: any) => ({
-          origin: f.origin || '',
-          destination: f.destination || '',
-          flightNumber: f.flightNumber || '',
-          departureDate: parseAIDate(f.date),
-          departureTime: f.departureTime || '',
-          arrivalDate: parseAIDate(f.date), // Simplificação inicial
-          arrivalTime: f.arrivalTime || '',
-          airline: f.airline || '',
-          duration: f.duration || '',
-          flightClass: 'Econômica',
-          personalItem: 1,
-          carryOn: 1,
-          checkedBag23kg: 0,
-          isReturn: f.isReturn
-        }));
+        const extractedSegments = data.flights.map((f: any) => {
+          const rawDepDate = f.departureDate || f.date;
+          const rawArrDate = f.arrivalDate || f.date || f.departureDate;
+          
+          let depDate = parseAIDate(rawDepDate);
+          let arrDate = parseAIDate(rawArrDate);
+
+          // Forçar a lógica de "Chegada no Dia Seguinte"
+          if (f.departureTime && f.arrivalTime && depDate) {
+            const clean = (t: string) => (t || '').replace(/[^\d:]/g, '');
+            const [dh, dm] = clean(f.departureTime).split(':').map(Number);
+            const [ah, am] = clean(f.arrivalTime).split(':').map(Number);
+            
+            if (!isNaN(dh) && !isNaN(ah)) {
+              const depTotal = dh * 60 + (dm || 0);
+              const arrTotal = ah * 60 + (am || 0);
+              
+              // Se o horário de chegada é menor que o de partida, significa que cruzou a meia-noite
+              if (arrTotal < depTotal) {
+                // Se a IA ainda não incrementou a data, nós incrementamos manualmente
+                const [y, m, d] = depDate.split('-').map(Number);
+                const dt = new Date(y, m - 1, d, 12, 0, 0);
+                dt.setDate(dt.getDate() + 1);
+                
+                const nextDay = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                
+                // Só atualizamos se a data de chegada extraída for igual ou menor que a de partida
+                if (arrDate <= depDate) {
+                  arrDate = nextDay;
+                }
+              }
+            }
+          }
+
+          return {
+            origin: f.origin || '',
+            destination: f.destination || '',
+            flightNumber: f.flightNumber || '',
+            departureDate: depDate,
+            departureTime: f.departureTime || '',
+            arrivalDate: arrDate,
+            arrivalTime: f.arrivalTime || '',
+            airline: f.airline || '',
+            duration: f.duration || '',
+            flightClass: 'Econômica',
+            personalItem: 1,
+            carryOn: 1,
+            checkedBag23kg: 0,
+            isReturn: f.isReturn
+          };
+        });
 
         const outbound = extractedSegments.filter((s: any) => !s.isReturn);
         const inbound = extractedSegments.filter((s: any) => s.isReturn);
