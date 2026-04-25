@@ -4,6 +4,7 @@ import json
 import base64
 import google.generativeai as genai
 from playwright.async_api import async_playwright
+from playwright_stealth import stealth_async
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,7 +30,7 @@ class ClawAgent:
             try:
                 browser = await p.chromium.launch(
                     headless=True,
-                    args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                    args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
                 )
             except Exception as e:
                 log(f"Falha ao lançar navegador: {e}")
@@ -39,6 +40,7 @@ class ClawAgent:
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
             )
             page = await context.new_page()
+            await stealth_async(page)
             
             max_steps = 20
             final_result = "Não foi possível extrair um resultado conclusivo."
