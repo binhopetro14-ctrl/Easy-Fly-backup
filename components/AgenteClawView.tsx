@@ -207,10 +207,12 @@ export function AgenteClawView() {
                         <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                           task.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                           task.status === 'running' ? 'bg-blue-100 text-blue-700 animate-pulse' :
+                          task.status === 'failed' ? 'bg-red-100 text-red-700' :
                           'bg-gray-100 text-gray-600'
                         }`}>
                           {task.status === 'completed' ? 'Finalizado' :
-                           task.status === 'running' ? 'Em progresso' : 'Pendente'}
+                           task.status === 'running' ? 'Em progresso' :
+                           task.status === 'failed' ? 'Erro' : 'Pendente'}
                         </div>
                       </div>
                       
@@ -239,22 +241,36 @@ export function AgenteClawView() {
                               <div className="w-2 h-2 rounded-full bg-amber-400" />
                               <div className="w-2 h-2 rounded-full bg-emerald-400" />
                             </div>
-                          </div>
                         </div>
                       )}
-
-                      {task.result && task.status === 'completed' && (
+                      
+                      {(task.result || task.logs) && (task.status === 'completed' || task.status === 'failed') && (
                         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 space-y-3">
                           <div className="flex gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                              task.status === 'completed' ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-red-50 dark:bg-red-500/10'
+                            }`}>
+                              {task.status === 'completed' ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              ) : (
+                                <AlertCircle className="w-4 h-4 text-red-500" />
+                              )}
                             </div>
-                            <p className="text-xs text-gray-700 dark:text-gray-300 font-bold mt-1">
-                              {task.result}
-                            </p>
+                            <div className="flex-1">
+                              <p className={`text-xs font-bold mt-1 ${
+                                task.status === 'completed' ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 dark:text-red-400'
+                              }`}>
+                                {task.status === 'completed' ? task.result : `Erro na Execução: ${task.result}`}
+                              </p>
+                              {task.status === 'failed' && task.logs && (
+                                <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30 text-[10px] text-red-700 dark:text-red-300 font-mono">
+                                  {task.logs.slice(-1)[0]}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           
-                          {task.details && (
+                          {task.status === 'completed' && task.details && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-11">
                               {task.details.map((d, i) => (
                                 <div key={i} className="bg-gray-50 dark:bg-slate-900/50 p-2 rounded-xl border border-gray-100 dark:border-slate-700">
@@ -265,9 +281,11 @@ export function AgenteClawView() {
                             </div>
                           )}
 
-                          <button className="ml-11 text-[10px] font-black text-[#19727d] uppercase tracking-widest hover:underline">
-                            Gerar Proposta para o Cliente →
-                          </button>
+                          {task.status === 'completed' && (
+                            <button className="ml-11 text-[10px] font-black text-[#19727d] uppercase tracking-widest hover:underline">
+                              Gerar Proposta para o Cliente →
+                            </button>
+                          )}
                         </div>
                       )}
                     </motion.div>
