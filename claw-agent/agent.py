@@ -14,7 +14,7 @@ if api_key:
     genai.configure(api_key=api_key)
 
 class ClawAgent:
-    def __init__(self, model_name="gemini-1.5-flash-latest"):
+    def __init__(self, model_name="gemini-flash-latest"):
         self.model = genai.GenerativeModel(model_name)
         
     async def run_task(self, task_description: str, log_callback=None):
