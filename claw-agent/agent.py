@@ -18,12 +18,22 @@ class ClawAgent:
         self.model = genai.GenerativeModel(model_name)
         
     async def run_task(self, task_description: str, log_callback=None):
+        def log(msg):
+            print(f"🤖 {msg}")
+            if log_callback:
+                log_callback(msg)
+
+        log("🚀 Preparando ambiente Playwright...")
         async with async_playwright() as p:
-            # Lançando browser com argumentos para evitar detecção e rodar bem em Docker
-            browser = await p.chromium.launch(
-                headless=True,
-                args=['--no-sandbox', '--disable-setuid-sandbox']
-            )
+            log("🌐 Lançando navegador Chromium...")
+            try:
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                )
+            except Exception as e:
+                log(f"Falha ao lançar navegador: {e}")
+                raise e
             context = await browser.new_context(
                 viewport={'width': 1280, 'height': 800},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
@@ -33,11 +43,6 @@ class ClawAgent:
             max_steps = 20
             final_result = "Não foi possível extrair um resultado conclusivo."
             
-            def log(msg):
-                print(f"🤖 {msg}")
-                if log_callback:
-                    log_callback(msg)
-
             log(f"Iniciando Agente: {task_description}")
             
             try:

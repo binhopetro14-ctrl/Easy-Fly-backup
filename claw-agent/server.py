@@ -43,7 +43,12 @@ async def process_task(task_id: str, description: str):
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         tasks_db[task_id]["logs"].append(f"[{timestamp}] {message}")
 
-    result = await agent.run_task(description, log_callback=add_log)
+    add_log("Chamando motor do Agente Claw...")
+    try:
+        result = await agent.run_task(description, log_callback=add_log)
+    except Exception as e:
+        add_log(f"Erro ao iniciar o motor: {str(e)}")
+        result = {"status": "error", "message": str(e)}
     
     tasks_db[task_id].update({
         "status": "completed" if result["status"] == "success" else "failed",
