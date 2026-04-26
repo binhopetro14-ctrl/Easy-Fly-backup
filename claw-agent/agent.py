@@ -84,23 +84,27 @@ class ClawAgent:
                     
                     # 2. Prepara o prompt de visão
                     prompt = f"""
-                    Você é um agente de automação de navegador chamado CLAW.
+                    Você é o Agente Claw da agência de viagens 'Easy Fly'.
                     Sua tarefa atual: {task_description}
 
-                    Com base na captura de tela anexada, qual é a próxima ação?
-                    Responda APENAS com um objeto JSON:
+                    Analise a captura de tela anexada e decida o próximo passo.
+                    Responda APENAS com um JSON no formato:
                     {{
-                        "thought": "O que você está vendo e o que vai fazer agora (em português)",
-                        "action": "click" | "type" | "scroll" | "wait" | "navigate" | "done" | "error",
-                        "selector": "seletor css, ID, atributo ou texto exato do elemento",
-                        "text": "texto para digitar (se for type)",
-                        "url": "url para navegar (se for navigate)",
-                        "result": "Se a ação for 'done', coloque aqui o resumo do que você encontrou/fez"
+                        "thought": "seu raciocínio breve aqui",
+                        "action": "click" | "type" | "navigate" | "scroll" | "wait" | "done" | "error",
+                        "selector": "seletor CSS ou texto exato para clique/digitação",
+                        "text": "texto para digitar, se aplicável",
+                        "url": "url para navegar, se aplicável",
+                        "result": "resultado final se action for done"
                     }}
-                    Dicas:
-                    - Se vir campos de busca, use 'type' e depois pressione Enter.
-                    - Se a tarefa for encontrar um preço, navegue até vê-lo e então use 'done'.
-                    - Caso encontre um erro ou CAPTCHA insuperável, use action: 'error'.
+
+                    Dicas para ser assertivo:
+                    1. Se estiver no Google, procure pelo campo de busca (gereralmente [name='q']) e use 'type' com o texto desejado.
+                    2. Para clicar, prefira seletores CSS curtos ou o texto exato do botão.
+                    3. Se a página ainda estiver carregando ou em branco, use 'wait'.
+                    4. Se já realizou a busca e viu os resultados, use 'done' e descreva o que encontrou.
+                    5. Se encontrar um erro persistente, use 'error'.
+                    6. IMPORTANTE: Use 'done' se a tarefa principal for visualizada na tela.
                     """
 
                     # 3. Chama o "cérebro" do Agente
@@ -111,48 +115,59 @@ class ClawAgent:
                         ])
                         
                         raw_text = response.text.strip().replace('```json', '').replace('```', '')
+                        # Limpeza extra para evitar erros de parsing
+                        if '{' in raw_text:
+                            raw_text = raw_text[raw_text.find('{'):raw_text.rfind('}')+1]
+                        
                         decision = json.loads(raw_text)
                     except Exception as e:
-                        log(f"Erro ao interpretar decisão da IA: {e}")
-                        # Tenta de novo sem imagem se for erro de segurança ou similar
-                        break
+                        log(f"Aviso: Falha ao interpretar IA (tentando mais uma vez): {e}")
+                        await asyncio.sleep(2)
+                        continue
 
-                    thought = decision.get('thought', 'Processando...')
+                    thought = decision.get('thought', 'Analisando...')
                     log(thought)
                     
                     action = decision.get("action")
                     
                     if action == "done":
-                        final_result = decision.get("result", "Tarefa concluída.")
-                        log(f"✅ Concluído: {final_result}")
+                        final_result = decision.get("result", "Tarefa finalizada com sucesso.")
+                        log(f"✅ Sucesso: {final_result}")
                         break
                     
                     if action == "error":
-                        final_result = f"Erro reportado pelo agente: {thought}"
+                        final_result = f"Agente parou: {thought}"
                         log(f"❌ {final_result}")
                         break
 
                     try:
                         if action == "click":
+                            sel = decision.get("selector", "")
                             try:
-                                await page.click(decision["selector"], timeout=5000)
+                                await page.click(sel, timeout=7000)
                             except:
-                                await page.get_by_text(decision["selector"]).first.click(timeout=5000)
+                                try:
+                                    await page.get_by_role("button", name=sel).click(timeout=3000)
+                                except:
+                                    await page.get_by_text(sel).first.click(timeout=3000)
                         
                         elif action == "type":
-                            await page.fill(decision["selector"], decision["text"])
+                            sel = decision.get("selector", "[name='q']") # Fallback para busca google
+                            await page.fill(sel, decision.get("text", ""))
                             await page.keyboard.press("Enter")
+                            await asyncio.sleep(2)
                         
                         elif action == "navigate":
-                            await page.goto(decision["url"])
+                            await page.goto(decision.get("url", ""), wait_until="networkidle")
                         
                         elif action == "scroll":
-                            await page.mouse.wheel(0, 500)
+                            await page.mouse.wheel(0, 600)
                         
                         elif action == "wait":
-                            await asyncio.sleep(3)
+                            await asyncio.sleep(4)
+                            
                     except Exception as action_err:
-                        log(f"Aviso: Falha ao executar {action}. Tentando outro caminho...")
+                        log(f"Tentando contornar erro na ação {action}...")
                     
                     await asyncio.sleep(2)
 
