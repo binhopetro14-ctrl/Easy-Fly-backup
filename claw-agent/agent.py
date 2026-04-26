@@ -57,6 +57,9 @@ class ClawAgent:
             
             max_steps = 20
             final_result = "Não foi possível extrair um resultado conclusivo."
+            thought = ""
+            action = ""
+            params = {}
             
             log(f"Iniciando Agente: {task_description}")
             
