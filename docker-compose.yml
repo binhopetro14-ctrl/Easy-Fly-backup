@@ -74,6 +74,22 @@ services:
       - SCREENSHOT_ENABLED=true
       - TIMEOUT=60000
 
+  claw-agent:
+    build: 
+      context: ./claw-agent
+    container_name: claw-agent
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - BROWSER_WS_ENDPOINT=ws://chrome:3000?token=easyfly_claw_789
+    depends_on:
+      - chrome
+    volumes:
+      - ./claw-agent/screenshots:/app/screenshots
+
 
 volumes:
   n8n_data:

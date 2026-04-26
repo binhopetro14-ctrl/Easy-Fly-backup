@@ -4,7 +4,7 @@ import json
 import base64
 import google.generativeai as genai
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import Stealth
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,12 +15,18 @@ if api_key:
     genai.configure(api_key=api_key)
 
 class ClawAgent:
-    def __init__(self, model_name="gemini-flash-latest"):
+    def __init__(self, model_name="gemini-1.5-flash"):
         self.model = genai.GenerativeModel(model_name)
         
-    async def run_task(self, task_description: str, log_callback=None):
+    async def run_task(self, task_description: str, task_id: str = "current", log_callback=None):
         def log(msg):
-            print(f"🤖 {msg}")
+            # Tenta imprimir no terminal com segurança para Windows
+            try:
+                print(f"[Agent] {msg}")
+            except UnicodeEncodeError:
+                print(f"[Agent] {msg.encode('ascii', 'ignore').decode('ascii')}")
+            
+            # Repassa a mensagem limpa para o callback (que adicionará o timestamp)
             if log_callback:
                 log_callback(msg)
 
@@ -28,27 +34,37 @@ class ClawAgent:
         async with async_playwright() as p:
             log("🌐 Lançando navegador Chromium...")
             try:
-                browser = await p.chromium.launch(
-                    headless=True,
-                    args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
-                )
+                # Tenta usar Browserless se configurado, senão local
+                browser_ws = os.getenv("BROWSER_WS_ENDPOINT")
+                if browser_ws:
+                    log(f"Conectando ao Browserless: {browser_ws}")
+                    browser = await p.chromium.connect_over_cdp(browser_ws)
+                else:
+                    browser = await p.chromium.launch(
+                        headless=True,
+                        args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
+                    )
             except Exception as e:
                 log(f"Falha ao lançar navegador: {e}")
                 raise e
+                
             context = await browser.new_context(
                 viewport={'width': 1280, 'height': 800},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
             )
             page = await context.new_page()
-            await stealth_async(page)
+            await Stealth().apply_stealth_async(page)
             
             max_steps = 20
             final_result = "Não foi possível extrair um resultado conclusivo."
             
             log(f"Iniciando Agente: {task_description}")
             
+            # Garantir pasta de screenshots
+            os.makedirs("screenshots", exist_ok=True)
+            
             try:
-                # Começa pelo Google ou vai direto se for URL (simples detecção)
+                # Começa pelo Google ou vai direto se for URL
                 start_url = "https://www.google.com"
                 if task_description.startswith("http"):
                     start_url = task_description.split()[0]
@@ -57,10 +73,11 @@ class ClawAgent:
                 await asyncio.sleep(2)
                 
                 for step in range(max_steps):
-                    log(f"Passo {step + 1} de {max_steps}...")
+                    # 1. Captura a visão atual e salva para o frontend
+                    screenshot_path = f"screenshots/{task_id}.jpg"
+                    screenshot = await page.screenshot(path=screenshot_path, type="jpeg", quality=60)
                     
-                    # 1. Captura a visão atual
-                    screenshot = await page.screenshot(type="jpeg", quality=50)
+                    log(f"Passo {step + 1} de {max_steps}...")
                     
                     # 2. Prepara o prompt de visão
                     prompt = f"""
@@ -84,17 +101,17 @@ class ClawAgent:
                     """
 
                     # 3. Chama o "cérebro" do Agente
-                    response = self.model.generate_content([
-                        prompt,
-                        {"mime_type": "image/jpeg", "data": screenshot}
-                    ])
-                    
-                    # 4. Processa a resposta
                     try:
+                        response = self.model.generate_content([
+                            prompt,
+                            {"mime_type": "image/jpeg", "data": screenshot}
+                        ])
+                        
                         raw_text = response.text.strip().replace('```json', '').replace('```', '')
                         decision = json.loads(raw_text)
                     except Exception as e:
                         log(f"Erro ao interpretar decisão da IA: {e}")
+                        # Tenta de novo sem imagem se for erro de segurança ou similar
                         break
 
                     thought = decision.get('thought', 'Processando...')
@@ -108,13 +125,12 @@ class ClawAgent:
                         break
                     
                     if action == "error":
-                        final_result = f"Erro reportado pelo agente: {decision.get('thought')}"
+                        final_result = f"Erro reportado pelo agente: {thought}"
                         log(f"❌ {final_result}")
                         break
 
                     try:
                         if action == "click":
-                            # Tenta clicar por seletor ou por texto se o seletor falhar
                             try:
                                 await page.click(decision["selector"], timeout=5000)
                             except:
@@ -133,9 +149,9 @@ class ClawAgent:
                         elif action == "wait":
                             await asyncio.sleep(3)
                     except Exception as action_err:
-                        log(f"Aviso: Falha ao executar {action} em '{decision.get('selector')}'. Tentando outro caminho...")
+                        log(f"Aviso: Falha ao executar {action}. Tentando outro caminho...")
                     
-                    await asyncio.sleep(1.5)
+                    await asyncio.sleep(2)
 
                 return {
                     "status": "success" if action == "done" else "failed",

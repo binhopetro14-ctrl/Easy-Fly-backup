@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface ClawTask {
   id: string;
+  backendTaskId?: string;
   command: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   result?: string;
@@ -16,6 +17,11 @@ interface ClawTask {
   logs?: string[];
   createdAt: string;
 }
+
+const getAgentUrl = () => {
+    // Forçando o uso da VPS no Hostinger conforme solicitação do usuário
+    return 'https://claw-agent-claw-agent.3cmm3y.easypanel.host';
+};
 
 export function AgenteClawView() {
   const [command, setCommand] = useState('');
@@ -54,10 +60,10 @@ export function AgenteClawView() {
   };
 
   const startTask = async (id: string, command: string) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'running', logs: ['🤖 Iniciando conexão com a VPS...'] } : t));
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'running', logs: ['🤖 Iniciando conexão com o Agente...'] } : t));
     setIsRunning(true);
 
-    const AGENT_URL = 'https://claw-agent-claw-agent.3cmm3y.easypanel.host';
+    const AGENT_URL = getAgentUrl();
 
     try {
       // 1. Enviar tarefa para a VPS
@@ -79,9 +85,10 @@ export function AgenteClawView() {
           
           const statusData = await statusRes.json();
           
-          // Atualiza logs em tempo real
+          // Atualiza logs e ID do backend
           setTasks(prev => prev.map(t => t.id === id ? { 
             ...t, 
+            backendTaskId: task_id,
             logs: statusData.logs || t.logs,
             status: statusData.status === 'completed' ? 'completed' : 
                     statusData.status === 'failed' ? 'failed' : 'running'
@@ -229,17 +236,31 @@ export function AgenteClawView() {
                             <div className="animate-pulse">_</div>
                           </div>
                           
-                          {/* Monitor de Navegação (Simulado) */}
+                          {/* Monitor de Navegação */}
                           <div className="relative bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden h-40 border border-gray-300 dark:border-slate-600 group">
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
-                              <p className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-tighter">Visualização do Navegador (VPS)</p>
-                              <p className="text-[9px] text-gray-400 mt-1 italic">Conectando ao fluxo de renderização...</p>
-                            </div>
-                            <div className="absolute top-2 left-2 flex gap-1">
+                            {task.backendTaskId ? (
+                              <img 
+                                src={`${getAgentUrl()}/screenshot/${task.backendTaskId}?t=${Date.now()}`} 
+                                alt="Browser View"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Fallback se a imagem falhar
+                                  (e.target as any).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
+                                <p className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-tighter">Preparando Navegador</p>
+                              </div>
+                            )}
+                            <div className="absolute top-2 left-2 flex gap-1 bg-black/20 p-1 rounded-md backdrop-blur-sm">
                               <div className="w-2 h-2 rounded-full bg-red-400" />
                               <div className="w-2 h-2 rounded-full bg-amber-400" />
                               <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                            </div>
+                            <div className="absolute bottom-2 right-2 bg-indigo-600/80 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-bold text-white uppercase tracking-widest">
+                               Live View
                             </div>
                           </div>
                         </div>
