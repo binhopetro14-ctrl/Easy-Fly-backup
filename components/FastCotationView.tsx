@@ -913,7 +913,7 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
               </div>
 
               {/* Título Central - ABSOLUTE CENTERED */}
-              <div className="absolute left-1/2 top-14 -translate-x-1/2 flex flex-col items-center justify-center w-full max-w-[400px] z-10 pointer-events-none">
+              <div className="absolute left-1/2 top-14 -translate-x-1/2 flex flex-col items-center justify-center w-full max-w-[500px] z-10 pointer-events-none">
                 <h1 className="text-[34px] font-[900] text-center tracking-tight text-[#0a192f] uppercase m-0 p-0">
                   PROPOSTA DE VIAGEM
                 </h1>
@@ -924,14 +924,14 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                     <div className="h-[2px] w-12 sm:w-16 bg-gradient-to-r from-cyan-500 to-transparent"></div>
                   </div>
                   {mainRoute && (
-                    <div className="flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-500">
-                      <span className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-1 duration-500 w-full justify-center px-4">
+                      <span className={`${mainRoute.origin.length > 12 ? 'text-lg' : 'text-xl'} font-black text-gray-400 uppercase ${mainRoute.origin.length > 10 ? 'tracking-normal' : 'tracking-[0.2em]'} whitespace-nowrap`}>
                         {mainRoute.origin}
                       </span>
-                      <div className="relative w-14 h-6 opacity-80">
+                      <div className="relative w-12 h-6 opacity-80 shrink-0">
                         <Image src="/aviaoparacinza.png" alt="Para" layout="fill" objectFit="contain" unoptimized />
                       </div>
-                      <span className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">
+                      <span className={`${mainRoute.destination.length > 12 ? 'text-lg' : 'text-xl'} font-black text-gray-400 uppercase ${mainRoute.destination.length > 10 ? 'tracking-normal' : 'tracking-[0.2em]'} whitespace-nowrap`}>
                         {mainRoute.destination}
                       </span>
                     </div>
@@ -1021,7 +1021,7 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                       {/* Card Body */}
                       <div className="relative z-20 bg-white/80 backdrop-blur-sm rounded-2xl rounded-tl-none shadow-[0_4px_20px_rgb(0,0,0,0.06)] border border-white/50 px-6 py-2 w-full">
                         {group.legs.map((leg, lIdx) => (
-                          <div key={lIdx} className="grid grid-cols-3 gap-0 py-3 border-b border-gray-200 last:border-0 relative min-h-[90px] items-center">
+                          <div key={lIdx} className="grid grid-cols-[1.2fr_0.6fr_1.2fr] gap-0 py-3 border-b border-gray-200 last:border-0 relative min-h-[90px] items-center">
                             {/* ORIGEM */}
                             <div className="flex flex-col justify-center h-full pl-2">
                               <div className="flex items-center gap-1.5 text-gray-400 mb-1">
@@ -1029,11 +1029,11 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                                 <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest leading-none">ORIGEM</span>
                               </div>
                               <div className="flex items-baseline gap-1">
-                                <span className="text-lg sm:text-xl font-black text-[#1a2b3c] uppercase tracking-tight leading-none">
+                                <span className={`${(leg.origin?.split('(')[0]?.length || 0) > 12 ? 'text-base' : 'text-lg sm:text-xl'} font-black text-[#1a2b3c] uppercase tracking-tight leading-none whitespace-nowrap`}>
                                   {leg.origin?.split('(')[0] || '---'}
                                 </span>
                                 {leg.origin?.includes('(') && (
-                                  <span className="text-[11px] sm:text-[13px] font-bold text-gray-400 uppercase leading-none">
+                                  <span className="text-[11px] sm:text-[13px] font-bold text-gray-400 uppercase leading-none shrink-0">
                                     ({leg.origin.split('(')[1]}
                                   </span>
                                 )}
@@ -1087,11 +1087,11 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                               </div>
                               <div className="flex items-baseline gap-1 justify-end">
                                 {leg.destination?.includes('(') && (
-                                  <span className="text-[11px] sm:text-[13px] font-bold text-gray-400 uppercase leading-none">
+                                  <span className="text-[11px] sm:text-[13px] font-bold text-gray-400 uppercase leading-none shrink-0">
                                     ({leg.destination.split('(')[1]}
                                   </span>
                                 )}
-                                <span className="text-lg sm:text-xl font-black text-[#1a2b3c] uppercase tracking-tight leading-none text-right">
+                                <span className={`${(leg.destination?.split('(')[0]?.length || 0) > 12 ? 'text-base' : 'text-lg sm:text-xl'} font-black text-[#1a2b3c] uppercase tracking-tight leading-none text-right whitespace-nowrap`}>
                                   {leg.destination?.split('(')[0] || '---'}
                                 </span>
                               </div>

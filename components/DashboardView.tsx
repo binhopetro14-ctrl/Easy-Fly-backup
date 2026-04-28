@@ -8,8 +8,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
+  ReferenceLine
 } from 'recharts';
+import { NumericFormat } from 'react-number-format';
+import { supabase } from '@/lib/supabase';
 import {
   format,
   parseISO,
@@ -31,7 +34,12 @@ import {
   Bell,
   Plus,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Edit2,
+  Check,
+  Sparkles,
+  PartyPopper,
+  Zap
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Sale, TeamMember, CalendarEvent } from '@/types';
@@ -64,10 +72,73 @@ export function DashboardView({
   onToggleValues
 }: DashboardViewProps) {
   const [isMounted, setIsMounted] = React.useState(false);
+  const [monthlyGoal, setMonthlyGoal] = useState<number>(50000);
+  const [nextMonthGoal, setNextMonthGoal] = useState<number>(60000);
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [isEditingNextGoal, setIsEditingNextGoal] = useState(false);
+  const [tempGoal, setTempGoal] = useState<string>('50000');
+  const [tempNextGoal, setTempNextGoal] = useState<string>('60000');
+  const [isSavingGoal, setIsSavingGoal] = useState(false);
 
   React.useEffect(() => {
     setIsMounted(true);
+    fetchGoals();
   }, []);
+
+  const fetchGoals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('financial_settings')
+        .select('key, value');
+      
+      if (data && !error) {
+        const current = data.find(i => i.key === 'monthly_goal');
+        const next = data.find(i => i.key === 'next_month_goal');
+
+        if (current) {
+          setMonthlyGoal(parseFloat(current.value));
+          setTempGoal(current.value);
+        }
+        if (next) {
+          setNextMonthGoal(parseFloat(next.value));
+          setTempNextGoal(next.value);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao buscar metas:", err);
+    }
+  };
+
+  const handleSaveGoal = async (type: 'current' | 'next') => {
+    setIsSavingGoal(true);
+    const key = type === 'current' ? 'monthly_goal' : 'next_month_goal';
+    const val = type === 'current' ? tempGoal : tempNextGoal;
+
+    try {
+      const cleanVal = val.replace(/[^\d.]/g, '');
+      const newVal = parseFloat(cleanVal);
+      
+      if (!isNaN(newVal)) {
+        const { error } = await supabase
+          .from('financial_settings')
+          .upsert({ key, value: newVal.toString() });
+
+        if (!error) {
+          if (type === 'current') {
+            setMonthlyGoal(newVal);
+            setIsEditingGoal(false);
+          } else {
+            setNextMonthGoal(newVal);
+            setIsEditingNextGoal(false);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao salvar meta:", err);
+    } finally {
+      setIsSavingGoal(false);
+    }
+  };
   const fmt = (value: number) => showValues
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
     : '••••••';
@@ -152,40 +223,35 @@ export function DashboardView({
   };
   const chartData = React.useMemo(() => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const data = months.map(month => ({
-      name: month,
-      Faturamento: 0,
-      Comissão: 0,
-      FaturamentoMensal: 0,
-      ComissaoMensal: 0
-    }));
     const now = new Date();
     const currentYear = now.getFullYear();
+    const currentMonthIndex = now.getMonth();
+
+    const data = months.map((month, index) => {
+      const item: any = { name: month };
+      // Só inicializamos com 0 se for mês passado ou atual
+      if (index <= currentMonthIndex) {
+        item.Faturamento = 0;
+        item.Comissão = 0;
+      }
+      return item;
+    });
+
     sales.forEach(sale => {
       const saleDate = new Date(sale.saleDate || sale.createdAt);
       if (saleDate.getFullYear() === currentYear) {
         const monthIndex = saleDate.getMonth();
-        const commissions = sale.items?.reduce((sum, item) => sum + (item.additionalCosts || 0), 0) || 0;
-        const profit = commissions > 0 ? commissions : (sale.totalValue - sale.totalCost);
-        data[monthIndex].Faturamento += (sale.totalValue || 0);
-        data[monthIndex].Comissão += profit;
+        // Garantimos que não vamos inserir dados fora do range inicializado, 
+        // embora sales geralmente não tenham datas futuras
+        if (data[monthIndex] && monthIndex <= currentMonthIndex) {
+          const commissions = sale.items?.reduce((sum, item) => sum + (item.additionalCosts || 0), 0) || 0;
+          const profit = commissions > 0 ? commissions : (sale.totalValue - sale.totalCost);
+          data[monthIndex].Faturamento += (sale.totalValue || 0);
+          data[monthIndex].Comissão += profit;
+        }
       }
     });
-    // Acumular valores para visão geral acumulativa (Running Total)
-    let accumFaturamento = 0;
-    let accumComissao = 0;
-
-    data.forEach(d => {
-      // Preservar valores mensais individuais para o Tooltip
-      d.FaturamentoMensal = d.Faturamento;
-      d.ComissaoMensal = d.Comissão;
-      accumFaturamento += d.Faturamento;
-      accumComissao += d.Comissão;
-
-      // Valores acumulados para a linha do gráfico
-      d.Faturamento = accumFaturamento;
-      d.Comissão = accumComissao;
-    });
+    // Mostrar todos os meses do ano com valores isolados
     return data;
   }, [sales]);
   const sellerRanking = React.useMemo(() => {
@@ -368,6 +434,41 @@ export function DashboardView({
       <option value="Pago">Pago</option>
     </select>
   );
+
+  const Confetti = () => {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ 
+              opacity: 1, 
+              y: '100%', 
+              x: `${Math.random() * 100}%`,
+              scale: Math.random() * 0.5 + 0.5,
+              rotate: 0 
+            }}
+            animate={{ 
+              opacity: 0, 
+              y: '-20%', 
+              x: `${(Math.random() - 0.5) * 50 + 50}%`,
+              rotate: Math.random() * 360 
+            }}
+            transition={{ 
+              duration: Math.random() * 2 + 1, 
+              repeat: Infinity, 
+              ease: "easeOut",
+              delay: Math.random() * 2
+            }}
+            className={`absolute w-2 h-2 rounded-sm ${
+              ['bg-yellow-400', 'bg-blue-400', 'bg-pink-400', 'bg-green-400', 'bg-purple-400'][Math.floor(Math.random() * 5)]
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 md:space-y-6 w-full pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
@@ -388,11 +489,17 @@ export function DashboardView({
           <HeaderButton icon={<Wand2 className="w-4 h-4" />} label="Fazer cotação" onClick={onAddLead} primary />
         </div>
       </div>
-      <div className="bg-[#f8fafc]/50 dark:bg-slate-800/40 p-4 md:p-6 rounded-2xl border border-[#19727d]/20 dark:border-[#19727d]/10 w-full hover:shadow-md transition-shadow">
-        <div className="flex flex-col lg:flex-row gap-4 md:gap-8 w-full">
+      <div className={`relative p-4 md:p-6 rounded-2xl border transition-all duration-700 w-full hover:shadow-md ${
+        currentMonthSalesData.totalFaturamento >= monthlyGoal 
+          ? 'bg-gradient-to-br from-amber-50/80 via-white to-amber-50/80 dark:from-amber-900/10 dark:via-slate-800/40 dark:to-amber-900/10 border-amber-200 dark:border-amber-500/30 shadow-[0_0_20px_-5px_rgba(251,191,36,0.2)]'
+          : 'bg-[#f8fafc]/50 dark:bg-slate-800/40 border-[#19727d]/20 dark:border-[#19727d]/10 shadow-none'
+      }`}>
+        {currentMonthSalesData.totalFaturamento >= monthlyGoal && <Confetti />}
+        
+        <div className="flex flex-col lg:flex-row gap-4 md:gap-8 w-full relative z-10">
           {/* Widget de Meta do Mês Integrado */}
           {(() => {
-            const goalValue = 50000;
+            const goalValue = monthlyGoal;
             const currentFaturamento = currentMonthSalesData.totalFaturamento;
             const progressPercent = Math.round(Math.min(100, (currentFaturamento / goalValue) * 100));
             const remainingValue = Math.max(0, goalValue - currentFaturamento);
@@ -405,39 +512,155 @@ export function DashboardView({
             return (
               <div className="lg:w-[45%] flex flex-col justify-center relative overflow-hidden group min-h-[160px]">
                 <div className="flex items-center gap-3 mb-4 relative z-10">
-                  <div className="w-10 h-10 rounded-xl bg-[#19727d]/10 dark:bg-[#19727d]/20 flex items-center justify-center text-[#19727d] dark:text-[#19727d] shadow-sm border border-white/50 dark:border-white/10">
-                    <Luggage className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-xl bg-[#19727d]/10 dark:bg-[#19727d]/20 flex items-center justify-center text-[#19727d] dark:text-[#19727d] shadow-sm border border-white/50 dark:border-white/10 relative overflow-hidden">
+                    {progressPercent >= 100 && (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                      />
+                    )}
+                    <Luggage className="w-5 h-5 relative z-10" />
                   </div>
-                  <div className="flex flex-baseline gap-2">
+                  <div className="flex flex-baseline gap-2 group/title relative">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Meta do Mês</h3>
-                    <span className="text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">R$ 50.000</span>
+                    
+                    {isEditingGoal ? (
+                      <div className="flex items-center gap-2 ml-1 animate-in fade-in slide-in-from-left-2 duration-300">
+                        <NumericFormat
+                          value={tempGoal}
+                          onValueChange={(values) => setTempGoal(values.value)}
+                          thousandSeparator="."
+                          decimalSeparator=","
+                          prefix="R$ "
+                          className="bg-white dark:bg-slate-900 border border-[#19727d] rounded-lg px-2 py-0.5 text-sm font-black w-32 outline-none focus:ring-2 focus:ring-[#19727d]/20"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveGoal('current');
+                            if (e.key === 'Escape') setIsEditingGoal(false);
+                          }}
+                        />
+                        <button 
+                          onClick={() => handleSaveGoal('current')}
+                          disabled={isSavingGoal}
+                          className="p-1 bg-[#19727d] text-white rounded-md hover:bg-[#15616a] transition-colors"
+                        >
+                          {isSavingGoal ? <Clock className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 stroke-[4]" />}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-extrabold text-[#19727d] dark:text-[#19727d]/90 tracking-tight">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(monthlyGoal)}
+                        </span>
+                        {currentUser?.role === 'Administrador' && (
+                          <button 
+                            onClick={() => setIsEditingGoal(true)}
+                            className="p-1.5 text-gray-300 hover:text-[#19727d] hover:bg-[#19727d]/5 rounded-lg transition-all opacity-0 group-hover/title:opacity-100"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4 mb-4 relative z-10">
                   <div className="flex-1 h-3.5 bg-white/50 dark:bg-slate-700/50 rounded-full overflow-hidden border border-white dark:border-slate-600 shadow-inner">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progressPercent}%` }}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
-                      className="h-full bg-[#19727d] shadow-lg shadow-[#19727d]/20"
-                    />
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progressPercent}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className={`h-full shadow-lg ${
+                          progressPercent >= 100 
+                            ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-amber-500/40' 
+                            : 'bg-[#19727d] shadow-[#19727d]/20'
+                        }`}
+                      >
+                        {progressPercent >= 100 && (
+                          <motion.div
+                            animate={{ x: ['-100%', '200%'] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                          />
+                        )}
+                      </motion.div>
                   </div>
                   <span className="text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap">
                     {progressPercent}%
                   </span>
                 </div>
                 <div className="relative z-10 space-y-1">
-                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
-                    {progressPercent >= 100
-                      ? "Objetivo alcançado! 🎉"
-                      : <>{`Faltam `}<span className="text-gray-950 dark:text-white font-black">{fmt(remainingValue)}</span>{` para bater sua meta.`}</>}
-                  </p>
+                  <motion.div
+                    animate={progressPercent >= 100 ? { 
+                      scale: [1, 1.05, 1],
+                      transition: { duration: 2, repeat: Infinity }
+                    } : {}}
+                  >
+                    <p className={`text-lg font-bold tracking-tight leading-tight flex items-center gap-2 ${
+                      progressPercent >= 100 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-gray-100'
+                    }`}>
+                      {progressPercent >= 100
+                        ? <><PartyPopper className="w-5 h-5" /> Objetivo alcançado! 🎉</>
+                        : <>{`Faltam `}<span className="text-gray-950 dark:text-white font-black">{fmt(remainingValue)}</span>{` para bater sua meta.`}</>}
+                    </p>
+                  </motion.div>
                   <div className="flex items-center gap-1.5 opacity-70">
-                    <span className="text-xs">🔔</span>
-                    <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 italic">
+                    <Sparkles className={`w-3 h-3 ${progressPercent >= 100 ? 'text-amber-500' : 'text-gray-400'}`} />
+                    <p className={`text-[11px] font-semibold italic ${
+                      progressPercent >= 100 ? 'text-amber-600 dark:text-amber-500' : 'text-gray-500 dark:text-gray-400'
+                    }`}>
                       {getMotivationalMessage(progressPercent)}
                     </p>
                   </div>
+                </div>
+
+                {/* Meta Próximo Mês */}
+                <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Meta Próximo Mês:
+                    </span>
+                  </div>
+                  
+                  {isEditingNextGoal ? (
+                    <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-right-2 duration-300">
+                      <NumericFormat
+                        value={tempNextGoal}
+                        onValueChange={(values) => setTempNextGoal(values.value)}
+                        thousandSeparator="."
+                        decimalSeparator=","
+                        prefix="R$ "
+                        className="bg-white dark:bg-slate-900 border border-amber-300 rounded-md px-2 py-0.5 text-[10px] font-black w-24 outline-none"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveGoal('next');
+                          if (e.key === 'Escape') setIsEditingNextGoal(false);
+                        }}
+                      />
+                      <button 
+                        onClick={() => handleSaveGoal('next')}
+                        className="p-1 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors"
+                      >
+                        <Check className="w-2.5 h-2.5 stroke-[4]" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 group/next">
+                      <span className="text-xs font-black text-[#19727d] dark:text-[#19727d]/80">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(nextMonthGoal)}
+                      </span>
+                      {currentUser?.role === 'Administrador' && (
+                        <button 
+                          onClick={() => setIsEditingNextGoal(true)}
+                          className="p-1 text-gray-300 hover:text-amber-500 rounded-md opacity-0 group-hover/next:opacity-100 transition-all"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="absolute top-0 right-0 w-100 h-full bg-gradient-to-l from-[#19727d]/2 dark:from-[#19727d]/10 to-transparent pointer-events-none" />
               </div>
@@ -490,7 +713,13 @@ export function DashboardView({
                     <stop offset="95%" stopColor="#64748B" stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.6} />
+                <ReferenceLine 
+                  y={10000} 
+                  stroke="#E5E7EB" 
+                  strokeDasharray="3 3" 
+                  strokeWidth={1}
+                />
                 <XAxis
                   dataKey="name"
                   axisLine={false}
@@ -503,6 +732,7 @@ export function DashboardView({
                   tickLine={false}
                   tick={{ fill: '#9CA3AF', fontSize: 11, fontWeight: 'bold' }}
                   tickFormatter={(value) => showValues ? `R$${Math.floor(value / 1000)}k` : '••k'}
+                  domain={[0, 'auto']}
                 />
                 <Tooltip
                   cursor={{ stroke: '#19727d', strokeWidth: 1, strokeDasharray: '4 4' }}
@@ -514,26 +744,14 @@ export function DashboardView({
                             {payload[0].payload.name}
                           </p>
                           <div className="space-y-2">
-                            <div className="border-b border-gray-50 dark:border-slate-700/50 pb-1">
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-[9px] font-bold text-gray-400 uppercase">Faturamento (Mês)</span>
-                                <span className="text-[10px] font-black text-gray-950 dark:text-gray-100">{fmt(payload[0].payload.FaturamentoMensal)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-[9px] font-bold text-[#19727d] uppercase">Faturamento (Acum.)</span>
-                                <span className="text-[10px] font-black text-[#19727d] dark:text-[#19727d]">{fmt(payload[0].payload.Faturamento)}</span>
-                              </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[9px] font-bold text-[#19727d] uppercase">Faturamento</span>
+                              <span className="text-[10px] font-black text-[#19727d] dark:text-[#19727d]">{fmt(payload[0].payload.Faturamento)}</span>
                             </div>
 
-                            <div className="pt-0.5">
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-[9px] font-bold text-gray-400 uppercase">Comissão (Mês)</span>
-                                <span className="text-[10px] font-black text-gray-950 dark:text-gray-100">{fmt(payload[0].payload.ComissaoMensal)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4">
-                                <span className="text-[9px] font-bold text-slate-500 uppercase">Comissão (Acum.)</span>
-                                <span className="text-[10px] font-black text-slate-600 dark:text-slate-400">{fmt(payload[0].payload.Comissão)}</span>
-                              </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[9px] font-bold text-slate-500 uppercase">Comissão</span>
+                              <span className="text-[10px] font-black text-slate-600 dark:text-slate-400">{fmt(payload[0].payload.Comissão)}</span>
                             </div>
                           </div>
                           {/* Triangle indicator */}
@@ -554,7 +772,7 @@ export function DashboardView({
                   type="monotone"
                   dataKey="Comissão"
                   stroke="#64748B"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorComissão)"
                   activeDot={{ r: 4, fill: '#FFFFFF', stroke: '#64748B', strokeWidth: 2 }}
@@ -563,7 +781,7 @@ export function DashboardView({
                   type="monotone"
                   dataKey="Faturamento"
                   stroke="#19727d"
-                  strokeWidth={3}
+                  strokeWidth={3.5}
                   fillOpacity={1}
                   fill="url(#colorFaturamento)"
                   activeDot={{ r: 6, fill: '#FFFFFF', stroke: '#19727d', strokeWidth: 2 }}
@@ -580,15 +798,19 @@ export function DashboardView({
           <div className="space-y-6">
             {sellerRanking.length > 0 ? (
               sellerRanking.map((seller, index) => {
-                const goal = 50000;
+                const goal = monthlyGoal;
                 const progress = Math.round(Math.min(100, (seller.totalValue / goal) * 100));
                 return (
-                  <div key={seller.name} className="flex flex-col gap-3 group">
+                  <div key={seller.name} className={`flex flex-col gap-3 group p-2 rounded-xl transition-all ${
+                    progress >= 100 ? 'bg-amber-50/30 dark:bg-amber-900/5 border border-amber-100 dark:border-amber-500/20 shadow-sm' : ''
+                  }`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           {seller.avatarUrl ? (
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#19727d]/20 dark:border-slate-700 shadow-sm">
+                            <div className={`w-12 h-12 rounded-full overflow-hidden border-2 shadow-sm ${
+                              progress >= 100 ? 'border-amber-400' : 'border-[#19727d]/20 dark:border-slate-700'
+                            }`}>
                               <Image
                                 src={seller.avatarUrl}
                                 alt={seller.name}
@@ -617,9 +839,16 @@ export function DashboardView({
                           </div>
                         </div>
                         <div>
-                          <h3 className="text-sm font-black text-gray-950 dark:text-gray-100 uppercase tracking-tight leading-none" title={seller.name}>
-                            {seller.name}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-gray-950 dark:text-gray-100 uppercase tracking-tight leading-none" title={seller.name}>
+                              {seller.name}
+                            </h3>
+                            {progress >= 100 && (
+                              <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[8px] font-black rounded-full uppercase tracking-tighter border border-amber-200 dark:border-amber-500/20 animate-bounce">
+                                <Trophy className="w-2 h-2" /> Meta Batida
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-1 italic">
                             {seller.count} {seller.count === 1 ? 'venda' : 'vendas'}
                           </p>
@@ -629,8 +858,10 @@ export function DashboardView({
                         <p className="text-sm font-black text-gray-900 dark:text-gray-100 tracking-tight">
                           {fmt(seller.totalValue)}
                         </p>
-                        <p className="text-[9px] font-bold text-[#19727d] dark:text-[#19727d] uppercase mt-0.5">
-                          {progress}% de R$ 50.000
+                        <p className={`text-[9px] font-bold uppercase mt-0.5 ${
+                          progress >= 100 ? 'text-amber-600 dark:text-amber-400' : 'text-[#19727d] dark:text-[#19727d]'
+                        }`}>
+                          {progress}% de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(monthlyGoal)}
                         </p>
                       </div>
                     </div>
@@ -640,8 +871,8 @@ export function DashboardView({
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 1, ease: "easeOut", delay: index * 0.1 }}
-                        style={{ backgroundColor: '#19727d' }}
-                        className="h-full shadow-sm"
+                        style={{ backgroundColor: progress >= 100 ? '#f59e0b' : '#19727d' }}
+                        className={`h-full shadow-sm ${progress >= 100 ? 'shadow-amber-500/20' : ''}`}
                       />
                     </div>
                   </div>

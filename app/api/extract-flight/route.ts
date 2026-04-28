@@ -34,10 +34,10 @@ export async function POST(req: Request) {
     }
 
     const base64Data = image.split(',')[1] || image;
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'GOOGLE_API_KEY não configurada' }, { status: 500 });
+      return NextResponse.json({ error: 'Chave de API (GEMINI_API_KEY ou GOOGLE_API_KEY) não configurada' }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
