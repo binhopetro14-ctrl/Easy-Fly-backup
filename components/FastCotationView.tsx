@@ -685,6 +685,26 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                         className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-lg px-3 py-1.5 text-[11px] outline-none"
                       />
                     </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-gray-400 uppercase mb-1 block">Aeroporto Origem</label>
+                      <input
+                        type="text"
+                        value={flight.originAirport || ''}
+                        onChange={(e) => updateFlight(idx, 'originAirport', e.target.value)}
+                        placeholder="Nome do Aeroporto"
+                        className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-lg px-3 py-1.5 text-[11px] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-gray-400 uppercase mb-1 block">Aeroporto Destino</label>
+                      <input
+                        type="text"
+                        value={flight.destinationAirport || ''}
+                        onChange={(e) => updateFlight(idx, 'destinationAirport', e.target.value)}
+                        placeholder="Nome do Aeroporto"
+                        className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-lg px-3 py-1.5 text-[11px] outline-none"
+                      />
+                    </div>
                     <div className="col-span-2">
                       <label className="text-[9px] font-bold text-gray-400 uppercase mb-1 block">Duração do Voo</label>
                       <input
@@ -1039,7 +1059,16 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                                 )}
                               </div>
                               {leg.originAirport && (
-                                <span className="text-[7px] sm:text-[8px] font-bold text-gray-400 uppercase leading-tight truncate max-w-full italic mt-1">
+                                <span 
+                                  className="text-[7px] sm:text-[8px] font-bold text-gray-400 uppercase leading-tight italic mt-1 block overflow-hidden"
+                                  style={{ 
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    maxWidth: '180px'
+                                  }}
+                                  title={leg.originAirport}
+                                >
                                   {leg.originAirport}
                                 </span>
                               )}
@@ -1096,7 +1125,17 @@ Aqui na Easy Fly, acompanhamos você durante toda a sua viagem para garantir que
                                 </span>
                               </div>
                               {leg.destinationAirport && (
-                                <span className="text-[7px] sm:text-[8px] font-bold text-gray-400 uppercase leading-tight truncate max-w-full italic text-right mt-1">
+                                <span 
+                                  className="text-[7px] sm:text-[8px] font-bold text-gray-400 uppercase leading-tight italic text-right mt-1 block overflow-hidden"
+                                  style={{ 
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    maxWidth: '180px',
+                                    marginLeft: 'auto'
+                                  }}
+                                  title={leg.destinationAirport}
+                                >
                                   {leg.destinationAirport}
                                 </span>
                               )}

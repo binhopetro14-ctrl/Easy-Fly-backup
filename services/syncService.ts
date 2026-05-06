@@ -31,12 +31,20 @@ export const syncService = {
     return () => clearInterval(interval);
   },
 
-  // Verifica a saúde da conexão
+  // Verifica a saúde da conexão com timeout de 10s
   checkConnection: async (): Promise<boolean> => {
+    const timeout = new Promise<boolean>((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 10000)
+    );
+
     try {
-      const { error } = await supabase.from('customers').select('id', { count: 'exact', head: true });
-      return !error;
-    } catch {
+      const query = supabase.from('customers').select('id', { count: 'exact', head: true });
+      const result = await Promise.race([query, timeout]);
+      
+      if (typeof result === 'boolean') return result;
+      return !result.error;
+    } catch (err) {
+      console.error('Connection health check failed:', err);
       return false;
     }
   }

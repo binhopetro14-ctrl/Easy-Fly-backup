@@ -25,10 +25,20 @@ export const SupabaseSyncHandler: React.FC<Props> = ({ onRefresh, collapsed }) =
 
   const checkConnection = useCallback(async () => {
     setIsSyncing(true);
-    const connected = await syncService.checkConnection();
-    setIsConnected(connected);
-    if (connected) await onRefresh();
-    setIsSyncing(false);
+    try {
+      const connected = await syncService.checkConnection();
+      setIsConnected(connected);
+      if (connected) {
+        await onRefresh();
+      } else {
+        console.warn('SupabaseSyncHandler: Database connection is offline or timed out.');
+      }
+    } catch (err) {
+      console.error('SupabaseSyncHandler: Error during connection check:', err);
+      setIsConnected(false);
+    } finally {
+      setIsSyncing(false);
+    }
   }, [onRefresh]);
 
   useEffect(() => {
